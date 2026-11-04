@@ -1,0 +1,12 @@
+/// <reference types="vitest/config" />
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// base: './' にしておくと GitHub Pages のサブパスでもそのまま動く
+export default defineConfig({
+  base: './',
+  plugins: [react()],
+  // MUI を含めて1ファイルにまとめるため、警告の閾値を上げる
+  build: { chunkSizeWarningLimit: 1000 },
+  test: { environment: 'node' },
+});

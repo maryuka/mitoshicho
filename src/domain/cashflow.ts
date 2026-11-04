@@ -1,0 +1,310 @@
+// 期ごとの集計。スプシの SUM 手書きをすべてここで置き換える（純粋関数）。
+import { addPeriods, comparePeriods, dateInPeriod, lastDayBefore, parseISODate, parsePeriod } from './period';
+import type { Account, AppData, Category, CategoryActual, CategoryKind, Entry, Item } from './types';
+
+export function itemOccurs(item: Item, pid: string): boolean {
+  if (comparePeriods(pid, item.startPeriod) < 0) return false;
+  if (item.endPeriod && comparePeriods(pid, item.endPeriod) > 0) return false;
+  const r = item.recurrence;
+  switch (r.type) {
+    case 'monthly':
+      return true;
+    case 'yearly':
+      return parsePeriod(pid).month === r.month;
+    case 'once':
+      return r.periodId === pid;
+  }
+}
+
+export interface ItemRow {
+  item: Item;
+  category: Category;
+  kind: CategoryKind;
+  /** 予算（上書き or テンプレート）。発生しない期は undefined */
+  planned?: number;
+  /** 計算に使う額（= 予算）。実績はカテゴリ単位で持つ */
+  effective: number;
+  memo?: string;
+  hasOverride: boolean;
+  source?: Account;
+  viaCard: boolean;
+}
+
+export interface CategoryRow {
+  category: Category;
+  kind: CategoryKind;
+  items: ItemRow[];
+  /** 項目の予算の合計 */
+  planned: number;
+  /** 振り返りで入力した実績合計 */
+  actual?: number;
+  /**
+   * 計算に使う額。
+   * 収入・過去の期: 実績 ?? 予算。今期以降の支出: max(実績, 予算)（残りの予算も出ていく前提）
+   */
+  effective: number;
+  /** うちカード払い（予算ベース） */
+  cardPaid: number;
+  /** 口座から直接出ていく額 = effective − カード払い */
+  direct: number;
+  memo?: string;
+}
+
+export interface CardBillRow {
+  card: Account;
+  forecast: number;
+  actual?: number;
+  effective: number;
+  /** 実績 − 予測（実績がある場合） */
+  diff?: number;
+  /** 予測の内訳（前期のカード払い項目） */
+  forecastBreakdown: { label: string; amount: number }[];
+  /** 引落日（個別入力 > カードの引落日） */
+  withdrawDate?: Date;
+  /** 請求確定日（個別入力 > カードの確定日から算出） */
+  confirmDate?: Date;
+}
+
+export interface AllocationRow {
+  account: Account;
+  amount: number;
+  breakdown: { label: string; amount: number }[];
+}
+
+export interface TimelineEvent {
+  date: Date;
+  label: string;
+  amount: number; // 入金は +、出金は −
+  confirmed: boolean;
+}
+
+export interface PeriodSummary {
+  periodId: string;
+  rows: ItemRow[];
+  categories: CategoryRow[];
+  incomeTotal: number;
+  /** 収入以外の項目の合計（カード払い含む、使う予定の総額） */
+  spendTotal: number;
+  /** うちカード払い（この期は現金で出ていかない） */
+  cardPaidTotal: number;
+  /** 口座から直接出ていく項目の合計 */
+  directOutTotal: number;
+  cardBills: CardBillRow[];
+  cardBillTotal: number;
+  receivableTotal: number;
+  /** 現金での出金合計 = 口座払い + カード請求 */
+  cashOutTotal: number;
+  buffer: number;
+  allocation: AllocationRow[];
+  timeline: TimelineEvent[];
+  unconfirmedCardBills: number;
+}
+
+const byOrder = <T extends { sortOrder: number }>(a: T, b: T) => a.sortOrder - b.sortOrder;
+
+export interface Index {
+  accounts: Map<string, Account>;
+  categories: Map<string, Category>;
+  entries: Map<string, Entry>;
+  actuals: Map<string, CategoryActual>;
+}
+
+export function buildIndex(data: AppData): Index {
+  return {
+    accounts: new Map(data.accounts.map((a) => [a.id, a])),
+    categories: new Map(data.categories.map((c) => [c.id, c])),
+    entries: new Map(data.entries.map((e) => [e.id, e])),
+    actuals: new Map(data.categoryActuals.map((a) => [a.id, a])),
+  };
+}
+
+export function entryId(pid: string, itemId: string): string {
+  return `${pid}:${itemId}`;
+}
+
+export function itemRows(data: AppData, pid: string, idx = buildIndex(data)): ItemRow[] {
+  const rows: ItemRow[] = [];
+  for (const item of [...data.items].sort(byOrder)) {
+    const category = idx.categories.get(item.categoryId);
+    if (!category) continue;
+    const entry = idx.entries.get(entryId(pid, item.id));
+    const planned = entry?.planned ?? (itemOccurs(item, pid) ? item.defaultAmount : undefined);
+    if (planned === undefined && !entry) continue;
+    const source = item.sourceAccountId ? idx.accounts.get(item.sourceAccountId) : undefined;
+    rows.push({
+      item,
+      category,
+      kind: category.kind,
+      planned,
+      effective: planned ?? 0,
+      memo: entry?.memo,
+      hasOverride: !!entry,
+      source,
+      viaCard: category.kind !== 'income' && source?.kind === 'card',
+    });
+  }
+  return rows;
+}
+
+/** current: 今の期。これより前の期は実績だけで計算する（既定は pid 自身） */
+export function categoryRows(data: AppData, pid: string, rows: ItemRow[], idx = buildIndex(data), current = pid): CategoryRow[] {
+  const past = comparePeriods(pid, current) < 0;
+  const result: CategoryRow[] = [];
+  for (const category of [...data.categories].sort(byOrder)) {
+    const items = rows.filter((r) => r.category.id === category.id);
+    const actualRec = idx.actuals.get(categoryActualId(pid, category.id));
+    if (items.length === 0 && !actualRec) continue;
+    const planned = items.reduce((s, r) => s + (r.planned ?? 0), 0);
+    const actual = actualRec?.amount;
+    const effective = category.kind === 'income' || past
+      ? actual ?? planned
+      : Math.max(actual ?? 0, planned);
+    const cardPaid = items.filter((r) => r.viaCard).reduce((s, r) => s + r.effective, 0);
+    result.push({
+      category, kind: category.kind, items, planned, actual, effective,
+      cardPaid, direct: Math.max(0, effective - cardPaid), memo: actualRec?.memo,
+    });
+  }
+  return result;
+}
+
+export function categoryActualId(pid: string, categoryId: string): string {
+  return `${pid}:${categoryId}`;
+}
+
+export function cardBillRows(data: AppData, pid: string, idx = buildIndex(data)): CardBillRow[] {
+  const cards = data.accounts.filter((a) => a.kind === 'card').sort(byOrder);
+  const prevRows = new Map<number, ItemRow[]>();
+  const rowsFor = (lag: number) => {
+    if (!prevRows.has(lag)) prevRows.set(lag, itemRows(data, addPeriods(pid, -lag), idx));
+    return prevRows.get(lag)!;
+  };
+  const result: CardBillRow[] = [];
+  for (const card of cards) {
+    const lag = card.billLagPeriods ?? 1;
+    const charged = rowsFor(lag).filter((r) => r.viaCard && r.source?.id === card.id && r.effective !== 0);
+    const forecast = charged.reduce((s, r) => s + r.effective, 0);
+    const bill = data.cardBills.find((b) => b.periodId === pid && b.cardId === card.id);
+    const actual = bill?.actual;
+    if (card.archived && forecast === 0 && actual === undefined) continue;
+    const withdrawDate = bill?.withdrawDate ? parseISODate(bill.withdrawDate)
+      : card.withdrawDay !== undefined ? dateInPeriod(pid, data.settings.periodStartDay, card.withdrawDay) : undefined;
+    const confirmDate = bill?.confirmDate ? parseISODate(bill.confirmDate)
+      : withdrawDate && card.confirmDay !== undefined ? lastDayBefore(withdrawDate, card.confirmDay) : undefined;
+    result.push({
+      withdrawDate,
+      confirmDate,
+      card,
+      forecast,
+      actual,
+      effective: actual ?? forecast,
+      diff: actual !== undefined ? actual - forecast : undefined,
+      forecastBreakdown: charged.map((r) => ({ label: r.item.name, amount: r.effective })),
+    });
+  }
+  return result;
+}
+
+export function summarize(data: AppData, pid: string, current = pid): PeriodSummary {
+  const idx = buildIndex(data);
+  const startDay = data.settings.periodStartDay;
+  const rows = itemRows(data, pid, idx);
+  const categories = categoryRows(data, pid, rows, idx, current);
+  const cardBills = cardBillRows(data, pid, idx);
+
+  const sum = (xs: number[]) => xs.reduce((s, x) => s + x, 0);
+  const incomeTotal = sum(categories.filter((c) => c.kind === 'income').map((c) => c.effective));
+  const outCats = categories.filter((c) => c.kind !== 'income');
+  const outRows = rows.filter((r) => r.kind !== 'income');
+  const spendTotal = sum(outCats.map((c) => c.effective));
+  const cardPaidTotal = sum(outCats.map((c) => c.cardPaid));
+  const directOutTotal = sum(outCats.map((c) => c.direct));
+  const cardBillTotal = sum(cardBills.map((b) => b.effective));
+  const receivableTotal = sum(
+    data.receivables.filter((r) => r.expectedPeriod === pid).map((r) => r.amount),
+  );
+  const cashOutTotal = directOutTotal + cardBillTotal;
+  const buffer = incomeTotal - cashOutTotal + receivableTotal;
+
+  // 振り分け: 口座ごとに出ていく額（口座払いの項目 + カードの引落）
+  const alloc = new Map<string, AllocationRow>();
+  const addAlloc = (accountId: string | undefined, label: string, amount: number) => {
+    if (!accountId || amount === 0) return;
+    const account = idx.accounts.get(accountId);
+    if (!account || account.kind !== 'bank') return;
+    const row = alloc.get(accountId) ?? { account, amount: 0, breakdown: [] };
+    row.amount += amount;
+    row.breakdown.push({ label, amount });
+    alloc.set(accountId, row);
+  };
+  for (const r of outRows) if (!r.viaCard) addAlloc(r.item.sourceAccountId, r.item.name, r.effective);
+  for (const b of cardBills) addAlloc(b.card.withdrawAccountId, `${b.card.name} 引落`, b.effective);
+  const allocation = [...alloc.values()].sort((a, b) => a.account.sortOrder - b.account.sortOrder);
+
+  // タイムライン
+  const timeline: TimelineEvent[] = [];
+  for (const r of rows) {
+    if (r.viaCard || r.effective === 0 || r.item.day === undefined) continue;
+    timeline.push({
+      date: dateInPeriod(pid, startDay, r.item.day),
+      label: r.item.name,
+      amount: r.kind === 'income' ? r.effective : -r.effective,
+      confirmed: r.kind === 'income' && idx.actuals.has(categoryActualId(pid, r.category.id)),
+    });
+  }
+  for (const b of cardBills) {
+    if (b.effective === 0 || !b.withdrawDate) continue;
+    timeline.push({
+      date: b.withdrawDate,
+      label: `${b.card.name} 引落`,
+      amount: -b.effective,
+      confirmed: b.actual !== undefined,
+    });
+  }
+  timeline.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  return {
+    periodId: pid,
+    rows,
+    categories,
+    incomeTotal,
+    spendTotal,
+    cardPaidTotal,
+    directOutTotal,
+    cardBills,
+    cardBillTotal,
+    receivableTotal,
+    cashOutTotal,
+    buffer,
+    allocation,
+    timeline,
+    unconfirmedCardBills: cardBills.filter((b) => b.actual === undefined && b.forecast > 0).length,
+  };
+}
+
+export interface CardTodo {
+  periodId: string;
+  bill: CardBillRow;
+  /** 引落日を過ぎても未入力 */
+  overdue: boolean;
+}
+
+/**
+ * 確定日を迎えたのに請求額が未入力のカード請求。
+ * 確定日が未設定のカードは引落日の期に入ったら対象にする。
+ */
+export function cardTodos(data: AppData, today: Date, currentPeriod: string): CardTodo[] {
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todos: CardTodo[] = [];
+  for (const pid of [addPeriods(currentPeriod, -1), currentPeriod, addPeriods(currentPeriod, 1)]) {
+    for (const bill of cardBillRows(data, pid)) {
+      if (bill.actual !== undefined) continue;
+      const hasBillRecord = data.cardBills.some((b) => b.periodId === pid && b.cardId === bill.card.id);
+      if (bill.forecast === 0 && !hasBillRecord) continue;
+      const due = bill.confirmDate ?? (comparePeriods(pid, currentPeriod) <= 0 ? t : undefined);
+      if (!due || due > t) continue;
+      todos.push({ periodId: pid, bill, overdue: !!bill.withdrawDate && bill.withdrawDate < t });
+    }
+  }
+  return todos;
+}
