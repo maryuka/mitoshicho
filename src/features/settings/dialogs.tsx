@@ -7,6 +7,7 @@ import type { Account, AppData, Category, CategoryKind, Item, Recurrence } from 
 import { db, newId } from '../../db/db';
 import { MoneyField } from '../../components/MoneyField';
 import { confirmDialog } from '../../components/ConfirmDialog';
+import { canAutoFocus } from '../../lib/device';
 
 export const KIND_LABEL: Record<CategoryKind, string> = { income: '収入', expense: '支出', debt: '返済', saving: '貯金・投資' };
 const nextOrder = (xs: { sortOrder: number }[]) => (xs.length ? Math.max(...xs.map((x) => x.sortOrder)) + 1 : 0);
@@ -47,7 +48,7 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
       <DialogTitle>{value ? '口座・カードを編集' : '口座・カードを追加'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField id="acc-name" label="名前" value={name} onChange={(e) => setName(e.target.value)} autoFocus fullWidth />
+          <TextField id="acc-name" label="名前" value={name} onChange={(e) => setName(e.target.value)} autoFocus={canAutoFocus} fullWidth />
           <TextField id="acc-kind" select label="種類" value={kind} onChange={(e) => setKind(e.target.value as Account['kind'])} fullWidth>
             <MenuItem value="bank">銀行口座</MenuItem>
             <MenuItem value="card">クレジットカード</MenuItem>
@@ -102,7 +103,7 @@ export function CategoryDialog({ value, data, onClose }: { value?: Category; dat
       <DialogTitle>{value ? 'カテゴリを編集' : 'カテゴリを追加'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField id="cat-name" label="名前（Zaim のカテゴリ名に合わせると振り返りが楽です）" value={name} onChange={(e) => setName(e.target.value)} autoFocus fullWidth />
+          <TextField id="cat-name" label="名前（Zaim のカテゴリ名に合わせると振り返りが楽です）" value={name} onChange={(e) => setName(e.target.value)} autoFocus={canAutoFocus} fullWidth />
           <TextField id="cat-kind" select label="種類" value={kind} onChange={(e) => setKind(e.target.value as CategoryKind)} fullWidth>
             {(Object.keys(KIND_LABEL) as CategoryKind[]).map((k) => <MenuItem key={k} value={k}>{KIND_LABEL[k]}</MenuItem>)}
           </TextField>
@@ -167,7 +168,7 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
       <DialogTitle>{value ? '定期項目を編集' : '定期項目を追加'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField id="item-name" label="名前" value={name} onChange={(e) => setName(e.target.value)} autoFocus fullWidth />
+          <TextField id="item-name" label="名前" value={name} onChange={(e) => setName(e.target.value)} autoFocus={canAutoFocus} fullWidth />
           <TextField id="item-category" select label="カテゴリ" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} fullWidth>
             {cats.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}（{KIND_LABEL[c.kind]}）</MenuItem>)}
           </TextField>

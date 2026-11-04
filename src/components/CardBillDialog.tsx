@@ -9,6 +9,7 @@ import { periodLabel, toISODate } from '../domain/period';
 import { saveCardBill } from '../db/ops';
 import { signedYen, yen } from '../lib/money';
 import { MoneyField } from './MoneyField';
+import { canAutoFocus } from '../lib/device';
 
 /** カード請求の入力: 請求額・引落日・確定日 */
 export function CardBillDialog({ periodId, bill, startDay, onClose }: {
@@ -38,7 +39,7 @@ export function CardBillDialog({ periodId, bill, startDay, onClose }: {
           <Typography variant="body2" color="text.secondary">
             {periodLabel(periodId, startDay)} の月に引き落とされる分。予測 {yen(bill.forecast)}
           </Typography>
-          <MoneyField label="請求額（確定したら入力）" value={actual} placeholder={bill.forecast} onChange={setActual} autoFocus fullWidth />
+          <MoneyField label="請求額（確定したら入力）" value={actual} placeholder={bill.forecast} onChange={setActual} autoFocus={canAutoFocus} fullWidth />
           {diff !== undefined && diff !== 0 && (
             <Alert severity={diff > 0 ? 'warning' : 'success'}>予測との差 {signedYen(diff)}</Alert>
           )}

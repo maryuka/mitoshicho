@@ -9,6 +9,7 @@ import type { AppData, Receivable } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
+import { canAutoFocus } from '../../lib/device';
 
 const KIND_LABEL = { reimbursement: '経費精算', split: '割り勘・立替' } as const;
 
@@ -83,7 +84,7 @@ function ReceivableDialog({ value, defaultPeriod, periodOptions, startDay, onClo
       <DialogTitle>{value ? '立替を編集' : '立替を追加'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField id="rcv-title" label="内容" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus fullWidth />
+          <TextField id="rcv-title" label="内容" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus={canAutoFocus} fullWidth />
           <TextField id="rcv-kind" select label="種類" value={kind} onChange={(e) => setKind(e.target.value as Receivable['kind'])} fullWidth>
             <MenuItem value="split">割り勘・立替</MenuItem>
             <MenuItem value="reimbursement">経費精算</MenuItem>
