@@ -1,4 +1,4 @@
-import { Alert, Box, Card, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { Alert, Box, Card, Chip, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useMemo, useState } from 'react';
 import { summarize, type CardTodo } from '../../domain/cashflow';
@@ -44,16 +44,15 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget }: {
         </Alert>
       )}
 
-      <Card sx={(t) => ({
-        bgcolor: alpha(ok ? t.palette.success.main : t.palette.error.main, t.palette.mode === 'dark' ? 0.14 : 0.08),
-        borderColor: alpha(ok ? t.palette.success.main : t.palette.error.main, 0.3),
-      })}>
+      <Card sx={{ bgcolor: 'hero.main', color: 'hero.contrastText', borderColor: 'hero.main' }}>
         <CardContent>
-          <Typography variant="body2" color="text.secondary">今月のバッファ</Typography>
-          <Typography variant="h3" component="p" fontWeight={700} color={ok ? 'text.primary' : 'error'} sx={{ my: 0.5 }}>
-            {yen(s.buffer)}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>今月のバッファ</Typography>
+            <Chip size="small" label={ok ? 'OK' : '不足'}
+              sx={{ fontWeight: 700, bgcolor: ok ? alpha('#ffffff', 0.18) : 'error.main', color: '#ffffff' }} />
+          </Stack>
+          <Typography variant="h3" component="p" fontWeight={700} sx={{ my: 0.5 }}>{yen(s.buffer)}</Typography>
+          <Typography variant="body2" sx={{ opacity: 0.8 }}>
             {ok ? `下限 ${yen(bufferThreshold)} をクリア` : `下限 ${yen(bufferThreshold)} まで あと ${yen(bufferThreshold - s.buffer)}`}
           </Typography>
           {mode === 'normal' && (
@@ -80,8 +79,8 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget }: {
 
 function Figure({ label, value }: { label: string; value: number }) {
   return (
-    <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, px: 1.5, py: 1 }}>
-      <Typography variant="caption" color="text.secondary">{label}</Typography>
+    <Box sx={{ bgcolor: alpha('#ffffff', 0.1), borderRadius: 2, px: 1.5, py: 1 }}>
+      <Typography variant="caption" sx={{ opacity: 0.8 }}>{label}</Typography>
       <Typography variant="subtitle1" fontWeight={700}>{yen(value)}</Typography>
     </Box>
   );

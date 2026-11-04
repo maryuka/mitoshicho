@@ -3,7 +3,7 @@
   "short_name": "見通し帳",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f6f7f5",
-  "theme_color": "#1f6f5c",
+  "background_color": "#f4f6fa",
+  "theme_color": "#1e40af",
   "lang": "ja"
 }

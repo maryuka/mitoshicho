@@ -1,11 +1,16 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 import { useEffect, useMemo, useState } from 'react';
 
-// ブランドの緑を軸に、ニュートラルは緑寄りのグレー
+// 紺〜青を軸にした落ち着いた配色。ニュートラルは青みのあるグレー
 const palette = {
-  light: { primary: '#1f6f5c', bg: '#f5f7f5', paper: '#ffffff', text: '#1d2420', muted: '#5f6b65', error: '#c2412d', success: '#1f7a4f', warning: '#a15c00' },
-  dark: { primary: '#5cc0a2', bg: '#111513', paper: '#1a201d', text: '#e6ebe8', muted: '#9aa6a0', error: '#ff8a73', success: '#6fd19d', warning: '#f0b45a' },
+  light: { primary: '#1e40af', bg: '#f4f6fa', paper: '#ffffff', text: '#0f172a', muted: '#64748b', divider: '#e2e8f0', error: '#dc2626', success: '#15803d', warning: '#b45309', hero: '#1e3a8a' },
+  dark: { primary: '#8ab4f8', bg: '#0b1120', paper: '#131b2e', text: '#e2e8f0', muted: '#94a3b8', divider: '#243049', error: '#f87171', success: '#4ade80', warning: '#fbbf24', hero: '#1e3a8a' },
 };
+
+declare module '@mui/material/styles' {
+  interface Palette { hero: { main: string; contrastText: string } }
+  interface PaletteOptions { hero?: { main: string; contrastText: string } }
+}
 
 function build(mode: 'light' | 'dark'): Theme {
   const p = palette[mode];
@@ -18,6 +23,8 @@ function build(mode: 'light' | 'dark'): Theme {
       warning: { main: p.warning },
       background: { default: p.bg, paper: p.paper },
       text: { primary: p.text, secondary: p.muted },
+      divider: p.divider,
+      hero: { main: p.hero, contrastText: '#ffffff' },
     },
     shape: { borderRadius: 12 },
     typography: {
