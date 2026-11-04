@@ -1,10 +1,10 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 import { useEffect, useMemo, useState } from 'react';
 
-// 紺〜青を軸にした落ち着いた配色。ニュートラルは青みのあるグレー
+// ライトは紺〜青を軸にした落ち着いた配色。ダークは黒に近い無彩色を背景にし、青はアクセントだけに使う
 const palette = {
   light: { primary: '#1e40af', bg: '#f4f6fa', paper: '#ffffff', text: '#0f172a', muted: '#64748b', divider: '#e2e8f0', error: '#dc2626', success: '#15803d', warning: '#b45309', hero: '#1e3a8a' },
-  dark: { primary: '#8ab4f8', bg: '#0b1120', paper: '#131b2e', text: '#e2e8f0', muted: '#94a3b8', divider: '#243049', error: '#f87171', success: '#4ade80', warning: '#fbbf24', hero: '#1e3a8a' },
+  dark: { primary: '#7da4f5', bg: '#0b0b0c', paper: '#161618', text: '#ededef', muted: '#a1a1aa', divider: '#2a2a2e', error: '#f87171', success: '#4ade80', warning: '#fbbf24', hero: '#1f2024' },
 };
 
 declare module '@mui/material/styles' {
