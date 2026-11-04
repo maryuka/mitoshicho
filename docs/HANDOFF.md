@@ -10,7 +10,7 @@
 | 構成 | Vite + React 19 + TypeScript + MUI v7 + Dexie（IndexedDB）。静的配布、データは端末内のみ |
 | ブランチ | `main` と `app` が同じ内容。作業は `app` で行い、`main` に反映（fast-forward）してきた |
 | 公開 | リポジトリは public。GitHub Pages（Source: GitHub Actions）で `main` への push ごとにデプロイ。URL: https://maryuka.github.io/mitoshicho/ |
-| デプロイ | 配色変更（b0e2223）のデプロイ run が実行中の時点で引き継ぎ。成功したかは Actions で確認すること（このコンテナからは github.io に接続できない） |
+| デプロイ | 2026-11-04 に初回デプロイ成功（run 4）。以降も main への push ごとに自動デプロイ。結果は Actions で確認する（このコンテナからは github.io に接続できない） |
 | 試用ページ | claude.ai の Artifact（ユーザーの非公開ページ）にも1ファイル版を置いている。`npm run build:artifact` で `artifact/mitoshicho.html` を作って再公開してきた |
 | テスト | `npm test` で 25 件（計算ロジック・CSV 取り込み）。すべて通過 |
 
