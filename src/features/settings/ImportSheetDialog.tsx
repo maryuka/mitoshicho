@@ -4,13 +4,15 @@ import {
   ListItemText, MenuItem, Radio, RadioGroup, Stack, TextField, Typography,
 } from '@mui/material';
 import { useMemo, useRef, useState } from 'react';
-import { parseBudgetSheet, parseCsv, splitDefault, type SheetImport } from '../../domain/importSheet';
+import { parseBudgetSheet, parseTable, splitDefault, type SheetImport } from '../../domain/importSheet';
 import { periodLabel } from '../../domain/period';
 import { applySheetImport, type ImportResult } from '../../db/importSheet';
 import { yen } from '../../lib/money';
 import { KIND_LABEL } from './dialogs';
 
-/** 元のスプレッドシート（年間お金計画表）の CSV から、カテゴリ・項目・月ごとの予算・カードを取り込む */
+const PASTED = '貼り付けたデータ';
+
+/** 元のスプレッドシート（年間お金計画表）の CSV または貼り付けから、カテゴリ・項目・月ごとの予算・カードを取り込む */
 export function ImportSheetDialog({ current, hasData, onClose }: { current: string; hasData: boolean; onClose: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const thisYear = new Date().getFullYear();
@@ -22,7 +24,7 @@ export function ImportSheetDialog({ current, hasData, onClose }: { current: stri
 
   const parsed = useMemo((): { plan?: SheetImport; error?: string } => {
     if (!csv) return {};
-    try { return { plan: parseBudgetSheet(parseCsv(csv.text), year) }; }
+    try { return { plan: parseBudgetSheet(parseTable(csv.text), year) }; }
     catch (e) { return { error: e instanceof Error ? e.message : 'CSV を読めませんでした' }; }
   }, [csv, year]);
   const plan = parsed.plan;
@@ -48,15 +50,30 @@ export function ImportSheetDialog({ current, hasData, onClose }: { current: stri
         ) : (
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Typography variant="body2" color="text.secondary">
-              Google スプレッドシートで年のシート（例: 2026）を開き、「ファイル → ダウンロード → カンマ区切り形式（.csv）」で書き出したファイルを選んでください。
               収入・支出の各行が定期項目に、各月の金額が月ごとの予算に、クレカの行がカードになります。
             </Typography>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Button variant="outlined" startIcon={<UploadFileIcon />} onClick={() => fileRef.current?.click()}>CSV を選ぶ</Button>
-              {csv && <Typography variant="body2" noWrap>{csv.name}</Typography>}
-              <input ref={fileRef} type="file" accept=".csv,text/csv" hidden
-                onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) setCsv({ name: f.name, text: await f.text() }); }} />
-            </Stack>
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>セルをコピーして貼り付ける（スマホ向け）</Typography>
+              <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 1 }}>
+                スプレッドシートのアプリで年のシート（例: 2026）を開き、左上の角をタップしてシート全体を選んでコピーし、下の欄に貼り付けてください。
+              </Typography>
+              <TextField id="import-paste" multiline minRows={3} maxRows={6} fullWidth placeholder="ここに貼り付け"
+                value={csv?.name === PASTED ? csv.text : ''}
+                onChange={(e) => setCsv(e.target.value.trim() ? { name: PASTED, text: e.target.value } : null)}
+                slotProps={{ htmlInput: { style: { fontSize: 12 } } }} />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>CSV ファイルを選ぶ（パソコン向け）</Typography>
+              <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 1 }}>
+                「ファイル → ダウンロード → カンマ区切り形式（.csv）」で書き出したファイル。
+              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Button variant="outlined" startIcon={<UploadFileIcon />} onClick={() => fileRef.current?.click()}>CSV を選ぶ</Button>
+                {csv && csv.name !== PASTED && <Typography variant="body2" noWrap>{csv.name}</Typography>}
+                <input ref={fileRef} type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden
+                  onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) setCsv({ name: f.name, text: await f.text() }); }} />
+              </Stack>
+            </Box>
             <TextField id="import-year" select label="最初の月の年" value={year} onChange={(e) => setYear(Number(e.target.value))}
               helperText="シートの見出しには年がないので指定してください（12月の次の1月は翌年になります）" sx={{ maxWidth: 260 }}>
               {[thisYear - 2, thisYear - 1, thisYear, thisYear + 1].map((y) => <MenuItem key={y} value={y}>{y}年</MenuItem>)}

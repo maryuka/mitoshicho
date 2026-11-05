@@ -11,7 +11,19 @@
 import { comparePeriods, periodId } from './period';
 import type { CategoryKind } from './types';
 
+/**
+ * CSV（ファイル）とタブ区切り（スプレッドシートのセルをコピーして貼り付けたもの）の両方を読む。
+ * タブを含めばタブ区切りとして扱う（金額の「40,000」にカンマが入るため）。
+ */
+export function parseTable(text: string): string[][] {
+  return parseDelimited(text, text.includes('\t') ? '\t' : ',');
+}
+
 export function parseCsv(text: string): string[][] {
+  return parseDelimited(text, ',');
+}
+
+function parseDelimited(text: string, delimiter: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let cell = '';
@@ -24,7 +36,7 @@ export function parseCsv(text: string): string[][] {
       else if (c === '"') quoted = false;
       else cell += c;
     } else if (c === '"') quoted = true;
-    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === delimiter) { row.push(cell); cell = ''; }
     else if (c === '\n' || c === '\r') {
       if (c === '\r' && src[i + 1] === '\n') i++;
       row.push(cell); rows.push(row); row = []; cell = '';

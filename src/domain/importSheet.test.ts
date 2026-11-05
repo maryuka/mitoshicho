@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseBudgetSheet, parseCsv, splitDefault } from './importSheet';
+import { parseBudgetSheet, parseCsv, parseTable, splitDefault } from './importSheet';
 
 // 元のスプレッドシートと同じレイアウトの架空データ
 const CSV = `年間お金計画表,,,11月,12/15-1/14,1/15-2/14,合計額
@@ -24,6 +24,19 @@ const CSV = `年間お金計画表,,,11月,12/15-1/14,1/15-2/14,合計額
 describe('parseCsv', () => {
   it('引用符・カンマ・改行を扱う', () => {
     expect(parseCsv('a,"1,000","x""y"\r\nb,,"改\n行"\n')).toEqual([['a', '1,000', 'x"y'], ['b', '', '改\n行']]);
+  });
+});
+
+describe('parseTable', () => {
+  it('タブ区切り（セルをコピーして貼り付けたもの）を読む', () => {
+    expect(parseTable('収入\t15日\t給与\t300,000\n\t\t"改\n行"\t\n')).toEqual([['収入', '15日', '給与', '300,000'], ['', '', '改\n行', '']]);
+  });
+  it('タブがなければ CSV として読む', () => {
+    expect(parseTable('a,"1,000"\n')).toEqual([['a', '1,000']]);
+  });
+  it('CSV と同じ表をタブ区切りにしても同じ結果になる', () => {
+    const tsv = parseCsv(CSV).map((r) => r.join('\t')).join('\n');
+    expect(parseBudgetSheet(parseTable(tsv), 2026)).toEqual(parseBudgetSheet(parseCsv(CSV), 2026));
   });
 });
 

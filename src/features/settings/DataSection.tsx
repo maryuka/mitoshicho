@@ -44,7 +44,7 @@ export function DataSection({ data, current }: { data: AppData; current: string 
             <Typography variant="caption" color="text.secondary">最終バックアップ: {new Date(data.settings.lastBackupAt).toLocaleString('ja-JP')}</Typography>
           )}
           <Box>
-            <Button variant="contained" startIcon={<TableViewIcon />} onClick={() => setImporting(true)}>スプレッドシート（CSV）から取り込む</Button>
+            <Button variant="contained" startIcon={<TableViewIcon />} onClick={() => setImporting(true)}>スプレッドシートから取り込む</Button>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
               元の年間お金計画表から、カテゴリ・項目・月ごとの予算・カードを作ります。
             </Typography>
