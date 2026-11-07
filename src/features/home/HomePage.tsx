@@ -52,7 +52,8 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
           <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} leading={menu} onHero />
           <Box sx={{ mt: 1.5 }}><Bubble>{message}</Bubble></Box>
           <Box component="img" src={ok ? HIYOKO.happy : HIYOKO.worried} alt={ok ? '喜ぶひよこ' : '困っているひよこ'}
-            sx={{ display: 'block', width: 150, maxWidth: '45%', mx: 'auto', mt: 1.5, mb: 1.5 }} />
+            // 絵によって縦横比が違うので、高さをそろえて帯の高さが変わらないようにする
+            sx={{ display: 'block', height: 112, width: 'auto', maxWidth: '60%', objectFit: 'contain', mx: 'auto', mt: 1.5, mb: 1.5 }} />
           <ToggleButtonGroup value={mode} exclusive onChange={(_, m) => setMode(m)} size="small"
             sx={{ position: 'relative', zIndex: 1, '& .MuiToggleButton-root': {
               color: 'inherit', borderColor: alpha('#ffffff', 0.7), borderWidth: 2, px: 2.5, fontWeight: 700,
