@@ -77,3 +77,17 @@ export function previousBusinessDay(date: Date): Date {
   while (d.getDay() === 0 || d.getDay() === 6 || isHoliday(d)) d.setDate(d.getDate() - 1);
   return d;
 }
+
+/** 土日・祝日なら、その後の平日にずらす */
+export function nextBusinessDay(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  while (d.getDay() === 0 || d.getDay() === 6 || isHoliday(d)) d.setDate(d.getDate() + 1);
+  return d;
+}
+
+/** 土日・祝日のときに、ずらし方に合わせて前／後の平日にする */
+export function shiftBusinessDay(date: Date, shift: 'before' | 'none' | 'after'): Date {
+  if (shift === 'before') return previousBusinessDay(date);
+  if (shift === 'after') return nextBusinessDay(date);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}

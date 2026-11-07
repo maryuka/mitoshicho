@@ -5,20 +5,20 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import {
   Box, Button, Card, CardContent, CardHeader, Chip, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  ListSubheader, MenuItem, Stack, TextField, Typography,
+  ListSubheader, Stack, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { countBetween } from '../../domain/items';
 import { amountFor } from '../../domain/cashflow';
-import { comparePeriods, periodFromLabel, periodYearLabel } from '../../domain/period';
+import { comparePeriods, periodFromLabel, periodYearLabel, periodRule, type StartDay } from '../../domain/period';
 import type { Account, AppData, Category, ChecklistTemplate, Item, Recurrence } from '../../domain/types';
-import { DEFAULT_SETTINGS } from '../../domain/types';
-import { db } from '../../db/db';
 import { yen } from '../../lib/money';
 import { AccountDialog, CategoryDialog, ChecklistDialog, ItemDialog, KIND_LABEL } from './dialogs';
 import { DataSection } from './DataSection';
+import { PaydayFields } from './PaydayFields';
+import { useThemePref } from '../../theme';
 
-function recurrenceText(r: Recurrence, startDay: number) {
+function recurrenceText(r: Recurrence, startDay: StartDay) {
   if (r.type === 'monthly') return '毎月';
   if (r.type === 'interval') return `${r.months}か月に1回`;
   if (r.type === 'yearly') return `毎年${r.month}月`;
@@ -36,7 +36,7 @@ function nextChange(i: Item, current: string) {
   return i.amountChanges?.find((c) => comparePeriods(c.from, current) > 0);
 }
 
-export type SettingsPageId = 'basic' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';
+export type SettingsPageId = 'basic' | 'appearance' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';
 
 /** メニューから開く設定の各ページ。1ページに1つの項目だけを出す */
 export function SettingsPage({ page, data, current }: { page: SettingsPageId; data: AppData; current: string }) {
@@ -49,27 +49,34 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
   const toggle = (list: { archived: boolean }[]) => (
     <ArchivedToggle count={list.filter((x) => x.archived).length} shown={showArchived} onChange={setShowArchived} />
   );
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const accounts = [...data.accounts].sort((a, b) => a.sortOrder - b.sortOrder);
   const categories = [...data.categories].sort((a, b) => a.sortOrder - b.sortOrder);
   const accName = (id?: string) => data.accounts.find((a) => a.id === id)?.name ?? '未設定';
   const s = data.settings;
-  const updateSettings = (patch: Partial<typeof s>) => db.settings.put({ ...DEFAULT_SETTINGS, ...s, ...patch });
+  const [themePref, setThemePref] = useThemePref();
 
   return (
     <Stack spacing={2}>
       {page === 'basic' && <Section>
-        <CardContent>
-          <Stack spacing={2}>
-            <TextField id="set-start-day" select label="月の開始日（給料日）" value={s.periodStartDay}
-              onChange={(e) => updateSettings({ periodStartDay: Number(e.target.value) })} fullWidth
-              helperText={s.periodStartDay === 1 ? undefined : '土日・祝日のときは、前の平日から次の月が始まります'}>
-              {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <MenuItem key={d} value={d}>{d === 1 ? '1日（暦月）' : `${d}日`}</MenuItem>)}
-            </TextField>
-          </Stack>
-        </CardContent>
+        <CardContent><PaydayFields settings={s} /></CardContent>
       </Section>}
 
+      {page === 'appearance' && <Section>
+        <CardContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75 }}>画面の明るさ</Typography>
+          <ToggleButtonGroup value={themePref} exclusive fullWidth size="small" aria-label="画面の明るさ"
+            onChange={(_, v) => { if (v) setThemePref(v); }}
+            sx={{ '& .MuiToggleButton-root': { fontWeight: 700 } }}>
+            <ToggleButton value="system">端末に合わせる</ToggleButton>
+            <ToggleButton value="light">ライト</ToggleButton>
+            <ToggleButton value="dark">ダーク</ToggleButton>
+          </ToggleButtonGroup>
+          <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.75 }}>
+            この端末だけの設定です（バックアップには入りません）
+          </Typography>
+        </CardContent>
+      </Section>}
       {page === 'accounts' && <Section onAdd={() => setAccount('new')}>
         <List dense>
           {accounts.length === 0 && <Empty>口座やカードを登録してください</Empty>}
@@ -90,7 +97,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
       </Section>}
 
       {page === 'categories' && <Section onAdd={() => setCategory('new')}
-        subheader="Zaim のカテゴリ名に合わせておくと、月末の振り返りが楽です。">
+        subheader="家計簿アプリのカテゴリ名に合わせておくと、月末の振り返りが楽です。">
         <List dense>
           {categories.length === 0 && <Empty>カテゴリを登録してください</Empty>}
           {visible(categories).map((c) => (
@@ -192,7 +199,7 @@ function Empty({ children }: { children: ReactNode }) {
 
 function ChecklistSection({ data, current }: { data: AppData; current: string }) {
   const [editing, setEditing] = useState<ChecklistTemplate | 'new' | null>(null);
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   // 「今月だけ」の項目は給料日の画面で足して消すので、ここには繰り返すものだけを出す
   const items = data.checklistTemplates.filter((t) => t.recurrence?.type !== 'once').sort((a, b) => a.sortOrder - b.sortOrder);
   return (
@@ -213,7 +220,7 @@ function ChecklistSection({ data, current }: { data: AppData; current: string })
   );
 }
 
-function checklistText(t: ChecklistTemplate, startDay: number) {
+function checklistText(t: ChecklistTemplate, startDay: StartDay) {
   const parts = [recurrenceText(t.recurrence ?? { type: 'monthly' }, startDay)];
   if (t.endPeriod) parts.push(`${periodYearLabel(t.endPeriod, startDay)} まで`);
   return parts.join('・');

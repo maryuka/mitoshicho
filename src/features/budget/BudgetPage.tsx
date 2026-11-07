@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { amountFor, summarize, type CategoryRow } from '../../domain/cashflow';
-import { periodLabel } from '../../domain/period';
+import { periodLabel, periodRule } from '../../domain/period';
 import type { AppData, CategoryKind } from '../../domain/types';
 import { patchEntry, setCategoryActual } from '../../db/ops';
 import { db, newId } from '../../db/db';
@@ -22,14 +22,14 @@ const SECTIONS: { kind: CategoryKind; label: string }[] = [
   { kind: 'income', label: '収入' },
 ];
 
-/** ふりかえり（月ごとの予算と実績）。実績は Zaim で集計したカテゴリ合計を入れて振り返る */
+/** ふりかえり（月ごとの予算と実績）。実績は家計簿アプリで集計したカテゴリ合計を入れて振り返る */
 export type Mode = 'budget' | 'actual';
 
 /** 下のメニューの「計画」（mode=budget）と「ふりかえり」（mode=actual）の画面 */
 export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
   mode: Mode; data: AppData; period: string; setPeriod: (p: string) => void; current: string; menu?: ReactNode;
 }) {
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
 
   const expense = s.categories.filter((c) => c.kind === 'expense');
@@ -81,7 +81,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
             <BudgetBar value={spent} max={budget} />
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
               {enteredAll === 0
-                ? `月末に Zaim でこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。`
+                ? `月末に家計簿アプリでこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。`
                 : `${enteredAll} / ${s.categories.length} カテゴリ入力済み`}
             </Typography>
           </CardContent>
@@ -118,7 +118,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
   );
 }
 
-/** 実績: カテゴリごとに Zaim の合計を入れる */
+/** 実績: カテゴリごとに家計簿アプリの合計を入れる */
 function ActualRow({ row, period }: { row: CategoryRow; period: string }) {
   const income = row.kind === 'income';
   const actual = row.actual;

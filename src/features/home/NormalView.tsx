@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import { useMemo, type ReactNode } from 'react';
 import { cardBillRows, cardTodos, summarize, type CardTodo, type PeriodSummary } from '../../domain/cashflow';
-import { addPeriods, mdLabel, periodLabel } from '../../domain/period';
+import { addPeriods, mdLabel, periodLabel, periodRule } from '../../domain/period';
 import type { AppData } from '../../domain/types';
 import { billDatesText } from '../../lib/cardBill';
 import { signedYen, yen } from '../../lib/money';
@@ -17,7 +17,7 @@ export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget
   data: AppData; current: string; summary: PeriodSummary;
   onCardTodo: (t: CardTodo) => void; onOpenBudget: (periodId: string) => void;
 }) {
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const todos = useMemo(() => cardTodos(data, new Date(), current), [data, current]);
   const upcoming = useMemo(() => {
     const now = new Date();
@@ -27,7 +27,7 @@ export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget
       .sort((a, b) => a.confirmDate!.getTime() - b.confirmDate!.getTime());
   }, [data, current]);
 
-  // 先月の実績（Zaim のカテゴリ合計）が未入力なら、やることに出す
+  // 先月の実績（家計簿アプリのカテゴリ合計）が未入力なら、やることに出す
   const prev = addPeriods(current, -1);
   const missing = useMemo(
     () => summarize(data, prev, current).categories.filter((c) => c.kind === 'expense' && c.actual === undefined && c.planned > 0),
@@ -56,7 +56,7 @@ export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget
                 onClick={() => onCardTodo(t)} />
             ))}
             {missing.length > 0 && (
-              <Todo icon={<EditNoteIcon color="warning" />} primary="先月の実績を入力（Zaim のカテゴリ合計）"
+              <Todo icon={<EditNoteIcon color="warning" />} primary="先月の実績を入力（カテゴリごとの合計）"
                 secondary={`${periodLabel(prev, startDay)}・未入力 ${missing.length} カテゴリ`} onClick={() => onOpenBudget(prev)} />
             )}
             {pending.length > 0 && (

@@ -69,7 +69,7 @@ export async function applySheetImport(plan: SheetImport, opts: { replace: boole
     for (const ic of plan.cards) {
       let card = accounts.find((a) => a.kind === 'card' && a.name === ic.name);
       if (!card) {
-        card = { id: newId(), name: ic.name, kind: 'card', withdrawDay: ic.withdrawDay, billLagPeriods: 1, sortOrder: accOrder++, archived: false };
+        card = { id: newId(), name: ic.name, kind: 'card', withdrawDay: ic.withdrawDay, withdrawShift: 'after', billLagPeriods: 1, sortOrder: accOrder++, archived: false };
         accounts.push(card);
         await db.accounts.add(card);
         result.cards++;

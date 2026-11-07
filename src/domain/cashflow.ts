@@ -1,5 +1,6 @@
 // 期ごとの集計。スプシの SUM 手書きをすべてここで置き換える（純粋関数）。
-import { addPeriods, comparePeriods, dateInPeriod, lastDayBefore, parseISODate, parsePeriod } from './period';
+import { shiftBusinessDay } from './holidays';
+import { addPeriods, comparePeriods, dateInPeriod, lastDayBefore, parseISODate, parsePeriod, periodRule } from './period';
 import type { Account, AppData, Category, CategoryActual, CategoryKind, ChecklistTemplate, Entry, Item } from './types';
 
 /** その月のいつもの金額（途中からの金額の変更を反映。月ごとの上書きは含まない） */
@@ -210,10 +211,13 @@ export function cardBillRows(data: AppData, pid: string, idx = buildIndex(data))
     const bill = data.cardBills.find((b) => b.periodId === pid && b.cardId === card.id);
     const actual = bill?.actual;
     if (card.archived && forecast === 0 && actual === undefined) continue;
+    // 予定どおりの引落日。確定日はこれを基準にし、引落日だけを土日・祝日でずらす
+    const nominalWithdraw = card.withdrawDay !== undefined ? dateInPeriod(pid, periodRule(data.settings), card.withdrawDay) : undefined;
     const withdrawDate = bill?.withdrawDate ? parseISODate(bill.withdrawDate)
-      : card.withdrawDay !== undefined ? dateInPeriod(pid, data.settings.periodStartDay, card.withdrawDay) : undefined;
+      : nominalWithdraw && shiftBusinessDay(nominalWithdraw, card.withdrawShift ?? 'none');
+    const confirmBase = bill?.withdrawDate ? withdrawDate : nominalWithdraw;
     const confirmDate = bill?.confirmDate ? parseISODate(bill.confirmDate)
-      : withdrawDate && card.confirmDay !== undefined ? lastDayBefore(withdrawDate, card.confirmDay) : undefined;
+      : confirmBase && card.confirmDay !== undefined ? lastDayBefore(confirmBase, card.confirmDay) : undefined;
     result.push({
       withdrawDate,
       confirmDate,
@@ -230,7 +234,7 @@ export function cardBillRows(data: AppData, pid: string, idx = buildIndex(data))
 
 export function summarize(data: AppData, pid: string, current = pid): PeriodSummary {
   const idx = buildIndex(data);
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const rows = itemRows(data, pid, idx);
   const categories = categoryRows(data, pid, rows, idx, current);
   const cardBills = cardBillRows(data, pid, idx);

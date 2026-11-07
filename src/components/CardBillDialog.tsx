@@ -5,7 +5,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useState } from 'react';
 import type { CardBillRow } from '../domain/cashflow';
-import { periodLabel, toISODate } from '../domain/period';
+import { periodLabel, toISODate, type StartDay } from '../domain/period';
 import { saveCardBill } from '../db/ops';
 import { signedYen, yen } from '../lib/money';
 import { MoneyField } from './MoneyField';
@@ -13,7 +13,7 @@ import { canAutoFocus } from '../lib/device';
 
 /** カード請求の入力: 請求額・引落日・確定日 */
 export function CardBillDialog({ periodId, bill, startDay, onClose }: {
-  periodId: string; bill: CardBillRow; startDay: number; onClose: () => void;
+  periodId: string; bill: CardBillRow; startDay: StartDay; onClose: () => void;
 }) {
   const [actual, setActual] = useState<number | undefined>(bill.actual);
   const [withdrawDate, setWithdrawDate] = useState(bill.withdrawDate ? toISODate(bill.withdrawDate) : '');

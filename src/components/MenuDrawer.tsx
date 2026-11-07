@@ -4,6 +4,7 @@ import ChecklistIcon from '@mui/icons-material/Checklist';
 import CloseIcon from '@mui/icons-material/Close';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import MenuIcon from '@mui/icons-material/Menu';
+import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import TableViewIcon from '@mui/icons-material/TableView';
@@ -35,6 +36,7 @@ export const MENU: { title: string; entries: MenuEntry[] }[] = [
       { route: 'prefs-categories', label: 'カテゴリ', icon: <CategoryIcon />, tone: 'success' },
       { route: 'prefs-items', label: '定期項目', icon: <EventRepeatIcon />, tone: 'primary' },
       { route: 'prefs-checklist', label: '給料日のチェックリスト', icon: <ChecklistIcon />, tone: 'success' },
+      { route: 'prefs-appearance', label: '見た目の設定', icon: <PaletteOutlinedIcon />, tone: 'info' },
     ],
   },
   {
@@ -104,9 +106,6 @@ export function MenuDrawer({ open, onClose, onSelect }: {
             </Box>
           ))}
         </Stack>
-        <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 4 }}>
-          イラスト: ぴよたそ（hiyokoyarou.com）
-        </Typography>
       </Box>
     </Drawer>
   );

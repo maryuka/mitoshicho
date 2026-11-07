@@ -4,7 +4,7 @@ import {
   ListItemButton, ListItemIcon, ListItemText, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useState } from 'react';
-import { addPeriods, periodYearLabel, periodShortLabel } from '../../domain/period';
+import { addPeriods, periodYearLabel, periodShortLabel, periodRule, type StartDay } from '../../domain/period';
 import type { AppData, Receivable } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { yen } from '../../lib/money';
@@ -14,7 +14,7 @@ import { canAutoFocus } from '../../lib/device';
 const KIND_LABEL = { reimbursement: '経費精算', split: '割り勘・立替' } as const;
 
 export function ReceivablesPage({ data, current }: { data: AppData; current: string }) {
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const [editing, setEditing] = useState<Receivable | 'new' | null>(null);
   const sorted = [...data.receivables].sort((a, b) => (a.expectedPeriod < b.expectedPeriod ? -1 : 1));
   const open = sorted.filter((r) => !r.receivedAt);
@@ -61,7 +61,7 @@ export function ReceivablesPage({ data, current }: { data: AppData; current: str
 }
 
 function ReceivableDialog({ value, defaultPeriod, periodOptions, startDay, onClose }: {
-  value?: Receivable; defaultPeriod: string; periodOptions: string[]; startDay: number; onClose: () => void;
+  value?: Receivable; defaultPeriod: string; periodOptions: string[]; startDay: StartDay; onClose: () => void;
 }) {
   const [title, setTitle] = useState(value?.title ?? '');
   const [kind, setKind] = useState<Receivable['kind']>(value?.kind ?? 'split');

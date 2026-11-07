@@ -1,51 +1,46 @@
 import { Box, Button, Stack, Typography } from '@mui/material';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { HIYOKO } from '../../components/Hiyoko';
+import { KITSUNE } from '../../components/Kitsune';
+import { db } from '../../db/db';
+import { DEFAULT_SETTINGS, type Settings } from '../../domain/types';
+import { PaydayFields } from '../settings/PaydayFields';
 
-interface Step { image: string; title: string; body: ReactNode }
+interface Step { image: string; title: string; body: ReactNode; setup?: boolean }
 
 const STEPS: Step[] = [
   {
-    image: HIYOKO.happy, title: 'みとおし帳へようこそ！',
-    body: <>給料日ごとに「今月お金が回るか」を<br />見通すための家計アプリだよ。</>,
+    image: KITSUNE.happy, title: 'みとおし帳へようこそ！',
+    body: <>
+      給料日ごとに「今月お金が回るか」を<br />見通すための家計アプリだよ。
+      <Box component="ul" sx={{ textAlign: 'left', display: 'inline-block', m: 0, mt: 1.5, pl: 2.5 }}>
+        <li>月ごとに予算を立てる</li>
+        <li>給料日に入金とカード請求をチェック</li>
+        <li>月末に家計簿アプリの合計で振り返る</li>
+      </Box>
+    </>,
   },
   {
-    image: HIYOKO.counting, title: '月ごとに予算を立てる',
-    body: <>月の区切りは給料日。<br />カテゴリごとに「使っていい額」を決めておこう。</>,
+    image: KITSUNE.counting, title: '給料日を教えてね', setup: true,
+    body: <>給料日から次の給料日の前日までを<br />「1か月」として数えるよ。</>,
   },
   {
-    image: HIYOKO.sunglasses, title: '給料日のチェックもかんたん',
-    body: <>入金・カード請求・口座への振り分けを<br />まとめてチェックできるよ。</>,
-  },
-  {
-    image: HIYOKO.reading, title: '月末に振り返る',
-    body: <>日々の記録は Zaim で。<br />月末にカテゴリの合計を入れて<br />予算と比べよう。</>,
-  },
-  {
-    image: HIYOKO.rocket, title: 'さっそく始めよう',
-    body: <>データはこの端末の中だけに保存されるよ。<br />どこから始める？</>,
+    image: KITSUNE.money, title: 'さっそく始めよう',
+    body: <>データはこの端末の中だけに保存されるよ。<br />スプレッドシートの取り込みやサンプルデータ、<br />バックアップからの復元は<br />メニューの「データ」からできるよ。</>,
   },
 ];
 
-// 取り込み画面などから戻ってきたときは、最後のページ（始め方の選択）から出す
-let reachedLast = false;
-
 /** はじめて開いたとき（データが空のとき）のウォークスルー。横にスワイプしてページを送る */
-export function Walkthrough({ onImport, onSample, onRestore }: {
-  onImport: () => void; onSample: () => void; onRestore: () => void;
-}) {
+export function Walkthrough({ settings }: { settings: Settings }) {
   const track = useRef<HTMLDivElement>(null);
   const last = STEPS.length - 1;
-  const [index, setIndex] = useState(reachedLast ? last : 0);
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
     const el = track.current;
     if (!el) return;
-    if (reachedLast) el.scrollLeft = last * el.clientWidth;
     const onScroll = () => {
       const i = Math.round(el.scrollLeft / el.clientWidth);
       setIndex(i);
-      if (i === last) reachedLast = true;
     };
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
@@ -73,11 +68,19 @@ export function Walkthrough({ onImport, onSample, onRestore }: {
           <Box key={s.title} role="group" aria-label={`${i + 1} / ${STEPS.length}`} aria-hidden={i !== index}
             sx={{ flex: '0 0 100%', scrollSnapAlign: 'center', scrollSnapStop: 'always', px: 3,
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 2 }}>
-            <Box sx={{ width: 220, maxWidth: '70%', aspectRatio: '1', borderRadius: '50%', bgcolor: 'soft', display: 'grid', placeItems: 'center' }}>
+            <Box sx={{ width: s.setup ? 140 : 220, maxWidth: '70%', aspectRatio: '1', borderRadius: '50%', bgcolor: 'soft', display: 'grid', placeItems: 'center' }}>
               <Box component="img" src={s.image} alt="" sx={{ width: '78%' }} />
             </Box>
             <Typography variant="h6" fontWeight={900} sx={{ mt: 1, textWrap: 'balance' }}>{s.title}</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.9 }}>{s.body}</Typography>
+            <Typography variant="body2" color="text.secondary" component="div" sx={{ lineHeight: 1.9 }}>{s.body}</Typography>
+            {s.setup && (
+              <Box sx={{ width: '100%', textAlign: 'left', mt: 1 }}>
+                <PaydayFields settings={settings} />
+                <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1.5, textAlign: 'center' }}>
+                  あとからメニューの「月の区切り」で変えられるよ
+                </Typography>
+              </Box>
+            )}
           </Box>
         ))}
       </Box>
@@ -94,11 +97,8 @@ export function Walkthrough({ onImport, onSample, onRestore }: {
       {index < last ? (
         <Button variant="contained" size="large" fullWidth onClick={() => goTo(index + 1)}>次へ</Button>
       ) : (
-        <Stack spacing={1}>
-          <Button variant="contained" size="large" fullWidth onClick={onImport}>スプレッドシートから取り込む</Button>
-          <Button variant="outlined" size="large" fullWidth onClick={onSample}>サンプルデータで試す</Button>
-          <Button color="inherit" sx={{ color: 'text.secondary' }} onClick={onRestore}>バックアップから復元する</Button>
-        </Stack>
+        <Button variant="contained" size="large" fullWidth
+          onClick={() => db.settings.put({ ...DEFAULT_SETTINGS, ...settings, startedAt: new Date().toISOString() })}>始める</Button>
       )}
     </Box>
   );

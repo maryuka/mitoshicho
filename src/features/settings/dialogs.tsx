@@ -11,8 +11,8 @@ import {
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { countBetween, endAfterCount, itemArchivePatch, itemSchedule, type ScheduleRow } from '../../domain/items';
-import { addPeriods, comparePeriods, periodFromLabel, periodYearLabel } from '../../domain/period';
-import type { Account, AmountChange, AppData, Category, CategoryKind, ChecklistTemplate, Item, Recurrence } from '../../domain/types';
+import { addPeriods, comparePeriods, periodFromLabel, periodYearLabel, periodRule, type StartDay } from '../../domain/period';
+import type { Account, AmountChange, AppData, Category, CategoryKind, ChecklistTemplate, HolidayShift, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { MoneyField } from '../../components/MoneyField';
 import { confirmDialog } from '../../components/ConfirmDialog';
@@ -76,6 +76,8 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
   const [kind, setKind] = useState<Account['kind']>(value?.kind ?? 'bank');
   const [withdrawDay, setWithdrawDay] = useState<number | undefined>(value?.withdrawDay ?? 26);
   const [confirmDay, setConfirmDay] = useState<number | undefined>(value?.confirmDay);
+  // 新しく追加するカードは、多くのカードと同じ「後の平日」にしておく
+  const [withdrawShift, setWithdrawShift] = useState<HolidayShift>(value ? value.withdrawShift ?? 'none' : 'after');
   const [withdrawAccountId, setWithdrawAccountId] = useState(value?.withdrawAccountId ?? '');
   const [lag, setLag] = useState(value?.billLagPeriods ?? 1);
   const banks = data.accounts.filter((a) => a.kind === 'bank' && a.id !== value?.id);
@@ -84,7 +86,7 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
   const save = async () => {
     const base = { id: value?.id ?? newId(), name: name.trim(), kind, sortOrder: value?.sortOrder ?? nextOrder(data.accounts), archived: value?.archived ?? false };
     await db.accounts.put(kind === 'card'
-      ? { ...base, withdrawDay, confirmDay, withdrawAccountId: withdrawAccountId || undefined, billLagPeriods: lag }
+      ? { ...base, withdrawDay, withdrawShift, confirmDay, withdrawAccountId: withdrawAccountId || undefined, billLagPeriods: lag }
       : base);
     onClose();
   };
@@ -106,6 +108,12 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
                 <DayField id="acc-withdraw-day" label="引落日（毎月）" value={withdrawDay} onChange={setWithdrawDay} />
                 <DayField id="acc-confirm-day" label="請求確定日（毎月）" value={confirmDay} onChange={setConfirmDay} />
               </Stack>
+              <TextField id="acc-withdraw-shift" select label="引落日が土日・祝日のとき" value={withdrawShift}
+                onChange={(e) => setWithdrawShift(e.target.value as HolidayShift)} fullWidth>
+                <MenuItem value="after">後の平日にずらす</MenuItem>
+                <MenuItem value="before">前の平日にずらす</MenuItem>
+                <MenuItem value="none">ずらさない</MenuItem>
+              </TextField>
               <Typography variant="caption" color="text.secondary">
                 確定日になるとホームに「請求額を入力」が出ます。月ごとにずれる場合は、その月の請求を開いて日付を変えられます。
               </Typography>
@@ -151,7 +159,7 @@ export function CategoryDialog({ value, data, onClose }: { value?: Category; dat
         onArchive={value && (async (a) => { await db.categories.update(value.id, { archived: a }); onClose(); })} />
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField id="cat-name" label="名前（Zaim のカテゴリ名に合わせると振り返りが楽です）" value={name} onChange={(e) => setName(e.target.value)} autoFocus={canAutoFocus} fullWidth />
+          <TextField id="cat-name" label="名前（家計簿アプリのカテゴリ名に合わせると振り返りが楽です）" value={name} onChange={(e) => setName(e.target.value)} autoFocus={canAutoFocus} fullWidth />
           <TextField id="cat-kind" select label="種類" value={kind} onChange={(e) => setKind(e.target.value as CategoryKind)} fullWidth>
             {(Object.keys(KIND_LABEL) as CategoryKind[]).map((k) => <MenuItem key={k} value={k}>{KIND_LABEL[k]}</MenuItem>)}
           </TextField>
@@ -163,7 +171,7 @@ export function CategoryDialog({ value, data, onClose }: { value?: Category; dat
 }
 
 export function ItemDialog({ value, data, current, onClose }: { value?: Item; data: AppData; current: string; onClose: () => void }) {
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const cats = data.categories.filter((c) => !c.archived || c.id === value?.categoryId).sort((a, b) => a.sortOrder - b.sortOrder);
   const [name, setName] = useState(value?.name ?? '');
   const [categoryId, setCategoryId] = useState(value?.categoryId ?? cats[0]?.id ?? '');
@@ -381,7 +389,7 @@ function AmountChanges({ changes, onChange, months, label }: {
 export function ChecklistDialog({ value, data, current, onClose }: {
   value?: ChecklistTemplate; data: AppData; current: string; onClose: () => void;
 }) {
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const r = value?.recurrence ?? { type: 'monthly' as const };
   const [label, setLabel] = useState(value?.label ?? '');
   const [recType, setRecType] = useState<'monthly' | 'interval' | 'yearly'>(r.type === 'once' ? 'monthly' : r.type);
@@ -453,7 +461,7 @@ export function ChecklistDialog({ value, data, current, onClose }: {
 
 /** 定期項目が入る月と金額の一覧（保存前の入力内容で出す） */
 function ScheduleDialog({ name, rows, startDay, onClose }: {
-  name: string; rows: ScheduleRow[]; startDay: number; onClose: () => void;
+  name: string; rows: ScheduleRow[]; startDay: StartDay; onClose: () => void;
 }) {
   return (
     <Dialog open onClose={onClose}>

@@ -1,11 +1,16 @@
 // 金額はすべて整数（円）。期 ID は開始月の 'YYYY-MM'。
 
+/** 土日・祝日のずらし方。before: 前の平日 / none: ずらさない / after: 後の平日 */
+export type HolidayShift = 'before' | 'none' | 'after';
+
 export interface Settings {
   id: 'app';
   periodStartDay: number; // 給料日（期の開始日）
-  /** 使っていない（以前のバッファの下限。バックアップの互換のため残す） */
-  bufferThreshold: number;
+  /** 給料日が土日・祝日のとき、期の始まりをどうずらすか（なければ before） */
+  holidayShift?: HolidayShift;
   lastBackupAt?: string;
+  /** ウォークスルーで「始める」を押した日時。データが空でも、これがあればウォークスルーを出さない */
+  startedAt?: string;
 }
 
 export type AccountKind = 'bank' | 'card';
@@ -16,6 +21,8 @@ export interface Account {
   kind: AccountKind;
   /** card: 引落日（毎月） */
   withdrawDay?: number;
+  /** card: 引落日が土日・祝日のときのずらし方（なければずらさない） */
+  withdrawShift?: HolidayShift;
   /** card: 請求額の確定日（毎月）。引落日より前の直近のこの日に確定する */
   confirmDay?: number;
   /** card: 引落口座 */
@@ -77,7 +84,7 @@ export interface Entry {
   memo?: string;
 }
 
-/** 期 × カテゴリ の実績合計（Zaim などで集計した額を振り返りで入力） */
+/** 期 × カテゴリ の実績合計（家計簿アプリなどで集計した額を振り返りで入力） */
 export interface CategoryActual {
   id: string; // `${periodId}:${categoryId}`
   periodId: string;
@@ -142,5 +149,4 @@ export interface AppData {
 export const DEFAULT_SETTINGS: Settings = {
   id: 'app',
   periodStartDay: 15,
-  bufferThreshold: 10000,
 };

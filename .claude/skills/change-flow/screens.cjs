@@ -21,7 +21,11 @@ const base = process.env.BASE_URL || 'http://localhost:4173/';
       await page.screenshot({ path: `${out}/welcome-${scheme}.png` });
       await skip.click();
       await page.waitForTimeout(400);
-      await page.getByRole('button', { name: 'サンプルデータで試す' }).click();
+      await page.getByRole('button', { name: '始める' }).click();
+      await page.waitForTimeout(400);
+      await page.goto(`${base}#prefs-backup`);
+      await page.waitForTimeout(400);
+      await page.getByRole('button', { name: 'サンプルデータを読み込む' }).click();
       await page.getByRole('button', { name: 'サンプルデータを入れる' }).click();
       await page.waitForTimeout(800);
     }

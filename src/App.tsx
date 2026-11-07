@@ -8,15 +8,14 @@ import {
 } from '@mui/material';
 import { useEffect, useState, type ReactElement } from 'react';
 import { useAppData } from './db/useAppData';
-import { SampleDataDialog } from './components/SampleDataDialog';
-import { periodOf } from './domain/period';
+import { periodOf, periodRule } from './domain/period';
 import { HomePage } from './features/home/HomePage';
 import { BudgetPage } from './features/budget/BudgetPage';
 import { ReceivablesPage } from './features/receivables/ReceivablesPage';
 import { SettingsPage, type SettingsPageId } from './features/settings/SettingsPage';
 import { ConfirmHost } from './components/ConfirmDialog';
 import { MENU_LABEL, MenuButton, MenuDrawer } from './components/MenuDrawer';
-import { HiyokoLoading, HiyokoSays } from './components/Hiyoko';
+import { KitsuneLoading, KitsuneSays } from './components/Kitsune';
 import { Walkthrough } from './features/welcome/Walkthrough';
 
 // 画面は #home 形式のハッシュで切り替える（静的ホスティングと埋め込みの両方で動く）
@@ -31,13 +30,14 @@ const MAIN_TABS: { id: MainRoute; label: string; icon: ReactElement }[] = [
 const isMain = (r: string): r is MainRoute => MAIN_TABS.some((t) => t.id === r);
 const SUB_ROUTES = Object.keys(MENU_LABEL);
 
-/** メニューから開くページの先頭で、ひよこが言うひとこと */
+/** メニューから開くページの先頭で、狐が言うひとこと */
 const TIPS: Record<string, string> = {
   receivables: '立て替えたお金は、戻ってくる月を入れておくと見通しに入るよ！',
-  'prefs-basic': '月の区切りは給料日。土日祝なら前の平日から次の月になるよ！',
+  'prefs-basic': '月の区切りは給料日。土日祝のときのずらし方も選べるよ！',
   'prefs-accounts': '請求確定日を入れておくと、確定したときに「やること」で知らせるよ！',
-  'prefs-categories': 'カテゴリは Zaim と同じ名前にしておくと、実績を入れやすいよ！',
+  'prefs-categories': 'カテゴリはいつも使う家計簿アプリと同じ名前にしておくと、実績を入れやすいよ！',
   'prefs-items': '毎月・毎年決まって出入りするお金を入れておこう！',
+  'prefs-appearance': '画面の明るさを選べるよ。夜はダークが目にやさしいよ！',
   'prefs-checklist': '給料日にやることを並べておくと、ホームの「給料日」でチェックできるよ！',
   'prefs-import': 'スプレッドシートのセルをコピーして貼り付けるだけで取り込めるよ！',
   'prefs-backup': 'データはこの端末の中だけ。ときどきバックアップしておくと安心だよ！',
@@ -55,7 +55,6 @@ export function App() {
   const [lastMain, setLastMain] = useState<MainRoute>(isMain(route) ? route : 'home');
   const [period, setPeriod] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sampleOpen, setSampleOpen] = useState(false);
 
   useEffect(() => {
     const onHash = () => { setRoute(routeFromHash()); window.scrollTo(0, 0); };
@@ -65,12 +64,12 @@ export function App() {
   useEffect(() => { if (isMain(route)) setLastMain(route); }, [route]);
 
   if (!data) {
-    return <HiyokoLoading />;
+    return <KitsuneLoading />;
   }
 
-  const current = periodOf(new Date(), data.settings.periodStartDay);
+  const current = periodOf(new Date(), periodRule(data.settings));
   const p = period ?? current;
-  const isEmpty = data.items.length === 0 && data.accounts.length === 0;
+  const isEmpty = !data.settings.startedAt && data.items.length === 0 && data.accounts.length === 0;
   const isSub = SUB_ROUTES.includes(route);
   // 下のメニューを出さないのは、データが空のあいだ（ウォークスルーなど）と、左のメニューから開いたページ（「‹ 戻る」で戻る）
   const noNav = isEmpty || isSub;
@@ -86,13 +85,13 @@ export function App() {
         {isSub ? (
           <Stack spacing={2}>
             <SubHeader title={MENU_LABEL[route]} onBack={() => go(lastMain)} />
-            {TIPS[route] && <HiyokoSays>{TIPS[route]}</HiyokoSays>}
+            {TIPS[route] && <KitsuneSays>{TIPS[route]}</KitsuneSays>}
             {route === 'receivables'
               ? <ReceivablesPage data={data} current={current} />
               : <SettingsPage page={route.replace('prefs-', '') as SettingsPageId} data={data} current={current} />}
           </Stack>
         ) : isEmpty ? (
-          <Walkthrough onImport={() => go('prefs-import')} onSample={() => setSampleOpen(true)} onRestore={() => go('prefs-backup')} />
+          <Walkthrough settings={data.settings} />
         ) : route === 'budget' || route === 'plan'
           ? <BudgetPage key={route} mode={route === 'plan' ? 'budget' : 'actual'} data={data} period={p} setPeriod={setPeriod} current={current} menu={menu} />
           : <HomePage data={data} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} menu={menu} />}
@@ -114,7 +113,6 @@ export function App() {
       </Paper>}
 
       <MenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} onSelect={(r) => { setMenuOpen(false); go(r); }} />
-      <SampleDataDialog open={sampleOpen} hasData={false} onClose={() => setSampleOpen(false)} />
       <ConfirmHost />
     </Box>
   );
