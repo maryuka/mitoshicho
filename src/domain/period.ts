@@ -1,6 +1,19 @@
 // 期（給料日〜次の給料日の前日）の計算
-// 給料日が土日・祝日なら前の平日に支払われるので、期の始まりもその日にずらす（開始日 1日＝暦月はずらさない）
-import { previousBusinessDay } from './holidays';
+// 給料日が土日・祝日なら、設定に合わせて期の始まりを前／後の平日にずらす（開始日 1日＝暦月はずらさない）
+import { nextBusinessDay, previousBusinessDay } from './holidays';
+import type { HolidayShift, Settings } from './types';
+
+/** 期の区切り方。数だけのときは給料日で、土日・祝日は前の平日にずらす */
+export type StartDay = number | { day: number; shift: HolidayShift };
+
+/** 設定から期の区切り方を作る */
+export function periodRule(s: Pick<Settings, 'periodStartDay' | 'holidayShift'>): StartDay {
+  return { day: s.periodStartDay, shift: s.holidayShift ?? 'before' };
+}
+
+/** 給料日の日にち */
+export function dayOf(s: StartDay): number { return typeof s === 'number' ? s : s.day; }
+const shiftOf = (s: StartDay): HolidayShift => (typeof s === 'number' ? 'before' : s.shift);
 
 export function periodId(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, '0')}`;
@@ -32,34 +45,37 @@ function clampDay(year: number, month: number, day: number): number {
 }
 
 /** 予定どおりの給料日（土日祝でずらす前） */
-function nominalStart(id: string, startDay: number): Date {
+function nominalStart(id: string, startDay: StartDay): Date {
   const { year, month } = parsePeriod(id);
-  return new Date(year, month - 1, clampDay(year, month, startDay));
+  return new Date(year, month - 1, clampDay(year, month, dayOf(startDay)));
 }
 
 /** 期の初日＝実際の給料日 */
-export function periodStart(id: string, startDay: number): Date {
+export function periodStart(id: string, startDay: StartDay): Date {
   const d = nominalStart(id, startDay);
-  return startDay === 1 ? d : previousBusinessDay(d);
+  const shift = shiftOf(startDay);
+  if (dayOf(startDay) === 1 || shift === 'none') return d;
+  return shift === 'after' ? nextBusinessDay(d) : previousBusinessDay(d);
 }
 
-export function periodEnd(id: string, startDay: number): Date {
+export function periodEnd(id: string, startDay: StartDay): Date {
   const next = periodStart(addPeriods(id, 1), startDay);
   return new Date(next.getFullYear(), next.getMonth(), next.getDate() - 1);
 }
 
-export function periodOf(date: Date, startDay: number): string {
+export function periodOf(date: Date, startDay: StartDay): string {
   const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const id = periodId(day.getFullYear(), day.getMonth() + 1);
-  // 翌月の給料日が前にずれてこの月に入ってくることもある（開始日が月初に近いとき）
+  // 翌月の給料日が前にずれてこの月に入ってくることも、前月の給料日が後ろにずれてこの月に入ってくることもある
   if (day >= periodStart(addPeriods(id, 1), startDay)) return addPeriods(id, 1);
-  return day >= periodStart(id, startDay) ? id : addPeriods(id, -1);
+  if (day >= periodStart(id, startDay)) return id;
+  return day >= periodStart(addPeriods(id, -1), startDay) ? addPeriods(id, -1) : addPeriods(id, -2);
 }
 
 const md = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
 
-export function periodLabel(id: string, startDay: number): string {
-  if (startDay === 1) {
+export function periodLabel(id: string, startDay: StartDay): string {
+  if (dayOf(startDay) === 1) {
     const { year, month } = parsePeriod(id);
     return `${year}年${month}月`;
   }
@@ -67,8 +83,8 @@ export function periodLabel(id: string, startDay: number): string {
 }
 
 /** 年まで入れた表記。選択肢など、いつのことか分からなくなる場所で使う（例: 2026/10/15〜11/14、2026/12/15〜2027/1/14） */
-export function periodYearLabel(id: string, startDay: number): string {
-  if (startDay === 1) {
+export function periodYearLabel(id: string, startDay: StartDay): string {
+  if (dayOf(startDay) === 1) {
     const { year, month } = parsePeriod(id);
     return `${year}年${month}月`;
   }
@@ -79,19 +95,19 @@ export function periodYearLabel(id: string, startDay: number): string {
 }
 
 /** 期の初日だけを年つきで（例: 2027/4/15〜）。幅の狭い場所で使う */
-export function periodFromLabel(id: string, startDay: number): string {
-  if (startDay === 1) { const { year, month } = parsePeriod(id); return `${year}年${month}月〜`; }
+export function periodFromLabel(id: string, startDay: StartDay): string {
+  if (dayOf(startDay) === 1) { const { year, month } = parsePeriod(id); return `${year}年${month}月〜`; }
   const s = periodStart(id, startDay);
   return `${s.getFullYear()}/${md(s)}〜`;
 }
 
-export function periodShortLabel(id: string, startDay: number): string {
-  if (startDay === 1) return `${parsePeriod(id).month}月`;
+export function periodShortLabel(id: string, startDay: StartDay): string {
+  if (dayOf(startDay) === 1) return `${parsePeriod(id).month}月`;
   return `${md(periodStart(id, startDay))}-${md(periodEnd(id, startDay))}`;
 }
 
 /** 期の中で day 日が来る日付（タイムライン用） */
-export function dateInPeriod(id: string, startDay: number, day: number): Date {
+export function dateInPeriod(id: string, startDay: StartDay, day: number): Date {
   // どちらの月の day 日かは、ずらす前の給料日で決める（給料日のずれで項目が2回・0回にならないように）
   const start = nominalStart(id, startDay);
   const y = start.getFullYear();

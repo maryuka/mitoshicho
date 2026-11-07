@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { countBetween, endAfterCount, itemArchivePatch, itemSchedule, type ScheduleRow } from '../../domain/items';
-import { addPeriods, comparePeriods, periodFromLabel, periodYearLabel } from '../../domain/period';
+import { addPeriods, comparePeriods, periodFromLabel, periodYearLabel, periodRule, type StartDay } from '../../domain/period';
 import type { Account, AmountChange, AppData, Category, CategoryKind, ChecklistTemplate, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { MoneyField } from '../../components/MoneyField';
@@ -163,7 +163,7 @@ export function CategoryDialog({ value, data, onClose }: { value?: Category; dat
 }
 
 export function ItemDialog({ value, data, current, onClose }: { value?: Item; data: AppData; current: string; onClose: () => void }) {
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const cats = data.categories.filter((c) => !c.archived || c.id === value?.categoryId).sort((a, b) => a.sortOrder - b.sortOrder);
   const [name, setName] = useState(value?.name ?? '');
   const [categoryId, setCategoryId] = useState(value?.categoryId ?? cats[0]?.id ?? '');
@@ -381,7 +381,7 @@ function AmountChanges({ changes, onChange, months, label }: {
 export function ChecklistDialog({ value, data, current, onClose }: {
   value?: ChecklistTemplate; data: AppData; current: string; onClose: () => void;
 }) {
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const r = value?.recurrence ?? { type: 'monthly' as const };
   const [label, setLabel] = useState(value?.label ?? '');
   const [recType, setRecType] = useState<'monthly' | 'interval' | 'yearly'>(r.type === 'once' ? 'monthly' : r.type);
@@ -453,7 +453,7 @@ export function ChecklistDialog({ value, data, current, onClose }: {
 
 /** 定期項目が入る月と金額の一覧（保存前の入力内容で出す） */
 function ScheduleDialog({ name, rows, startDay, onClose }: {
-  name: string; rows: ScheduleRow[]; startDay: number; onClose: () => void;
+  name: string; rows: ScheduleRow[]; startDay: StartDay; onClose: () => void;
 }) {
   return (
     <Dialog open onClose={onClose}>

@@ -1,3 +1,4 @@
+import { periodRule } from '../../domain/period';
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
@@ -16,7 +17,7 @@ import { CardBillDialog } from '../../components/CardBillDialog';
 
 /** 給料日の作業: 収入確定 → カード請求 → 立替回収 → 振り分け → チェックリスト */
 export function PaydayPanel({ data, period, current }: { data: AppData; period: string; current: string }) {
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
   const [editingBill, setEditingBill] = useState<CardBillRow | null>(null);
   const incomes = s.categories.filter((c) => c.kind === 'income');

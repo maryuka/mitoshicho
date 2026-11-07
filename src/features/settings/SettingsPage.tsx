@@ -10,8 +10,8 @@ import {
 import { useState, type ReactNode } from 'react';
 import { countBetween } from '../../domain/items';
 import { amountFor } from '../../domain/cashflow';
-import { comparePeriods, periodFromLabel, periodYearLabel } from '../../domain/period';
-import type { Account, AppData, Category, ChecklistTemplate, Item, Recurrence } from '../../domain/types';
+import { comparePeriods, periodFromLabel, periodYearLabel, periodRule, type StartDay } from '../../domain/period';
+import type { Account, AppData, Category, ChecklistTemplate, HolidayShift, Item, Recurrence } from '../../domain/types';
 import { DEFAULT_SETTINGS } from '../../domain/types';
 import { db } from '../../db/db';
 import { yen } from '../../lib/money';
@@ -19,7 +19,7 @@ import { AccountDialog, CategoryDialog, ChecklistDialog, ItemDialog, KIND_LABEL 
 import { DataSection } from './DataSection';
 import { useThemePref } from '../../theme';
 
-function recurrenceText(r: Recurrence, startDay: number) {
+function recurrenceText(r: Recurrence, startDay: StartDay) {
   if (r.type === 'monthly') return '毎月';
   if (r.type === 'interval') return `${r.months}か月に1回`;
   if (r.type === 'yearly') return `毎年${r.month}月`;
@@ -37,6 +37,12 @@ function nextChange(i: Item, current: string) {
   return i.amountChanges?.find((c) => comparePeriods(c.from, current) > 0);
 }
 
+const SHIFT_HELP: Record<HolidayShift, string> = {
+  before: '例: 15日が土曜なら、14日（金）から次の月が始まります',
+  none: '土日・祝日でも、毎月同じ日に次の月が始まります',
+  after: '例: 15日が土曜なら、17日（月）から次の月が始まります',
+};
+
 export type SettingsPageId = 'basic' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';
 
 /** メニューから開く設定の各ページ。1ページに1つの項目だけを出す */
@@ -50,7 +56,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
   const toggle = (list: { archived: boolean }[]) => (
     <ArchivedToggle count={list.filter((x) => x.archived).length} shown={showArchived} onChange={setShowArchived} />
   );
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const accounts = [...data.accounts].sort((a, b) => a.sortOrder - b.sortOrder);
   const categories = [...data.categories].sort((a, b) => a.sortOrder - b.sortOrder);
   const accName = (id?: string) => data.accounts.find((a) => a.id === id)?.name ?? '未設定';
@@ -64,10 +70,18 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
         <CardContent>
           <Stack spacing={2}>
             <TextField id="set-start-day" select label="月の開始日（給料日）" value={s.periodStartDay}
-              onChange={(e) => updateSettings({ periodStartDay: Number(e.target.value) })} fullWidth
-              helperText={s.periodStartDay === 1 ? undefined : '土日・祝日のときは、前の平日から次の月が始まります'}>
+              onChange={(e) => updateSettings({ periodStartDay: Number(e.target.value) })} fullWidth>
               {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <MenuItem key={d} value={d}>{d === 1 ? '1日（暦月）' : `${d}日`}</MenuItem>)}
             </TextField>
+            {s.periodStartDay !== 1 && (
+              <TextField id="set-holiday-shift" select label="給料日が土日・祝日のとき" value={s.holidayShift ?? 'before'}
+                onChange={(e) => updateSettings({ holidayShift: e.target.value as HolidayShift })} fullWidth
+                helperText={SHIFT_HELP[s.holidayShift ?? 'before']}>
+                <MenuItem value="before">前の平日にずらす</MenuItem>
+                <MenuItem value="none">ずらさない</MenuItem>
+                <MenuItem value="after">後の平日にずらす</MenuItem>
+              </TextField>
+            )}
             <Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75 }}>画面の明るさ</Typography>
               <ToggleButtonGroup value={themePref} exclusive fullWidth size="small" aria-label="画面の明るさ"
@@ -207,7 +221,7 @@ function Empty({ children }: { children: ReactNode }) {
 
 function ChecklistSection({ data, current }: { data: AppData; current: string }) {
   const [editing, setEditing] = useState<ChecklistTemplate | 'new' | null>(null);
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   // 「今月だけ」の項目は給料日の画面で足して消すので、ここには繰り返すものだけを出す
   const items = data.checklistTemplates.filter((t) => t.recurrence?.type !== 'once').sort((a, b) => a.sortOrder - b.sortOrder);
   return (
@@ -228,7 +242,7 @@ function ChecklistSection({ data, current }: { data: AppData; current: string })
   );
 }
 
-function checklistText(t: ChecklistTemplate, startDay: number) {
+function checklistText(t: ChecklistTemplate, startDay: StartDay) {
   const parts = [recurrenceText(t.recurrence ?? { type: 'monthly' }, startDay)];
   if (t.endPeriod) parts.push(`${periodYearLabel(t.endPeriod, startDay)} まで`);
   return parts.join('・');

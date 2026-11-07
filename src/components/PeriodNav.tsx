@@ -2,11 +2,11 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Button, Chip, IconButton, Stack, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
-import { addPeriods, periodLabel } from '../domain/period';
+import { addPeriods, periodLabel, type StartDay } from '../domain/period';
 
 /** 月の切り替え。leading には左上のメニューボタンを置く */
 export function PeriodNav({ value, onChange, startDay, current, leading, onHero }: {
-  value: string; onChange: (p: string) => void; startDay: number; current: string; leading?: ReactNode;
+  value: string; onChange: (p: string) => void; startDay: StartDay; current: string; leading?: ReactNode;
   /** ホーム上部の色付きの帯の上に置くとき */
   onHero?: boolean;
 }) {

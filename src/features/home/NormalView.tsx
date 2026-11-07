@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import { useMemo, type ReactNode } from 'react';
 import { cardBillRows, cardTodos, summarize, type CardTodo, type PeriodSummary } from '../../domain/cashflow';
-import { addPeriods, mdLabel, periodLabel } from '../../domain/period';
+import { addPeriods, mdLabel, periodLabel, periodRule } from '../../domain/period';
 import type { AppData } from '../../domain/types';
 import { billDatesText } from '../../lib/cardBill';
 import { signedYen, yen } from '../../lib/money';
@@ -17,7 +17,7 @@ export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget
   data: AppData; current: string; summary: PeriodSummary;
   onCardTodo: (t: CardTodo) => void; onOpenBudget: (periodId: string) => void;
 }) {
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const todos = useMemo(() => cardTodos(data, new Date(), current), [data, current]);
   const upcoming = useMemo(() => {
     const now = new Date();

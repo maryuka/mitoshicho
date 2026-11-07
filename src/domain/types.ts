@@ -1,8 +1,13 @@
 // 金額はすべて整数（円）。期 ID は開始月の 'YYYY-MM'。
 
+/** 土日・祝日のずらし方。before: 前の平日 / none: ずらさない / after: 後の平日 */
+export type HolidayShift = 'before' | 'none' | 'after';
+
 export interface Settings {
   id: 'app';
   periodStartDay: number; // 給料日（期の開始日）
+  /** 給料日が土日・祝日のとき、期の始まりをどうずらすか（なければ before） */
+  holidayShift?: HolidayShift;
   /** 使っていない（以前のバッファの下限。バックアップの互換のため残す） */
   bufferThreshold: number;
   lastBackupAt?: string;

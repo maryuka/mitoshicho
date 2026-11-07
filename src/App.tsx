@@ -9,7 +9,7 @@ import {
 import { useEffect, useState, type ReactElement } from 'react';
 import { useAppData } from './db/useAppData';
 import { SampleDataDialog } from './components/SampleDataDialog';
-import { periodOf } from './domain/period';
+import { periodOf, periodRule } from './domain/period';
 import { HomePage } from './features/home/HomePage';
 import { BudgetPage } from './features/budget/BudgetPage';
 import { ReceivablesPage } from './features/receivables/ReceivablesPage';
@@ -34,7 +34,7 @@ const SUB_ROUTES = Object.keys(MENU_LABEL);
 /** メニューから開くページの先頭で、狐が言うひとこと */
 const TIPS: Record<string, string> = {
   receivables: '立て替えたお金は、戻ってくる月を入れておくと見通しに入るよ！',
-  'prefs-basic': '月の区切りは給料日。土日祝なら前の平日から次の月になるよ！',
+  'prefs-basic': '月の区切りは給料日。土日祝のときのずらし方も選べるよ！',
   'prefs-accounts': '請求確定日を入れておくと、確定したときに「やること」で知らせるよ！',
   'prefs-categories': 'カテゴリは Zaim と同じ名前にしておくと、実績を入れやすいよ！',
   'prefs-items': '毎月・毎年決まって出入りするお金を入れておこう！',
@@ -68,7 +68,7 @@ export function App() {
     return <KitsuneLoading />;
   }
 
-  const current = periodOf(new Date(), data.settings.periodStartDay);
+  const current = periodOf(new Date(), periodRule(data.settings));
   const p = period ?? current;
   const isEmpty = data.items.length === 0 && data.accounts.length === 0;
   const isSub = SUB_ROUTES.includes(route);

@@ -3,7 +3,7 @@ import { Alert, Box, ButtonBase, Card, Chip, CardContent, Stack, ToggleButton, T
 import { alpha } from '@mui/material/styles';
 import { useMemo, useState, type ReactNode } from 'react';
 import { summarize, type CardTodo } from '../../domain/cashflow';
-import { periodStart } from '../../domain/period';
+import { periodStart, periodRule } from '../../domain/period';
 import type { AppData } from '../../domain/types';
 import { yen } from '../../lib/money';
 import { PeriodNav } from '../../components/PeriodNav';
@@ -21,7 +21,7 @@ const writeMode = (m: Mode) => { try { localStorage.setItem(MODE_KEY, m); } catc
 export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu }: {
   data: AppData; period: string; setPeriod: (p: string) => void; current: string; onOpenBudget: (p: string) => void; menu?: ReactNode;
 }) {
-  const { periodStartDay: startDay } = data.settings;
+  const startDay = periodRule(data.settings);
   const [mode, setModeState] = useState<Mode>(readMode);
   const setMode = (m: Mode | null) => { if (m) { setModeState(m); writeMode(m); } };
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);

@@ -1,5 +1,5 @@
 // 期ごとの集計。スプシの SUM 手書きをすべてここで置き換える（純粋関数）。
-import { addPeriods, comparePeriods, dateInPeriod, lastDayBefore, parseISODate, parsePeriod } from './period';
+import { addPeriods, comparePeriods, dateInPeriod, lastDayBefore, parseISODate, parsePeriod, periodRule } from './period';
 import type { Account, AppData, Category, CategoryActual, CategoryKind, ChecklistTemplate, Entry, Item } from './types';
 
 /** その月のいつもの金額（途中からの金額の変更を反映。月ごとの上書きは含まない） */
@@ -211,7 +211,7 @@ export function cardBillRows(data: AppData, pid: string, idx = buildIndex(data))
     const actual = bill?.actual;
     if (card.archived && forecast === 0 && actual === undefined) continue;
     const withdrawDate = bill?.withdrawDate ? parseISODate(bill.withdrawDate)
-      : card.withdrawDay !== undefined ? dateInPeriod(pid, data.settings.periodStartDay, card.withdrawDay) : undefined;
+      : card.withdrawDay !== undefined ? dateInPeriod(pid, periodRule(data.settings), card.withdrawDay) : undefined;
     const confirmDate = bill?.confirmDate ? parseISODate(bill.confirmDate)
       : withdrawDate && card.confirmDay !== undefined ? lastDayBefore(withdrawDate, card.confirmDay) : undefined;
     result.push({
@@ -230,7 +230,7 @@ export function cardBillRows(data: AppData, pid: string, idx = buildIndex(data))
 
 export function summarize(data: AppData, pid: string, current = pid): PeriodSummary {
   const idx = buildIndex(data);
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const rows = itemRows(data, pid, idx);
   const categories = categoryRows(data, pid, rows, idx, current);
   const cardBills = cardBillRows(data, pid, idx);

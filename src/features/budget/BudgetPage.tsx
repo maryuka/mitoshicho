@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { amountFor, summarize, type CategoryRow } from '../../domain/cashflow';
-import { periodLabel } from '../../domain/period';
+import { periodLabel, periodRule } from '../../domain/period';
 import type { AppData, CategoryKind } from '../../domain/types';
 import { patchEntry, setCategoryActual } from '../../db/ops';
 import { db, newId } from '../../db/db';
@@ -29,7 +29,7 @@ export type Mode = 'budget' | 'actual';
 export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
   mode: Mode; data: AppData; period: string; setPeriod: (p: string) => void; current: string; menu?: ReactNode;
 }) {
-  const startDay = data.settings.periodStartDay;
+  const startDay = periodRule(data.settings);
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
 
   const expense = s.categories.filter((c) => c.kind === 'expense');

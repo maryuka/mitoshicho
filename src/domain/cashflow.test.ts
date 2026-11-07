@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cardTodos, summarize, itemOccurs } from './cashflow';
-import { addPeriods, dateInPeriod, lastDayBefore, periodLabel, periodOf, periodYearLabel } from './period';
+import { addPeriods, dateInPeriod, lastDayBefore, periodLabel, periodOf, periodStart, periodYearLabel } from './period';
 import { DEFAULT_SETTINGS, type AppData, type Item } from './types';
 
 function item(p: Partial<Item> & Pick<Item, 'id' | 'categoryId' | 'defaultAmount'>): Item {
@@ -56,6 +56,28 @@ describe('period', () => {
   it('期内の日付は開始日より前なら翌月になる', () => {
     expect(dateInPeriod('2026-10', 15, 26)).toEqual(new Date(2026, 9, 26));
     expect(dateInPeriod('2026-10', 15, 10)).toEqual(new Date(2026, 10, 10));
+  });
+  it('給料日が土日のときのずらし方を選べる', () => {
+    // 2026/11/15 は日曜
+    const before = { day: 15, shift: 'before' as const };
+    const none = { day: 15, shift: 'none' as const };
+    const after = { day: 15, shift: 'after' as const };
+    expect(periodStart('2026-11', before)).toEqual(new Date(2026, 10, 13));
+    expect(periodStart('2026-11', none)).toEqual(new Date(2026, 10, 15));
+    expect(periodStart('2026-11', after)).toEqual(new Date(2026, 10, 16));
+    expect(periodLabel('2026-10', after)).toBe('10/15〜11/15');
+    expect(periodOf(new Date(2026, 10, 15), after)).toBe('2026-10');
+    expect(periodOf(new Date(2026, 10, 16), after)).toBe('2026-11');
+    expect(periodOf(new Date(2026, 10, 14), before)).toBe('2026-11');
+    // 数だけのときは今までどおり前にずらす
+    expect(periodStart('2026-11', 15)).toEqual(new Date(2026, 10, 13));
+  });
+  it('月末の給料日を後ろにずらすと翌月に入る', () => {
+    // 2026/1/31 は土曜 → 2/2（月）
+    const after = { day: 31, shift: 'after' as const };
+    expect(periodStart('2026-01', after)).toEqual(new Date(2026, 1, 2));
+    expect(periodOf(new Date(2026, 1, 1), after)).toBe('2025-12');
+    expect(periodOf(new Date(2026, 1, 2), after)).toBe('2026-01');
   });
 });
 
