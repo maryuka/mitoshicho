@@ -1,6 +1,6 @@
 // 期ごとの集計。スプシの SUM 手書きをすべてここで置き換える（純粋関数）。
 import { addPeriods, comparePeriods, dateInPeriod, lastDayBefore, parseISODate, parsePeriod } from './period';
-import type { Account, AppData, Category, CategoryActual, CategoryKind, Entry, Item } from './types';
+import type { Account, AppData, Category, CategoryActual, CategoryKind, ChecklistTemplate, Entry, Item } from './types';
 
 /** その月のいつもの金額（途中からの金額の変更を反映。月ごとの上書きは含まない） */
 export function amountFor(item: Item, pid: string): number {
@@ -26,6 +26,15 @@ export function itemOccurs(item: Item, pid: string): boolean {
     case 'once':
       return r.periodId === pid;
   }
+}
+
+/** その月の給料日のチェックリストに出すか */
+export function checklistOccurs(t: ChecklistTemplate, pid: string): boolean {
+  if (t.startPeriod && comparePeriods(pid, t.startPeriod) < 0) return false;
+  if (t.endPeriod && comparePeriods(pid, t.endPeriod) > 0) return false;
+  const r = t.recurrence ?? { type: 'monthly' };
+  if (r.type === 'interval' && !t.startPeriod) return true;
+  return itemOccurs({ recurrence: r, startPeriod: t.startPeriod ?? pid } as Item, pid);
 }
 
 export interface ItemRow {

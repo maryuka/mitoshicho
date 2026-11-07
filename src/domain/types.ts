@@ -110,6 +110,11 @@ export interface ChecklistTemplate {
   id: string;
   label: string;
   sortOrder: number;
+  /** 繰り返し。なければ毎月（以前のデータ）。「今月だけ」は once */
+  recurrence?: Recurrence;
+  /** 開始月・終了月。なければ制限なし */
+  startPeriod?: string;
+  endPeriod?: string;
 }
 
 export interface ChecklistDone {

@@ -1,13 +1,14 @@
+import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   Accordion, AccordionDetails, AccordionSummary, Avatar, Box, Button, Card, CardContent, CardHeader, Checkbox, Chip,
-  FormControlLabel, Link, List, ListItem, ListItemText, Stack, Typography,
+  FormControlLabel, IconButton, Link, List, ListItem, ListItemText, Stack, TextField, Typography,
 } from '@mui/material';
 import { useMemo, useState, type ReactNode } from 'react';
-import { summarize, type CardBillRow } from '../../domain/cashflow';
-import type { AppData } from '../../domain/types';
+import { checklistOccurs, summarize, type CardBillRow } from '../../domain/cashflow';
+import type { AppData, ChecklistTemplate } from '../../domain/types';
 import { saveCardBill, setCategoryActual, toggleCheck } from '../../db/ops';
-import { db } from '../../db/db';
+import { db, newId } from '../../db/db';
 import { BILL_STATUS, billDatesText, billStatus } from '../../lib/cardBill';
 import { signedYen, yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
@@ -21,7 +22,7 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
   const incomes = s.categories.filter((c) => c.kind === 'income');
   const receivables = data.receivables.filter((r) => r.expectedPeriod === period);
   const done = new Set(data.checklistDone.filter((c) => c.periodId === period).map((c) => c.key));
-  const templates = [...data.checklistTemplates].sort((a, b) => a.sortOrder - b.sortOrder);
+  const templates = data.checklistTemplates.filter((t) => checklistOccurs(t, period)).sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
     <>
@@ -102,10 +103,21 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
       </Step>
 
       <Step no={5} title="チェックリスト">
-        {templates.length === 0 && <Empty>設定画面で項目を追加できます</Empty>}
+        {templates.length === 0 && <Empty>やることはありません。毎月のものはメニューの「給料日のチェックリスト」で登録できます</Empty>}
         {templates.map((t) => (
-          <CheckRow key={t.id} checked={done.has(t.id)} label={t.label} onChange={(c) => toggleCheck(period, t.id, c)} />
+          <Stack key={t.id} direction="row" alignItems="center">
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <CheckRow checked={done.has(t.id)} label={t.label} onChange={(c) => toggleCheck(period, t.id, c)} />
+            </Box>
+            {t.recurrence?.type === 'once' && (
+              <>
+                <Chip label="今月だけ" size="small" variant="outlined" sx={{ height: 20, fontSize: 10 }} />
+                <IconButton aria-label={`${t.label} を消す`} size="small" onClick={() => removeOnce(t.id, period)}><CloseIcon fontSize="small" /></IconButton>
+              </>
+            )}
+          </Stack>
         ))}
+        <AddOnce period={period} order={data.checklistTemplates} />
       </Step>
 
       {editingBill && (
@@ -154,4 +166,33 @@ function CheckRow({ checked, label, amount, strong, onChange }: {
 
 function Empty({ children }: { children: ReactNode }) {
   return <Typography variant="body2" color="text.secondary">{children}</Typography>;
+}
+
+/** 今月だけのやることを足す */
+function AddOnce({ period, order }: { period: string; order: ChecklistTemplate[] }) {
+  const [label, setLabel] = useState('');
+  const add = async () => {
+    if (!label.trim()) return;
+    const sortOrder = order.length ? Math.max(...order.map((x) => x.sortOrder)) + 1 : 0;
+    await db.checklistTemplates.add({
+      id: newId(), label: label.trim(), sortOrder,
+      recurrence: { type: 'once', periodId: period }, startPeriod: period, endPeriod: period,
+    });
+    setLabel('');
+  };
+  return (
+    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+      <TextField id="checklist-once" value={label} placeholder="今月だけのやることを追加" fullWidth
+        onChange={(e) => setLabel(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) add(); }} />
+      <Button variant="outlined" onClick={add} disabled={!label.trim()} sx={{ flexShrink: 0 }}>追加</Button>
+    </Stack>
+  );
+}
+
+/** 今月だけのやることを、チェックの記録ごと消す */
+async function removeOnce(id: string, period: string) {
+  await db.transaction('rw', db.checklistTemplates, db.checklistDone, async () => {
+    await db.checklistTemplates.delete(id);
+    await db.checklistDone.delete(`${period}:${id}`);
+  });
 }

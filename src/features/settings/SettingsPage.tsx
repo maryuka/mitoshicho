@@ -1,22 +1,21 @@
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import AddIcon from '@mui/icons-material/Add';
-import CloseIcon from '@mui/icons-material/Close';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import {
-  Box, Button, Card, CardContent, CardHeader, Chip, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
+  Box, Button, Card, CardContent, CardHeader, Chip, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   ListSubheader, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { countBetween } from '../../domain/items';
 import { amountFor } from '../../domain/cashflow';
 import { comparePeriods, periodFromLabel, periodYearLabel } from '../../domain/period';
-import type { Account, AppData, Category, Item, Recurrence } from '../../domain/types';
+import type { Account, AppData, Category, ChecklistTemplate, Item, Recurrence } from '../../domain/types';
 import { DEFAULT_SETTINGS } from '../../domain/types';
-import { db, newId } from '../../db/db';
+import { db } from '../../db/db';
 import { yen } from '../../lib/money';
-import { AccountDialog, CategoryDialog, ItemDialog, KIND_LABEL } from './dialogs';
+import { AccountDialog, CategoryDialog, ChecklistDialog, ItemDialog, KIND_LABEL } from './dialogs';
 import { DataSection } from './DataSection';
 
 function recurrenceText(r: Recurrence, startDay: number) {
@@ -143,7 +142,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
         {toggle(data.items)}
       </Section>}
 
-      {page === 'checklist' && <ChecklistSection data={data} />}
+      {page === 'checklist' && <ChecklistSection data={data} current={current} />}
       {page === 'import' && <DataSection data={data} current={current} part="import" />}
       {page === 'backup' && <DataSection data={data} current={current} part="backup" />}
 
@@ -191,33 +190,31 @@ function Empty({ children }: { children: ReactNode }) {
   return <ListItem><ListItemText secondary={children} /></ListItem>;
 }
 
-function ChecklistSection({ data }: { data: AppData }) {
-  const [label, setLabel] = useState('');
-  const items = [...data.checklistTemplates].sort((a, b) => a.sortOrder - b.sortOrder);
-  const add = async () => {
-    if (!label.trim()) return;
-    const order = items.length ? Math.max(...items.map((i) => i.sortOrder)) + 1 : 0;
-    await db.checklistTemplates.add({ id: newId(), label: label.trim(), sortOrder: order });
-    setLabel('');
-  };
+function ChecklistSection({ data, current }: { data: AppData; current: string }) {
+  const [editing, setEditing] = useState<ChecklistTemplate | 'new' | null>(null);
+  const startDay = data.settings.periodStartDay;
+  // 「今月だけ」の項目は給料日の画面で足して消すので、ここには繰り返すものだけを出す
+  const items = data.checklistTemplates.filter((t) => t.recurrence?.type !== 'once').sort((a, b) => a.sortOrder - b.sortOrder);
   return (
-    <Section subheader="口座ごとの送金チェックは自動で出ます。それ以外のやることを登録します。">
+    <Section onAdd={() => setEditing('new')}
+      subheader="口座ごとの送金チェックは自動で出ます。それ以外のやることを登録します。今月だけのやることは、ホームの「給料日」から足せます。">
       <List dense>
+        {items.length === 0 && <Empty>やることを登録してください</Empty>}
         {items.map((t) => (
-          <ListItem key={t.id} secondaryAction={
-            <IconButton edge="end" aria-label={`${t.label} を削除`} onClick={() => db.checklistTemplates.delete(t.id)}><CloseIcon fontSize="small" /></IconButton>
-          }>
-            <ListItemText primary={t.label} />
+          <ListItem key={t.id} disablePadding>
+            <ListItemButton onClick={() => setEditing(t)}>
+              <ListItemText primary={t.label} secondary={checklistText(t, startDay)} />
+            </ListItemButton>
           </ListItem>
         ))}
       </List>
-      <CardContent sx={{ pt: 0 }}>
-        <Stack direction="row" spacing={1}>
-          <TextField id="checklist-new" value={label} placeholder="例: 楽天へ支払い分を送金" fullWidth
-            onChange={(e) => setLabel(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }} />
-          <Button variant="outlined" onClick={add}>追加</Button>
-        </Stack>
-      </CardContent>
+      {editing && <ChecklistDialog value={editing === 'new' ? undefined : editing} data={data} current={current} onClose={() => setEditing(null)} />}
     </Section>
   );
+}
+
+function checklistText(t: ChecklistTemplate, startDay: number) {
+  const parts = [recurrenceText(t.recurrence ?? { type: 'monthly' }, startDay)];
+  if (t.endPeriod) parts.push(`${periodYearLabel(t.endPeriod, startDay)} まで`);
+  return parts.join('・');
 }

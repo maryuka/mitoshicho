@@ -11,7 +11,7 @@ import {
 import { useState } from 'react';
 import { countBetween, endAfterCount, itemArchivePatch } from '../../domain/items';
 import { addPeriods, comparePeriods, periodFromLabel, periodYearLabel } from '../../domain/period';
-import type { Account, AmountChange, AppData, Category, CategoryKind, Item, Recurrence } from '../../domain/types';
+import type { Account, AmountChange, AppData, Category, CategoryKind, ChecklistTemplate, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { MoneyField } from '../../components/MoneyField';
 import { confirmDialog } from '../../components/ConfirmDialog';
@@ -351,5 +351,79 @@ function AmountChanges({ changes, onChange, months, label }: {
         <Button size="small" startIcon={<AddIcon />} onClick={add} sx={{ alignSelf: 'flex-start' }}>途中から金額を変える</Button>
       )}
     </Stack>
+  );
+}
+
+/** 給料日のチェックリストの項目（繰り返すもの）。「今月だけ」は給料日の画面から足す */
+export function ChecklistDialog({ value, data, current, onClose }: {
+  value?: ChecklistTemplate; data: AppData; current: string; onClose: () => void;
+}) {
+  const startDay = data.settings.periodStartDay;
+  const r = value?.recurrence ?? { type: 'monthly' as const };
+  const [label, setLabel] = useState(value?.label ?? '');
+  const [recType, setRecType] = useState<'monthly' | 'interval' | 'yearly'>(r.type === 'once' ? 'monthly' : r.type);
+  const [months, setMonths] = useState(r.type === 'interval' ? r.months : 2);
+  const [month, setMonth] = useState(r.type === 'yearly' ? r.month : 1);
+  const [startPeriod, setStartPeriod] = useState(value?.startPeriod ?? current);
+  const [endPeriod, setEndPeriod] = useState(value?.endPeriod ?? '');
+  const options = Array.from({ length: 49 }, (_, i) => addPeriods(current, i - 24));
+  const withValue = (v: string) => (v && !options.includes(v) ? [v, ...options] : options);
+  const valid = label.trim() !== '';
+
+  const save = async () => {
+    if (!valid) return;
+    const recurrence: Recurrence = recType === 'monthly' ? { type: 'monthly' }
+      : recType === 'interval' ? { type: 'interval', months } : { type: 'yearly', month };
+    await db.checklistTemplates.put({
+      id: value?.id ?? newId(), label: label.trim(), sortOrder: value?.sortOrder ?? nextOrder(data.checklistTemplates),
+      recurrence, startPeriod, endPeriod: endPeriod && comparePeriods(endPeriod, startPeriod) >= 0 ? endPeriod : undefined,
+    });
+    onClose();
+  };
+  const remove = async () => {
+    if (!value) return;
+    if (!await confirmDialog(`「${value.label}」を削除します。よろしいですか？`)) return;
+    await db.checklistTemplates.delete(value.id);
+    onClose();
+  };
+
+  return (
+    <Dialog open onClose={onClose}>
+      <Title text={value ? 'やることを編集' : 'やることを追加'} onDelete={value && remove}
+        deleteHint="この先の給料日のチェックリストから消す" />
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          <TextField id="check-label" label="やること" value={label} onChange={(e) => setLabel(e.target.value)}
+            placeholder="例: 楽天へ支払い分を送金" autoFocus={canAutoFocus} fullWidth />
+          <TextField id="check-recurrence" select label="頻度" value={recType} onChange={(e) => setRecType(e.target.value as typeof recType)} fullWidth>
+            <MenuItem value="monthly">毎月</MenuItem>
+            <MenuItem value="interval">数か月に1回</MenuItem>
+            <MenuItem value="yearly">毎年</MenuItem>
+          </TextField>
+          {recType === 'interval' && (
+            <TextField id="check-interval" select label="何か月に1回か" value={months} onChange={(e) => setMonths(Number(e.target.value))} fullWidth
+              helperText="開始月から数えます">
+              {Array.from({ length: 11 }, (_, i) => i + 2).map((n) => <MenuItem key={n} value={n}>{n}か月に1回</MenuItem>)}
+            </TextField>
+          )}
+          {recType === 'yearly' && (
+            <TextField id="check-month" select label="何月か" value={month} onChange={(e) => setMonth(Number(e.target.value))} fullWidth>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <MenuItem key={m} value={m}>{m}月</MenuItem>)}
+            </TextField>
+          )}
+          <TextField id="check-start" select label="開始月" value={startPeriod} fullWidth
+            onChange={(e) => { setStartPeriod(e.target.value); if (endPeriod && comparePeriods(endPeriod, e.target.value) < 0) setEndPeriod(''); }}>
+            {withValue(startPeriod).map((p) => <MenuItem key={p} value={p}>{periodYearLabel(p, startDay)}</MenuItem>)}
+          </TextField>
+          <TextField id="check-end" select label="終了月" value={endPeriod} onChange={(e) => setEndPeriod(e.target.value)} fullWidth
+            slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
+            <MenuItem value="">なし（ずっと続ける）</MenuItem>
+            {withValue(endPeriod).filter((p) => comparePeriods(p, startPeriod) >= 0)
+              .map((p) => <MenuItem key={p} value={p}>{periodYearLabel(p, startDay)}</MenuItem>)}
+          </TextField>
+        </Stack>
+      </DialogContent>
+      <Actions valid={valid} onSave={save} onClose={onClose} />
+    </Dialog>
   );
 }
