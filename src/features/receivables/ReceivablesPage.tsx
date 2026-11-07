@@ -7,6 +7,7 @@ import { addPeriods, periodYearLabel, periodShortLabel, periodRule, type StartDa
 import type { AppData, Receivable } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { AddFab } from '../../components/AddFab';
+import { PageNote } from '../../components/PageNote';
 import { yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
 import { canAutoFocus } from '../../lib/device';
@@ -36,7 +37,7 @@ export function ReceivablesPage({ data, current }: { data: AppData; current: str
 
   return (
     <Stack spacing={2}>
-      <Typography variant="body2" color="text.secondary">回収予定の月のバッファに加算されます。チェックで回収済みにします。</Typography>
+      <PageNote>回収予定の月のバッファに加算されます。チェックで回収済みにします。</PageNote>
       <Card>
         <CardHeader title="未回収" subheader={open.length > 0 ? yen(open.reduce((s, r) => s + r.amount, 0)) : undefined}
           titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} sx={{ pb: 0 }} />
