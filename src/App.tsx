@@ -72,8 +72,8 @@ export function App() {
   const p = period ?? current;
   const isEmpty = data.items.length === 0 && data.accounts.length === 0;
   const isSub = SUB_ROUTES.includes(route);
-  // データが空のあいだ（ウォークスルーと、そこから開く取り込み・復元のページ）は下のメニューを出さない
-  const noNav = isEmpty;
+  // 下のメニューを出さないのは、データが空のあいだ（ウォークスルーなど）と、左のメニューから開いたページ（「‹ 戻る」で戻る）
+  const noNav = isEmpty || isSub;
   const openBudget = (pid: string) => { setPeriod(pid); go('budget'); };
   const menu = <MenuButton onClick={() => setMenuOpen(true)} />;
 
@@ -98,8 +98,7 @@ export function App() {
           : <HomePage data={data} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} menu={menu} />}
       </Container>
 
-      {/* 左のメニューを開いている間は、下のメニューを隠す */}
-      {!noNav && !menuOpen && <Paper elevation={3} sx={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 10, pb: 'env(safe-area-inset-bottom, 0px)' }}>
+      {!noNav && <Paper elevation={3} sx={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 10, pb: 'env(safe-area-inset-bottom, 0px)' }}>
         <BottomNavigation showLabels value={isSub ? lastMain : route} onChange={(_, v: MainRoute) => go(v)}
           sx={{
             maxWidth: 600, mx: 'auto', height: 64,
