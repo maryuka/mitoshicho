@@ -1,11 +1,11 @@
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  Box, Button, Card, CardContent, Chip, Divider, IconButton, Link, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  Box, Button, Card, CardContent, Chip, Divider, IconButton, Link, Stack, TextField, Typography,
 } from '@mui/material';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { amountFor, summarize, type CategoryRow } from '../../domain/cashflow';
-import { comparePeriods, periodLabel } from '../../domain/period';
+import { periodLabel } from '../../domain/period';
 import type { AppData, CategoryKind } from '../../domain/types';
 import { patchEntry, setCategoryActual } from '../../db/ops';
 import { db, newId } from '../../db/db';
@@ -23,15 +23,14 @@ const SECTIONS: { kind: CategoryKind; label: string }[] = [
 ];
 
 /** ふりかえり（月ごとの予算と実績）。実績は Zaim で集計したカテゴリ合計を入れて振り返る */
-type Mode = 'budget' | 'actual';
+export type Mode = 'budget' | 'actual';
 
-export function BudgetPage({ data, period, setPeriod, current, menu }: {
-  data: AppData; period: string; setPeriod: (p: string) => void; current: string; menu?: ReactNode;
+/** 下のメニューの「計画」（mode=budget）と「ふりかえり」（mode=actual）の画面 */
+export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
+  mode: Mode; data: AppData; period: string; setPeriod: (p: string) => void; current: string; menu?: ReactNode;
 }) {
   const startDay = data.settings.periodStartDay;
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
-  // 予算を決める画面と、月末に実績を入れる画面を分ける。最初は過去の月なら実績、今月以降なら予算
-  const [mode, setMode] = useState<Mode>(() => (comparePeriods(period, current) < 0 ? 'actual' : 'budget'));
 
   const expense = s.categories.filter((c) => c.kind === 'expense');
   const budget = expense.reduce((a, c) => a + c.planned, 0);
@@ -44,12 +43,6 @@ export function BudgetPage({ data, period, setPeriod, current, menu }: {
   return (
     <Stack spacing={2}>
       <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} leading={menu} />
-
-      <ToggleButtonGroup value={mode} exclusive fullWidth size="small" color="primary"
-        onChange={(_, m: Mode | null) => { if (m) setMode(m); }}>
-        <ToggleButton value="budget">予算</ToggleButton>
-        <ToggleButton value="actual">実績</ToggleButton>
-      </ToggleButtonGroup>
 
       {mode === 'budget' ? (
         <Card>

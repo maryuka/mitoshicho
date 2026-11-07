@@ -107,7 +107,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
       </Section>}
 
       {page === 'items' && <Section onAdd={categories.length > 0 ? () => setItem('new') : undefined}
-        subheader="登録した金額が毎月の予算に自動で入ります。月ごとの変更は「ふりかえり」でカテゴリを開いて行えます。">
+        subheader="登録した金額が毎月の予算に自動で入ります。その月だけの変更は下のメニューの「計画」で行えます。">
         <List dense>
           {data.items.length === 0 && <Empty>定期項目を登録してください</Empty>}
           {categories.map((c) => {

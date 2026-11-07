@@ -1,6 +1,7 @@
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import HomeIcon from '@mui/icons-material/Home';
-import TableChartIcon from '@mui/icons-material/TableChart';
+import EditCalendarIcon from '@mui/icons-material/EditCalendar';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import {
   BottomNavigation, BottomNavigationAction, Box, Container,
   IconButton, Paper, Stack, Typography,
@@ -19,12 +20,15 @@ import { HiyokoLoading, HiyokoSays } from './components/Hiyoko';
 import { Walkthrough } from './features/welcome/Walkthrough';
 
 // 画面は #home 形式のハッシュで切り替える（静的ホスティングと埋め込みの両方で動く）
-// ヘッダーは置かず、ホーム・ふりかえりは左上のメニューボタンから、立替と設定の各ページを開く
-type MainRoute = 'home' | 'budget';
+// ヘッダーは置かず、下のメニューでホーム・計画・ふりかえりを切り替え、立替と設定の各ページは左上のメニューボタンから開く
+// 計画（#plan）は月ごとの予算、ふりかえり（#budget）は月末の実績の入力
+type MainRoute = 'home' | 'plan' | 'budget';
 const MAIN_TABS: { id: MainRoute; label: string; icon: ReactElement }[] = [
   { id: 'home', label: 'ホーム', icon: <HomeIcon /> },
-  { id: 'budget', label: 'ふりかえり', icon: <TableChartIcon /> },
+  { id: 'plan', label: '計画', icon: <EditCalendarIcon /> },
+  { id: 'budget', label: 'ふりかえり', icon: <FactCheckIcon /> },
 ];
+const isMain = (r: string): r is MainRoute => MAIN_TABS.some((t) => t.id === r);
 const SUB_ROUTES = Object.keys(MENU_LABEL);
 
 /** メニューから開くページの先頭で、ひよこが言うひとこと */
@@ -41,14 +45,14 @@ const TIPS: Record<string, string> = {
 
 const routeFromHash = (): string => {
   const h = location.hash.replace(/^#\/?/, '');
-  return h === 'budget' || SUB_ROUTES.includes(h) ? h : 'home';
+  return isMain(h) || SUB_ROUTES.includes(h) ? h : 'home';
 };
 const go = (r: string) => { location.hash = `#${r}`; };
 
 export function App() {
   const data = useAppData();
   const [route, setRoute] = useState<string>(routeFromHash);
-  const [lastMain, setLastMain] = useState<MainRoute>(route === 'budget' ? 'budget' : 'home');
+  const [lastMain, setLastMain] = useState<MainRoute>(isMain(route) ? route : 'home');
   const [period, setPeriod] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sampleOpen, setSampleOpen] = useState(false);
@@ -58,7 +62,7 @@ export function App() {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-  useEffect(() => { if (route === 'home' || route === 'budget') setLastMain(route); }, [route]);
+  useEffect(() => { if (isMain(route)) setLastMain(route); }, [route]);
 
   if (!data) {
     return <HiyokoLoading />;
@@ -89,8 +93,8 @@ export function App() {
           </Stack>
         ) : isEmpty ? (
           <Walkthrough onImport={() => go('prefs-import')} onSample={() => setSampleOpen(true)} onRestore={() => go('prefs-backup')} />
-        ) : route === 'budget'
-          ? <BudgetPage data={data} period={p} setPeriod={setPeriod} current={current} menu={menu} />
+        ) : route === 'budget' || route === 'plan'
+          ? <BudgetPage key={route} mode={route === 'plan' ? 'budget' : 'actual'} data={data} period={p} setPeriod={setPeriod} current={current} menu={menu} />
           : <HomePage data={data} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} menu={menu} />}
       </Container>
 
