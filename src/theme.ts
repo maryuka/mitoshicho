@@ -49,17 +49,47 @@ function build(mode: 'light' | 'dark'): Theme {
   });
 }
 
-/** OS の設定と、埋め込み先が付ける data-theme 属性の両方に従う */
+/** 画面の明るさの設定。system は端末（と埋め込み先）に合わせる */
+export type ThemePref = 'system' | 'light' | 'dark';
+const THEME_KEY = 'mitoshicho:theme';
+const THEME_EVENT = 'mitoshicho:theme';
+
+export function readThemePref(): ThemePref {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    return v === 'light' || v === 'dark' ? v : 'system';
+  } catch { return 'system'; }
+}
+
+export function writeThemePref(v: ThemePref) {
+  try { localStorage.setItem(THEME_KEY, v); } catch { /* 保存できなくても、この画面の間は切り替わる */ }
+  window.dispatchEvent(new CustomEvent<ThemePref>(THEME_EVENT, { detail: v }));
+}
+
+/** 画面の明るさの設定を読み書きする */
+export function useThemePref(): [ThemePref, (v: ThemePref) => void] {
+  const [pref, setPref] = useState<ThemePref>(readThemePref);
+  useEffect(() => {
+    const on = (e: Event) => setPref((e as CustomEvent<ThemePref>).detail);
+    window.addEventListener(THEME_EVENT, on);
+    return () => window.removeEventListener(THEME_EVENT, on);
+  }, []);
+  return [pref, writeThemePref];
+}
+
+/** 設定でライト／ダークを選んでいればそれに、「端末に合わせる」なら OS の設定と埋め込み先が付ける data-theme 属性に従う */
 export function useAppTheme(): Theme {
-  const [mode, setMode] = useState<'light' | 'dark'>(() => detect());
+  const [pref] = useThemePref();
+  const [system, setSystem] = useState<'light' | 'dark'>(() => detect());
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const update = () => setMode(detect());
+    const update = () => setSystem(detect());
     mq.addEventListener('change', update);
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     return () => { mq.removeEventListener('change', update); obs.disconnect(); };
   }, []);
+  const mode = pref === 'system' ? system : pref;
   return useMemo(() => build(mode), [mode]);
 }
 

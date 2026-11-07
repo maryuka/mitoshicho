@@ -5,7 +5,7 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import {
   Box, Button, Card, CardContent, CardHeader, Chip, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  ListSubheader, MenuItem, Stack, TextField, Typography,
+  ListSubheader, MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { countBetween } from '../../domain/items';
@@ -17,6 +17,7 @@ import { db } from '../../db/db';
 import { yen } from '../../lib/money';
 import { AccountDialog, CategoryDialog, ChecklistDialog, ItemDialog, KIND_LABEL } from './dialogs';
 import { DataSection } from './DataSection';
+import { useThemePref } from '../../theme';
 
 function recurrenceText(r: Recurrence, startDay: number) {
   if (r.type === 'monthly') return '毎月';
@@ -55,6 +56,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
   const accName = (id?: string) => data.accounts.find((a) => a.id === id)?.name ?? '未設定';
   const s = data.settings;
   const updateSettings = (patch: Partial<typeof s>) => db.settings.put({ ...DEFAULT_SETTINGS, ...s, ...patch });
+  const [themePref, setThemePref] = useThemePref();
 
   return (
     <Stack spacing={2}>
@@ -66,6 +68,19 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
               helperText={s.periodStartDay === 1 ? undefined : '土日・祝日のときは、前の平日から次の月が始まります'}>
               {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <MenuItem key={d} value={d}>{d === 1 ? '1日（暦月）' : `${d}日`}</MenuItem>)}
             </TextField>
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75 }}>画面の明るさ</Typography>
+              <ToggleButtonGroup value={themePref} exclusive fullWidth size="small" aria-label="画面の明るさ"
+                onChange={(_, v) => { if (v) setThemePref(v); }}
+                sx={{ '& .MuiToggleButton-root': { fontWeight: 700 } }}>
+                <ToggleButton value="system">端末に合わせる</ToggleButton>
+                <ToggleButton value="light">ライト</ToggleButton>
+                <ToggleButton value="dark">ダーク</ToggleButton>
+              </ToggleButtonGroup>
+              <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.75 }}>
+                この端末だけの設定です（バックアップには入りません）
+              </Typography>
+            </Box>
           </Stack>
         </CardContent>
       </Section>}

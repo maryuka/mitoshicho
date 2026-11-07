@@ -30,7 +30,7 @@ export const MENU: { title: string; entries: MenuEntry[] }[] = [
   {
     title: '設定',
     entries: [
-      { route: 'prefs-basic', label: '月の区切り', icon: <TuneIcon />, tone: 'primary' },
+      { route: 'prefs-basic', label: '基本設定', icon: <TuneIcon />, tone: 'primary' },
       { route: 'prefs-accounts', label: '口座・カード', icon: <AccountBalanceIcon />, tone: 'grey' },
       { route: 'prefs-categories', label: 'カテゴリ', icon: <CategoryIcon />, tone: 'success' },
       { route: 'prefs-items', label: '定期項目', icon: <EventRepeatIcon />, tone: 'primary' },
