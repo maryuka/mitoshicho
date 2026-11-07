@@ -174,8 +174,11 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   const [startPeriod, setStartPeriod] = useState(value?.startPeriod ?? current);
   const [endPeriod, setEndPeriod] = useState(value?.endPeriod ?? '');
   // 終わり方: ずっと続ける／終了月で決める／回数で決める（回数は終了月に直して保存する）
-  const [endMode, setEndMode] = useState<'none' | 'month' | 'count'>(value?.endPeriod ? 'month' : 'none');
-  const [countText, setCountText] = useState('');
+  const [endMode, setEndMode] = useState<'none' | 'month' | 'count'>(
+    !value?.endPeriod ? 'none' : value.endBy === 'count' ? 'count' : 'month');
+  // 回数で決めていた項目は、保存してある終了月から回数を出して入れておく
+  const [countText, setCountText] = useState(value?.endPeriod && value.endBy === 'count'
+    ? String(countBetween({ recurrence: value.recurrence, startPeriod: value.startPeriod }, value.endPeriod)) : '');
   const options = Array.from({ length: 49 }, (_, i) => addPeriods(current, i - 24));
   const withValue = (v: string) => (v && !options.includes(v) ? [v, ...options] : options);
   const kind = data.categories.find((c) => c.id === categoryId)?.kind;
@@ -204,6 +207,7 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
       sourceAccountId: source || undefined, recurrence,
       startPeriod: recType === 'once' ? once : startPeriod,
       endPeriod: recType === 'once' ? once : finalEnd || undefined,
+      endBy: recType !== 'once' && endMode === 'count' && finalEnd ? 'count' : undefined,
       sortOrder: value?.sortOrder ?? nextOrder(data.items), archived: value?.archived ?? false,
       // 終了月を自分で変えたら、アーカイブ前の終了月の記録は使わない
       endBeforeArchive: (finalEnd || undefined) === value?.endPeriod ? value?.endBeforeArchive : undefined,

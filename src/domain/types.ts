@@ -59,6 +59,8 @@ export interface Item {
   recurrence: Recurrence;
   startPeriod: string;
   endPeriod?: string;
+  /** 終了月を回数で決めたとき 'count'（編集画面で回数の入力に戻すため。終了月は endPeriod に入っている） */
+  endBy?: 'count';
   sortOrder: number;
   archived: boolean;
   /** アーカイブで終了月を今月にした場合の、元の終了月（なしなら null）。使用中に戻すときに使う */
