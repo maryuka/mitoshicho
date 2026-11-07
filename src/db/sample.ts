@@ -1,13 +1,16 @@
 // 試用のためのサンプルデータ（金額・名前は架空）
-import { addPeriods, parsePeriod, periodOf } from '../domain/period';
+import { addPeriods, parsePeriod, periodOf, periodRule } from '../domain/period';
 import type { Account, CardBill, Category, ChecklistTemplate, Entry, Item, Receivable, Recurrence, CategoryActual } from '../domain/types';
 import { DEFAULT_SETTINGS } from '../domain/types';
 import { db } from './db';
 import { clearAll } from './backup';
 
 export async function loadSampleData(): Promise<void> {
+  // ウォークスルーで選んだ給料日は残す
+  const prev = await db.settings.get('app');
+  const settings = { ...DEFAULT_SETTINGS, periodStartDay: prev?.periodStartDay ?? DEFAULT_SETTINGS.periodStartDay, holidayShift: prev?.holidayShift };
   await clearAll();
-  const now = periodOf(new Date(), DEFAULT_SETTINGS.periodStartDay);
+  const now = periodOf(new Date(), periodRule(settings));
   const start = addPeriods(now, -3);
 
   const accounts: Account[] = [
@@ -49,7 +52,7 @@ export async function loadSampleData(): Promise<void> {
   const annualMonth = parsePeriod(addPeriods(now, 2)).month;
 
   const items: Item[] = [
-    it('給与', 'c-salary', 280000, 'acc-main', 15),
+    it('給与', 'c-salary', 280000, 'acc-main', settings.periodStartDay === 1 ? 25 : settings.periodStartDay),
     it('家賃', 'c-fixed', 85000, 'acc-main', 27),
     it('水道ガス', 'c-util', 2500, 'acc-pay', 20),
     it('電気', 'c-util', 4500, 'card-a'),
@@ -120,7 +123,7 @@ export async function loadSampleData(): Promise<void> {
   ];
 
   await db.transaction('rw', [db.settings, db.accounts, db.categories, db.items, db.entries, db.categoryActuals, db.cardBills, db.receivables, db.checklistTemplates], async () => {
-    await db.settings.put(DEFAULT_SETTINGS);
+    await db.settings.put(settings);
     await db.accounts.bulkAdd(accounts);
     await db.categories.bulkAdd(categories);
     await db.items.bulkAdd(items);

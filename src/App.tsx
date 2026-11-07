@@ -93,7 +93,7 @@ export function App() {
               : <SettingsPage page={route.replace('prefs-', '') as SettingsPageId} data={data} current={current} />}
           </Stack>
         ) : isEmpty ? (
-          <Walkthrough onImport={() => go('prefs-import')} onSample={() => setSampleOpen(true)} onRestore={() => go('prefs-backup')} />
+          <Walkthrough settings={data.settings} onImport={() => go('prefs-import')} onSample={() => setSampleOpen(true)} onRestore={() => go('prefs-backup')} />
         ) : route === 'budget' || route === 'plan'
           ? <BudgetPage key={route} mode={route === 'plan' ? 'budget' : 'actual'} data={data} period={p} setPeriod={setPeriod} current={current} menu={menu} />
           : <HomePage data={data} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} menu={menu} />}

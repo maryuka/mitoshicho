@@ -5,18 +5,17 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import {
   Box, Button, Card, CardContent, CardHeader, Chip, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  ListSubheader, MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  ListSubheader, Stack, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { countBetween } from '../../domain/items';
 import { amountFor } from '../../domain/cashflow';
 import { comparePeriods, periodFromLabel, periodYearLabel, periodRule, type StartDay } from '../../domain/period';
-import type { Account, AppData, Category, ChecklistTemplate, HolidayShift, Item, Recurrence } from '../../domain/types';
-import { DEFAULT_SETTINGS } from '../../domain/types';
-import { db } from '../../db/db';
+import type { Account, AppData, Category, ChecklistTemplate, Item, Recurrence } from '../../domain/types';
 import { yen } from '../../lib/money';
 import { AccountDialog, CategoryDialog, ChecklistDialog, ItemDialog, KIND_LABEL } from './dialogs';
 import { DataSection } from './DataSection';
+import { PaydayFields } from './PaydayFields';
 import { useThemePref } from '../../theme';
 
 function recurrenceText(r: Recurrence, startDay: StartDay) {
@@ -37,12 +36,6 @@ function nextChange(i: Item, current: string) {
   return i.amountChanges?.find((c) => comparePeriods(c.from, current) > 0);
 }
 
-const SHIFT_HELP: Record<HolidayShift, string> = {
-  before: '例: 15日が土曜なら、14日（金）から次の月が始まります',
-  none: '土日・祝日でも、毎月同じ日に次の月が始まります',
-  after: '例: 15日が土曜なら、17日（月）から次の月が始まります',
-};
-
 export type SettingsPageId = 'basic' | 'appearance' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';
 
 /** メニューから開く設定の各ページ。1ページに1つの項目だけを出す */
@@ -61,29 +54,12 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
   const categories = [...data.categories].sort((a, b) => a.sortOrder - b.sortOrder);
   const accName = (id?: string) => data.accounts.find((a) => a.id === id)?.name ?? '未設定';
   const s = data.settings;
-  const updateSettings = (patch: Partial<typeof s>) => db.settings.put({ ...DEFAULT_SETTINGS, ...s, ...patch });
   const [themePref, setThemePref] = useThemePref();
 
   return (
     <Stack spacing={2}>
       {page === 'basic' && <Section>
-        <CardContent>
-          <Stack spacing={2}>
-            <TextField id="set-start-day" select label="月の開始日（給料日）" value={s.periodStartDay}
-              onChange={(e) => updateSettings({ periodStartDay: Number(e.target.value) })} fullWidth>
-              {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <MenuItem key={d} value={d}>{d === 1 ? '1日（暦月）' : `${d}日`}</MenuItem>)}
-            </TextField>
-            {s.periodStartDay !== 1 && (
-              <TextField id="set-holiday-shift" select label="給料日が土日・祝日のとき" value={s.holidayShift ?? 'before'}
-                onChange={(e) => updateSettings({ holidayShift: e.target.value as HolidayShift })} fullWidth
-                helperText={SHIFT_HELP[s.holidayShift ?? 'before']}>
-                <MenuItem value="before">前の平日にずらす</MenuItem>
-                <MenuItem value="none">ずらさない</MenuItem>
-                <MenuItem value="after">後の平日にずらす</MenuItem>
-              </TextField>
-            )}
-          </Stack>
-        </CardContent>
+        <CardContent><PaydayFields settings={s} /></CardContent>
       </Section>}
 
       {page === 'appearance' && <Section>
