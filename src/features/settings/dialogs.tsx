@@ -9,7 +9,7 @@ import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, InputAdornment, ListItemIcon, ListItemText, ListSubheader, Menu, MenuItem,
   Stack, TextField, Typography,
 } from '@mui/material';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { countBetween, endAfterCount, itemArchivePatch, itemSchedule, type ScheduleRow } from '../../domain/items';
 import { addPeriods, comparePeriods, periodFromLabel, periodYearLabel } from '../../domain/period';
 import type { Account, AmountChange, AppData, Category, CategoryKind, ChecklistTemplate, Item, Recurrence } from '../../domain/types';
@@ -23,16 +23,19 @@ export const KIND_LABEL: Record<CategoryKind, string> = { income: '収入', expe
 const nextOrder = (xs: { sortOrder: number }[]) => (xs.length ? Math.max(...xs.map((x) => x.sortOrder)) + 1 : 0);
 
 /** ダイアログのタイトル。編集のときは右上の「⋮」からアーカイブ・削除を選ぶ */
-function Title({ text, archived, onArchive, onDelete, archiveHint, unarchiveHint, deleteHint }: {
+function Title({ text, archived, onArchive, onDelete, archiveHint, unarchiveHint, deleteHint, actions }: {
   text: string; archived?: boolean; onArchive?: (archived: boolean) => void; onDelete?: () => void;
+  /** 「⋮」の左に置くボタン */
+  actions?: ReactNode;
   /** メニューの各操作の下に出す説明 */
   archiveHint?: string; unarchiveHint?: string; deleteHint?: string;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const hasMenu = !!(onArchive || onDelete);
   return (
-    <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: hasMenu ? 1.5 : 3 }}>
+    <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pr: hasMenu || actions ? 1.5 : 3 }}>
       <Box component="span" sx={{ flex: 1, minWidth: 0 }}>{text}</Box>
+      {actions}
       {hasMenu && (
         <>
           <IconButton aria-label="その他の操作" onClick={(e) => setAnchor(e.currentTarget)} sx={{ color: 'text.secondary' }}>
@@ -242,6 +245,11 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   return (
     <Dialog open onClose={onClose}>
       <Title text={value ? '定期項目を編集' : '定期項目を追加'} archived={value?.archived}
+        actions={(
+          <IconButton aria-label="月ごとの金額を見る" title="月ごとの金額を見る" onClick={() => setShowSchedule(true)} sx={{ color: 'text.secondary' }}>
+            <CalendarMonthOutlinedIcon />
+          </IconButton>
+        )}
         archiveHint="今月までで止める。来月から予算に入らず、過去の月はそのまま残る"
         unarchiveHint="アーカイブ前の終了月に戻して、また予算に入れる"
         deleteHint="過去の月も含めて、すべての予算から消す。元に戻せない"
@@ -310,9 +318,6 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
                 )}
               </>
             )}
-          <Button size="small" startIcon={<CalendarMonthOutlinedIcon />} onClick={() => setShowSchedule(true)} sx={{ alignSelf: 'flex-start' }}>
-            月ごとの金額を見る
-          </Button>
         </Stack>
       </DialogContent>
       <Actions valid={valid} onSave={save} onClose={onClose} />
