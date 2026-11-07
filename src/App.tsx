@@ -76,7 +76,7 @@ export function App() {
   return (
     <Box sx={{ minHeight: '100%', bgcolor: 'background.default' }}>
       <Container maxWidth="sm" sx={{
-        pt: 'calc(12px + env(safe-area-inset-top, 0px))', pb: noNav ? 'calc(12px + env(safe-area-inset-bottom, 0px))' : 'calc(80px + env(safe-area-inset-bottom, 0px))',
+        pt: 'calc(12px + env(safe-area-inset-top, 0px))', pb: noNav ? 'calc(12px + env(safe-area-inset-bottom, 0px))' : 'calc(84px + env(safe-area-inset-bottom, 0px))',
         pl: 'max(16px, env(safe-area-inset-left, 0px))', pr: 'max(16px, env(safe-area-inset-right, 0px))',
       }}>
         {isSub ? (
@@ -96,8 +96,16 @@ export function App() {
 
       {!noNav && <Paper elevation={3} sx={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 10, pb: 'env(safe-area-inset-bottom, 0px)' }}>
         <BottomNavigation showLabels value={isSub ? lastMain : route} onChange={(_, v: MainRoute) => go(v)}
-          sx={{ maxWidth: 600, mx: 'auto' }}>
-          {MAIN_TABS.map((t) => <BottomNavigationAction key={t.id} value={t.id} label={t.label} icon={t.icon} />)}
+          sx={{
+            maxWidth: 600, mx: 'auto', height: 64,
+            // 選んでいるタブはアイコンを横長の丸で囲む
+            '& .nav-icon': { display: 'grid', placeItems: 'center', width: 56, height: 30, borderRadius: 999, transition: 'background-color .2s' },
+            '& .Mui-selected .nav-icon': { bgcolor: 'soft' },
+            '& .MuiBottomNavigationAction-label': { mt: 0.25, fontWeight: 700 },
+          }}>
+          {MAIN_TABS.map((t) => (
+            <BottomNavigationAction key={t.id} value={t.id} label={t.label} icon={<span className="nav-icon">{t.icon}</span>} />
+          ))}
         </BottomNavigation>
       </Paper>}
 

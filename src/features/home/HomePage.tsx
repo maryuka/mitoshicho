@@ -81,7 +81,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
             </Stack>
             <Typography variant="h3" component="p" fontWeight={900} color={minus ? 'error.main' : 'text.primary'} sx={{ my: 0.5 }}>{yen(s.buffer)}</Typography>
             {mode === 'normal' && (
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5, mt: 2, pt: 2, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, mt: 2, pt: 2, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
                 <Figure kind="income" value={totals.income} onOpen={setBreakdown} />
                 <Figure kind="direct" value={totals.direct} minus onOpen={setBreakdown} />
                 <Figure kind="card" value={totals.card} minus onOpen={setBreakdown} />
@@ -118,10 +118,10 @@ function Figure({ kind, value, minus, onOpen }: { kind: BreakdownKind; value: nu
   return (
     <ButtonBase onClick={() => onOpen(kind)} focusRipple aria-label={`${BREAKDOWN_LABEL[kind]}の内訳`}
       sx={{ display: 'block', textAlign: 'left', borderRadius: 2, mx: -1, px: 1, py: 0.5 }}>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', letterSpacing: 0 }}>
         {BREAKDOWN_LABEL[kind]}<ChevronRightIcon sx={{ fontSize: 14 }} />
       </Typography>
-      <Typography variant="subtitle1" fontWeight={700} color={minus ? 'error.main' : 'text.primary'}>{yen(value)}</Typography>
+      <Typography variant="subtitle1" fontWeight={700} color={minus ? 'error.main' : 'text.primary'} sx={{ whiteSpace: 'nowrap' }}>{yen(value)}</Typography>
     </ButtonBase>
   );
 }
