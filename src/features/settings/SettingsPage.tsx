@@ -22,7 +22,10 @@ function recurrenceText(r: Recurrence, startDay: number) {
   return `1回のみ（${periodLabel(r.periodId, startDay)}）`;
 }
 
-export function SettingsPage({ data, current }: { data: AppData; current: string }) {
+export type SettingsPageId = 'basic' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';
+
+/** メニューから開く設定の各ページ。1ページに1つの項目だけを出す */
+export function SettingsPage({ page, data, current }: { page: SettingsPageId; data: AppData; current: string }) {
   const [account, setAccount] = useState<Account | 'new' | null>(null);
   const [category, setCategory] = useState<Category | 'new' | null>(null);
   const [item, setItem] = useState<Item | 'new' | null>(null);
@@ -35,9 +38,7 @@ export function SettingsPage({ data, current }: { data: AppData; current: string
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h6" fontWeight={700}>設定</Typography>
-
-      <Section title="基本">
+      {page === 'basic' && <Section>
         <CardContent>
           <Stack spacing={2}>
             <TextField id="set-start-day" select label="月の開始日（給料日）" value={s.periodStartDay}
@@ -48,9 +49,9 @@ export function SettingsPage({ data, current }: { data: AppData; current: string
               onChange={(v) => updateSettings({ bufferThreshold: v ?? 0 })} />
           </Stack>
         </CardContent>
-      </Section>
+      </Section>}
 
-      <Section title="口座・カード" onAdd={() => setAccount('new')}>
+      {page === 'accounts' && <Section onAdd={() => setAccount('new')}>
         <List dense>
           {accounts.length === 0 && <Empty>口座やカードを登録してください</Empty>}
           {accounts.map((a) => (
@@ -65,9 +66,10 @@ export function SettingsPage({ data, current }: { data: AppData; current: string
             </ListItem>
           ))}
         </List>
-      </Section>
+      </Section>}
 
-      <Section title="カテゴリ" onAdd={() => setCategory('new')}>
+      {page === 'categories' && <Section onAdd={() => setCategory('new')}
+        subheader="Zaim のカテゴリ名に合わせておくと、月末の振り返りが楽です。">
         <List dense>
           {categories.length === 0 && <Empty>カテゴリを登録してください</Empty>}
           {categories.map((c) => (
@@ -79,9 +81,9 @@ export function SettingsPage({ data, current }: { data: AppData; current: string
             </ListItem>
           ))}
         </List>
-      </Section>
+      </Section>}
 
-      <Section title="定期項目" onAdd={categories.length > 0 ? () => setItem('new') : undefined}
+      {page === 'items' && <Section onAdd={categories.length > 0 ? () => setItem('new') : undefined}
         subheader="登録した金額が毎月の予算に自動で入ります。月ごとの変更は「予算と実績」でカテゴリを開いて行えます。">
         <List dense>
           {data.items.length === 0 && <Empty>定期項目を登録してください</Empty>}
@@ -106,10 +108,11 @@ export function SettingsPage({ data, current }: { data: AppData; current: string
             );
           })}
         </List>
-      </Section>
+      </Section>}
 
-      <ChecklistSection data={data} />
-      <DataSection data={data} current={current} />
+      {page === 'checklist' && <ChecklistSection data={data} />}
+      {page === 'import' && <DataSection data={data} current={current} part="import" />}
+      {page === 'backup' && <DataSection data={data} current={current} part="backup" />}
 
       {account && <AccountDialog value={account === 'new' ? undefined : account} data={data} onClose={() => setAccount(null)} />}
       {category && <CategoryDialog value={category === 'new' ? undefined : category} data={data} onClose={() => setCategory(null)} />}
@@ -118,7 +121,7 @@ export function SettingsPage({ data, current }: { data: AppData; current: string
   );
 }
 
-function Section({ title, subheader, onAdd, children }: { title: string; subheader?: string; onAdd?: () => void; children: ReactNode }) {
+function Section({ title, subheader, onAdd, children }: { title?: string; subheader?: string; onAdd?: () => void; children: ReactNode }) {
   return (
     <Card>
       <CardHeader title={title} subheader={subheader}
@@ -143,7 +146,7 @@ function ChecklistSection({ data }: { data: AppData }) {
     setLabel('');
   };
   return (
-    <Section title="給料日のチェックリスト" subheader="口座ごとの送金チェックは自動で出ます。それ以外のやることを登録します。">
+    <Section subheader="口座ごとの送金チェックは自動で出ます。それ以外のやることを登録します。">
       <List dense>
         {items.map((t) => (
           <ListItem key={t.id} secondaryAction={

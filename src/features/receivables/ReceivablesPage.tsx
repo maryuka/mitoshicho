@@ -36,11 +36,10 @@ export function ReceivablesPage({ data, current }: { data: AppData; current: str
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6" fontWeight={700}>立替・経費精算</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setEditing('new')}>追加</Button>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+        <Typography variant="body2" color="text.secondary">回収予定の月のバッファに加算されます。チェックで回収済みにします。</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setEditing('new')} sx={{ flexShrink: 0 }}>追加</Button>
       </Stack>
-      <Typography variant="body2" color="text.secondary">回収予定の月のバッファに加算されます。チェックで回収済みにします。</Typography>
       <Card>
         <CardHeader title="未回収" subheader={open.length > 0 ? yen(open.reduce((s, r) => s + r.amount, 0)) : undefined}
           titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} sx={{ pb: 0 }} />

@@ -3,7 +3,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   Box, Card, CardContent, Chip, Collapse, Divider, Link, Stack, Typography,
 } from '@mui/material';
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { summarize, type CategoryRow } from '../../domain/cashflow';
 import { periodLabel } from '../../domain/period';
 import type { AppData, CategoryKind } from '../../domain/types';
@@ -21,8 +21,8 @@ const SECTIONS: { kind: CategoryKind; label: string }[] = [
 ];
 
 /** 月ごとの予算と実績。実績は Zaim で集計したカテゴリ合計を入れて振り返る */
-export function BudgetPage({ data, period, setPeriod, current }: {
-  data: AppData; period: string; setPeriod: (p: string) => void; current: string;
+export function BudgetPage({ data, period, setPeriod, current, menu }: {
+  data: AppData; period: string; setPeriod: (p: string) => void; current: string; menu?: ReactNode;
 }) {
   const startDay = data.settings.periodStartDay;
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
@@ -43,7 +43,7 @@ export function BudgetPage({ data, period, setPeriod, current }: {
 
   return (
     <Stack spacing={2}>
-      <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} />
+      <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} leading={menu} />
 
       <Card>
         <CardContent>

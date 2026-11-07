@@ -1,6 +1,6 @@
 import TableViewIcon from '@mui/icons-material/TableView';
 import {
-  Alert, Box, Button, Card, CardContent, CardHeader, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography,
+  Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography,
 } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import type { AppData } from '../../domain/types';
@@ -10,7 +10,8 @@ import { loadSampleData } from '../../db/sample';
 import { confirmDialog } from '../../components/ConfirmDialog';
 import { ImportSheetDialog } from './ImportSheetDialog';
 
-export function DataSection({ data, current }: { data: AppData; current: string }) {
+/** part="import": スプレッドシートからの取り込み、part="backup": バックアップ・復元・サンプル・全削除 */
+export function DataSection({ data, current, part }: { data: AppData; current: string; part: 'import' | 'backup' }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [persisted, setPersisted] = useState<boolean | null>(null);
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
@@ -32,8 +33,17 @@ export function DataSection({ data, current }: { data: AppData; current: string 
 
   return (
     <Card>
-      <CardHeader title="データ" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} sx={{ pb: 0 }} />
       <CardContent>
+        {part === 'import' ? (
+          <Stack spacing={1.5}>
+            <Typography variant="body2" color="text.secondary">
+              元の年間お金計画表から、カテゴリ・項目・月ごとの予算・カードを作ります。スマホではシートのセルをコピーして貼り付け、パソコンでは CSV ファイルを選んで取り込めます。
+            </Typography>
+            <Box>
+              <Button variant="contained" startIcon={<TableViewIcon />} onClick={() => setImporting(true)}>スプレッドシートから取り込む</Button>
+            </Box>
+          </Stack>
+        ) : (
         <Stack spacing={1.5}>
           <Typography variant="body2" color="text.secondary">
             データはこの端末のブラウザ内（IndexedDB）にだけ保存されます。ブラウザに消される可能性があるため、定期的にバックアップを保存してください。
@@ -43,15 +53,8 @@ export function DataSection({ data, current }: { data: AppData; current: string 
           {data.settings.lastBackupAt && (
             <Typography variant="caption" color="text.secondary">最終バックアップ: {new Date(data.settings.lastBackupAt).toLocaleString('ja-JP')}</Typography>
           )}
-          <Box>
-            <Button variant="contained" startIcon={<TableViewIcon />} onClick={() => setImporting(true)}>スプレッドシートから取り込む</Button>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-              元の年間お金計画表から、カテゴリ・項目・月ごとの予算・カードを作ります。
-            </Typography>
-          </Box>
-          <Typography variant="subtitle2" sx={{ pt: 1 }}>バックアップ</Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap">
-            <Button variant="outlined" onClick={downloadBackup}>バックアップを保存（JSON）</Button>
+            <Button variant="contained" onClick={downloadBackup}>バックアップを保存（JSON）</Button>
             <Button variant="outlined" onClick={() => fileRef.current?.click()}>ファイルから復元</Button>
             <Button variant="outlined" onClick={() => setTextMode('export')}>テキストでコピー</Button>
             <Button variant="outlined" onClick={() => setTextMode('import')}>テキストを貼り付けて復元</Button>
@@ -72,6 +75,7 @@ export function DataSection({ data, current }: { data: AppData; current: string 
             onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) restore(await f.text()); }} />
           {message && <Alert severity={message.error ? 'error' : 'success'} onClose={() => setMessage(null)}>{message.text}</Alert>}
         </Stack>
+        )}
       </CardContent>
       {importing && <ImportSheetDialog current={current} hasData={data.items.length > 0} onClose={() => setImporting(false)} />}
       {textMode && (

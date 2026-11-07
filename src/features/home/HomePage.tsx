@@ -1,6 +1,6 @@
 import { Alert, Box, Card, Chip, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { summarize, type CardTodo } from '../../domain/cashflow';
 import { periodStart } from '../../domain/period';
 import type { AppData } from '../../domain/types';
@@ -15,8 +15,8 @@ const MODE_KEY = 'mitoshicho:mode';
 const readMode = (): Mode => { try { return localStorage.getItem(MODE_KEY) === 'payday' ? 'payday' : 'normal'; } catch { return 'normal'; } };
 const writeMode = (m: Mode) => { try { localStorage.setItem(MODE_KEY, m); } catch { /* 保存できなくても動く */ } };
 
-export function HomePage({ data, period, setPeriod, current, onOpenBudget }: {
-  data: AppData; period: string; setPeriod: (p: string) => void; current: string; onOpenBudget: (p: string) => void;
+export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu }: {
+  data: AppData; period: string; setPeriod: (p: string) => void; current: string; onOpenBudget: (p: string) => void; menu?: ReactNode;
 }) {
   const { periodStartDay: startDay, bufferThreshold } = data.settings;
   const [mode, setModeState] = useState<Mode>(readMode);
@@ -31,7 +31,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget }: {
 
   return (
     <Stack spacing={2}>
-      <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} />
+      <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} leading={menu} />
 
       <ToggleButtonGroup value={mode} exclusive onChange={(_, m) => setMode(m)} fullWidth size="small" color="primary">
         <ToggleButton value="normal">ふだん</ToggleButton>

@@ -67,7 +67,7 @@ export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget
             {needBackup && (
               <Todo icon={<SaveAltIcon color="action" />}
                 primary={backupDays === undefined ? 'まだバックアップを保存していません' : `最後のバックアップから ${backupDays} 日経っています`}
-                href="#prefs" />
+                href="#prefs-backup" />
             )}
             {!hasTodo && (
               <ListItem><ListItemText secondary="今やることはありません" /></ListItem>
