@@ -9,6 +9,7 @@ import { clearAll, downloadBackup, exportJson, importJson } from '../../db/backu
 import { SampleDataDialog } from '../../components/SampleDataDialog';
 import { confirmDialog } from '../../components/ConfirmDialog';
 import { ImportSheetDialog } from './ImportSheetDialog';
+import { PageNote } from '../../components/PageNote';
 
 /** part="import": スプレッドシートからの取り込み、part="backup": バックアップ・復元・サンプル・全削除 */
 export function DataSection({ data, current, part }: { data: AppData; current: string; part: 'import' | 'backup' }) {
@@ -33,22 +34,22 @@ export function DataSection({ data, current, part }: { data: AppData; current: s
   };
 
   return (
+    <>
+    <PageNote>
+      {part === 'import'
+        ? '元の年間お金計画表から、カテゴリ・項目・月ごとの予算・カードを作ります。スマホではシートのセルをコピーして貼り付け、パソコンでは CSV ファイルを選んで取り込めます。'
+        : 'データはこの端末のブラウザ内（IndexedDB）にだけ保存されます。ブラウザに消される可能性があるため、定期的にバックアップを保存してください。'}
+    </PageNote>
     <Card>
       <CardContent>
         {part === 'import' ? (
           <Stack spacing={1.5}>
-            <Typography variant="body2" color="text.secondary">
-              元の年間お金計画表から、カテゴリ・項目・月ごとの予算・カードを作ります。スマホではシートのセルをコピーして貼り付け、パソコンでは CSV ファイルを選んで取り込めます。
-            </Typography>
             <Box>
               <Button variant="contained" startIcon={<TableViewIcon />} onClick={() => setImporting(true)}>スプレッドシートから取り込む</Button>
             </Box>
           </Stack>
         ) : (
         <Stack spacing={1.5}>
-          <Typography variant="body2" color="text.secondary">
-            データはこの端末のブラウザ内（IndexedDB）にだけ保存されます。ブラウザに消される可能性があるため、定期的にバックアップを保存してください。
-          </Typography>
           {persisted === true && <Alert severity="success">ストレージの永続化が許可されています</Alert>}
           {persisted === false && <Alert severity="warning">永続化が許可されていません（ホーム画面に追加すると改善することがあります）</Alert>}
           {data.settings.lastBackupAt && (
@@ -82,6 +83,7 @@ export function DataSection({ data, current, part }: { data: AppData; current: s
           onRestore={async (t) => { setTextMode(null); await restore(t); }} />
       )}
     </Card>
+    </>
   );
 }
 

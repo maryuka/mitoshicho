@@ -1,5 +1,4 @@
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import AddIcon from '@mui/icons-material/Add';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
@@ -16,6 +15,8 @@ import { yen } from '../../lib/money';
 import { AccountDialog, CategoryDialog, ChecklistDialog, ItemDialog, KIND_LABEL } from './dialogs';
 import { DataSection } from './DataSection';
 import { PaydayFields } from './PaydayFields';
+import { AddFab } from '../../components/AddFab';
+import { PageNote } from '../../components/PageNote';
 import { useThemePref } from '../../theme';
 
 function recurrenceText(r: Recurrence, startDay: StartDay) {
@@ -50,6 +51,8 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
     <ArchivedToggle count={list.filter((x) => x.archived).length} shown={showArchived} onChange={setShowArchived} />
   );
   const startDay = periodRule(data.settings);
+  // 1回のみの項目は計画で扱うので、定期項目の一覧には出さない
+  const recurring = data.items.filter((i) => i.recurrence.type !== 'once');
   const accounts = [...data.accounts].sort((a, b) => a.sortOrder - b.sortOrder);
   const categories = [...data.categories].sort((a, b) => a.sortOrder - b.sortOrder);
   const accName = (id?: string) => data.accounts.find((a) => a.id === id)?.name ?? '未設定';
@@ -97,7 +100,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
       </Section>}
 
       {page === 'categories' && <Section onAdd={() => setCategory('new')}
-        subheader="家計簿アプリのカテゴリ名に合わせておくと、月末の振り返りが楽です。">
+        note="家計簿アプリのカテゴリ名に合わせておくと、月末の振り返りが楽です。">
         <List dense>
           {categories.length === 0 && <Empty>カテゴリを登録してください</Empty>}
           {visible(categories).map((c) => (
@@ -114,11 +117,11 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
       </Section>}
 
       {page === 'items' && <Section onAdd={categories.length > 0 ? () => setItem('new') : undefined}
-        subheader="登録した金額が毎月の予算に自動で入ります。その月だけの変更は下のメニューの「計画」で行えます。">
+        note="登録した金額が毎月の予算に自動で入ります。その月だけの金額の変更や、1回だけの項目は「計画」で入れます。">
         <List dense>
-          {data.items.length === 0 && <Empty>定期項目を登録してください</Empty>}
+          {recurring.length === 0 && <Empty>定期項目を登録してください</Empty>}
           {categories.map((c) => {
-            const items = visible(data.items.filter((i) => i.categoryId === c.id)).sort((a, b) => a.sortOrder - b.sortOrder);
+            const items = visible(recurring.filter((i) => i.categoryId === c.id)).sort((a, b) => a.sortOrder - b.sortOrder);
             if (items.length === 0) return null;
             return (
               <li key={c.id}>
@@ -146,7 +149,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
             );
           })}
         </List>
-        {toggle(data.items)}
+        {toggle(recurring)}
       </Section>}
 
       {page === 'checklist' && <ChecklistSection data={data} current={current} />}
@@ -160,14 +163,17 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
   );
 }
 
-function Section({ title, subheader, onAdd, children }: { title?: string; subheader?: string; onAdd?: () => void; children: ReactNode }) {
+/** note はカードの外（上）に出すページの説明。onAdd があれば、画面右下に「追加」ボタンを出す */
+function Section({ title, note, onAdd, children }: { title?: string; note?: ReactNode; onAdd?: () => void; children: ReactNode }) {
   return (
-    <Card>
-      <CardHeader title={title} subheader={subheader}
-        titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} subheaderTypographyProps={{ variant: 'caption' }}
-        action={onAdd && <Button size="small" startIcon={<AddIcon />} onClick={onAdd}>追加</Button>} sx={{ pb: 0 }} />
-      {children}
-    </Card>
+    <>
+      {note && <PageNote>{note}</PageNote>}
+      <Card>
+        {title && <CardHeader title={title} titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} sx={{ pb: 0 }} />}
+        {children}
+      </Card>
+      {onAdd && <AddFab onClick={onAdd} />}
+    </>
   );
 }
 
@@ -204,7 +210,7 @@ function ChecklistSection({ data, current }: { data: AppData; current: string })
   const items = data.checklistTemplates.filter((t) => t.recurrence?.type !== 'once').sort((a, b) => a.sortOrder - b.sortOrder);
   return (
     <Section onAdd={() => setEditing('new')}
-      subheader="口座ごとの送金チェックは自動で出ます。それ以外のやることを登録します。今月だけのやることは、ホームの「給料日」から足せます。">
+      note="口座ごとの送金チェックは自動で出ます。それ以外のやることを登録します。今月だけのやることは、ホームの「給料日」から足せます。">
       <List dense>
         {items.length === 0 && <Empty>やることを登録してください</Empty>}
         {items.map((t) => (

@@ -14,6 +14,7 @@ import { countBetween, endAfterCount, itemArchivePatch, itemSchedule, type Sched
 import { addPeriods, comparePeriods, periodFromLabel, periodYearLabel, periodRule, type StartDay } from '../../domain/period';
 import type { Account, AmountChange, AppData, Category, CategoryKind, ChecklistTemplate, HolidayShift, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
+import { patchEntry } from '../../db/ops';
 import { MoneyField } from '../../components/MoneyField';
 import { confirmDialog } from '../../components/ConfirmDialog';
 import { canAutoFocus } from '../../lib/device';
@@ -170,6 +171,67 @@ export function CategoryDialog({ value, data, onClose }: { value?: Category; dat
   );
 }
 
+/** 支払い元（収入なら入金先）。収入は銀行口座だけ、それ以外は口座とカードから選ぶ */
+function SourceField({ data, kind, value, onChange }: {
+  data: AppData; kind?: CategoryKind; value: string; onChange: (v: string) => void;
+}) {
+  const accounts = data.accounts.filter((a) => (!a.archived || a.id === value) && (kind !== 'income' || a.kind === 'bank'));
+  return (
+    <TextField id="item-source" select label={kind === 'income' ? '入金先' : '支払い元'} value={value} onChange={(e) => onChange(e.target.value)} fullWidth
+      helperText={kind === 'income' ? undefined : 'カードを選ぶと翌月のカード請求の予測に入ります'}>
+      <MenuItem value="">（未設定）</MenuItem>
+      {accounts.some((a) => a.kind === 'bank') && <ListSubheader>銀行口座</ListSubheader>}
+      {accounts.filter((a) => a.kind === 'bank').map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
+      {accounts.some((a) => a.kind === 'card') && <ListSubheader>カード</ListSubheader>}
+      {accounts.filter((a) => a.kind === 'card').map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
+    </TextField>
+  );
+}
+
+/** 計画で足した「この月だけ」の項目を直す。金額・支払い元・入出金日 */
+export function OnceItemDialog({ value, planned, data, onClose }: {
+  value: Item; planned: number; data: AppData; onClose: () => void;
+}) {
+  const [name, setName] = useState(value.name);
+  const [amount, setAmount] = useState<number | undefined>(planned);
+  const [source, setSource] = useState(value.sourceAccountId ?? '');
+  const [day, setDay] = useState<number | undefined>(value.day);
+  const kind = data.categories.find((c) => c.id === value.categoryId)?.kind;
+  const valid = name.trim() !== '' && amount !== undefined;
+  const periodId = value.recurrence.type === 'once' ? value.recurrence.periodId : value.startPeriod;
+  const save = async () => {
+    if (!valid) return;
+    await db.transaction('rw', db.items, db.entries, async () => {
+      await db.items.update(value.id, { name: name.trim(), defaultAmount: amount!, sourceAccountId: source || undefined, day });
+      // 金額は項目そのものに持たせ、この月の上書きは消す（メモは残す）
+      await patchEntry(periodId, value.id, { planned: null });
+    });
+    onClose();
+  };
+  const remove = async () => {
+    if (!await confirmDialog(`この月だけの項目「${value.name}」を消します。よろしいですか？`)) return;
+    await db.transaction('rw', db.items, db.entries, async () => {
+      await db.entries.where('itemId').equals(value.id).delete();
+      await db.items.delete(value.id);
+    });
+    onClose();
+  };
+  return (
+    <Dialog open onClose={onClose}>
+      <Title text="この月だけの項目" onDelete={remove} deleteHint="この月の予算から消す。元に戻せない" />
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          <TextField id="once-edit-name" label="名前" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
+          <MoneyField id="once-edit-amount" label="金額" value={amount} onChange={setAmount} fullWidth />
+          <SourceField data={data} kind={kind} value={source} onChange={setSource} />
+          <DayField id="once-edit-day" label="入出金日（任意・予定の表示用）" value={day} onChange={setDay} />
+        </Stack>
+      </DialogContent>
+      <Actions valid={valid} onSave={save} onClose={onClose} />
+    </Dialog>
+  );
+}
+
 export function ItemDialog({ value, data, current, onClose }: { value?: Item; data: AppData; current: string; onClose: () => void }) {
   const startDay = periodRule(data.settings);
   const cats = data.categories.filter((c) => !c.archived || c.id === value?.categoryId).sort((a, b) => a.sortOrder - b.sortOrder);
@@ -196,7 +258,6 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   const options = Array.from({ length: 49 }, (_, i) => addPeriods(current, i - 24));
   const withValue = (v: string) => (v && !options.includes(v) ? [v, ...options] : options);
   const kind = data.categories.find((c) => c.id === categoryId)?.kind;
-  const accounts = data.accounts.filter((a) => (!a.archived || a.id === source) && (kind !== 'income' || a.kind === 'bank'));
 
   const recurrence: Recurrence = recType === 'monthly' ? { type: 'monthly' }
     : recType === 'interval' ? { type: 'interval', months: intervalMonths }
@@ -269,20 +330,12 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
           <TextField id="item-category" select label="カテゴリ" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} fullWidth>
             {cats.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}（{KIND_LABEL[c.kind]}）</MenuItem>)}
           </TextField>
-          <TextField id="item-source" select label={kind === 'income' ? '入金先' : '支払い元'} value={source} onChange={(e) => setSource(e.target.value)} fullWidth
-            helperText={kind === 'income' ? undefined : 'カードを選ぶと翌月のカード請求の予測に入ります'}>
-            <MenuItem value="">（未設定）</MenuItem>
-            {accounts.some((a) => a.kind === 'bank') && <ListSubheader>銀行口座</ListSubheader>}
-            {accounts.filter((a) => a.kind === 'bank').map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
-            {accounts.some((a) => a.kind === 'card') && <ListSubheader>カード</ListSubheader>}
-            {accounts.filter((a) => a.kind === 'card').map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
-          </TextField>
+          <SourceField data={data} kind={kind} value={source} onChange={setSource} />
           <DayField id="item-day" label="入出金日（任意・予定の表示用）" value={day} onChange={setDay} />
           <TextField id="item-recurrence" select label="頻度" value={recType} onChange={(e) => setRecType(e.target.value as Recurrence['type'])} fullWidth>
             <MenuItem value="monthly">毎月</MenuItem>
             <MenuItem value="interval">数か月に1回</MenuItem>
             <MenuItem value="yearly">毎年（年会費など）</MenuItem>
-            <MenuItem value="once">1回のみ（臨時）</MenuItem>
           </TextField>
           {recType === 'interval' && (
             <TextField id="item-interval" select label="何か月に1回か" value={intervalMonths} onChange={(e) => setIntervalMonths(Number(e.target.value))} fullWidth
