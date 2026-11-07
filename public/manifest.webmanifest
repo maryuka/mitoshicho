@@ -3,7 +3,7 @@
   "short_name": "みとおし帳",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#fffaf0",
+  "background_color": "#ffffff",
   "theme_color": "#f7a531",
   "lang": "ja",
   "icons": [
