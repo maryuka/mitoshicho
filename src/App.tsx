@@ -30,7 +30,7 @@ const SUB_ROUTES = Object.keys(MENU_LABEL);
 /** メニューから開くページの先頭で、ひよこが言うひとこと */
 const TIPS: Record<string, string> = {
   receivables: '立て替えたお金は、戻ってくる月を入れておくと見通しに入るよ！',
-  'prefs-basic': '月の区切りは給料日。バッファの下限を決めておくと、足りないときに教えるよ！',
+  'prefs-basic': '月の区切りは給料日。土日祝なら前の平日から次の月になるよ！',
   'prefs-accounts': '請求確定日を入れておくと、確定したときに「やること」で知らせるよ！',
   'prefs-categories': 'カテゴリは Zaim と同じ名前にしておくと、実績を入れやすいよ！',
   'prefs-items': '毎月・毎年決まって出入りするお金を入れておこう！',

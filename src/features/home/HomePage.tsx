@@ -19,7 +19,7 @@ const writeMode = (m: Mode) => { try { localStorage.setItem(MODE_KEY, m); } catc
 export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu }: {
   data: AppData; period: string; setPeriod: (p: string) => void; current: string; onOpenBudget: (p: string) => void; menu?: ReactNode;
 }) {
-  const { periodStartDay: startDay, bufferThreshold } = data.settings;
+  const { periodStartDay: startDay } = data.settings;
   const [mode, setModeState] = useState<Mode>(readMode);
   const setMode = (m: Mode | null) => { if (m) { setModeState(m); writeMode(m); } };
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
@@ -28,11 +28,10 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
   // 月の初日から5日間は「給料日」への切り替えをすすめる
   const daysIntoPeriod = Math.floor((Date.now() - periodStart(current, startDay).getTime()) / 86400000);
   const suggestPayday = mode === 'normal' && period === current && daysIntoPeriod < 5;
-  const ok = s.buffer >= bufferThreshold;
-
+  // バッファが 0 円以上なら OK、マイナスなら足りない
   const minus = s.buffer < 0;
+  const ok = !minus;
   const message = minus ? `今月 ${yen(-s.buffer)} 足りない！`
-    : !ok ? `下限まで あと ${yen(bufferThreshold - s.buffer)}…ピンチかも`
     : mode === 'payday' ? '給料日だね！ 入金と請求をチェックしよう'
     : period === current ? '今月もお金はちゃんと回りそう！' : 'この月もお金は回りそう！';
 
@@ -69,16 +68,10 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
           <CardContent>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography variant="body2" color="text.secondary">今月のバッファ</Typography>
-              {/* OK は淡い黄、下限割れ（不足）は赤の枠、マイナスは赤で塗る */}
-              <Chip size="small" label={ok ? 'OK' : minus ? 'マイナス' : '不足'} variant={!ok && !minus ? 'outlined' : 'filled'}
-                sx={{ fontWeight: 900, ...(ok ? { bgcolor: 'soft', color: 'success.main' }
-                  : minus ? { bgcolor: 'error.main', color: '#ffffff' }
-                  : { borderColor: 'error.main', color: 'error.main', borderWidth: 1.5 }) }} />
+              <Chip size="small" label={ok ? 'OK' : 'マイナス'}
+                sx={{ fontWeight: 900, ...(ok ? { bgcolor: 'soft', color: 'success.main' } : { bgcolor: 'error.main', color: '#ffffff' }) }} />
             </Stack>
             <Typography variant="h3" component="p" fontWeight={900} color={minus ? 'error.main' : 'text.primary'} sx={{ my: 0.5 }}>{yen(s.buffer)}</Typography>
-            <Box sx={{ display: 'inline-block', bgcolor: 'soft', color: ok ? 'primary.main' : 'error.main', fontWeight: 700, fontSize: 12, borderRadius: 999, px: 1.5, py: 0.5 }}>
-              {ok ? `下限 ${yen(bufferThreshold)} をクリア` : `下限 ${yen(bufferThreshold)} まで あと ${yen(bufferThreshold - s.buffer)}`}
-            </Box>
             {mode === 'normal' && (
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5, mt: 2, pt: 2, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
                 <Figure label="収入" value={s.incomeTotal} />

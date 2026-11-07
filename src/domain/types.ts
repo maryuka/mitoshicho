@@ -3,7 +3,8 @@
 export interface Settings {
   id: 'app';
   periodStartDay: number; // 給料日（期の開始日）
-  bufferThreshold: number; // バッファの下限
+  /** 使っていない（以前のバッファの下限。バックアップの互換のため残す） */
+  bufferThreshold: number;
   lastBackupAt?: string;
 }
 

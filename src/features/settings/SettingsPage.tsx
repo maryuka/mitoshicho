@@ -16,7 +16,6 @@ import type { Account, AppData, Category, Item, Recurrence } from '../../domain/
 import { DEFAULT_SETTINGS } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { yen } from '../../lib/money';
-import { MoneyField } from '../../components/MoneyField';
 import { AccountDialog, CategoryDialog, ItemDialog, KIND_LABEL } from './dialogs';
 import { DataSection } from './DataSection';
 
@@ -67,8 +66,6 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
               helperText={s.periodStartDay === 1 ? undefined : '土日・祝日のときは、前の平日から次の月が始まります'}>
               {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <MenuItem key={d} value={d}>{d === 1 ? '1日（暦月）' : `${d}日`}</MenuItem>)}
             </TextField>
-            <MoneyField id="set-threshold" label="バッファの下限" value={s.bufferThreshold} fullWidth
-              onChange={(v) => updateSettings({ bufferThreshold: v ?? 0 })} />
           </Stack>
         </CardContent>
       </Section>}
