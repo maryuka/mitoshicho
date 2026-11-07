@@ -244,7 +244,6 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
           <TextField id="item-category" select label="カテゴリ" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} fullWidth>
             {cats.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}（{KIND_LABEL[c.kind]}）</MenuItem>)}
           </TextField>
-          <MoneyField id="item-amount" label="金額（毎回の予算）" value={amount} onChange={setAmount} fullWidth />
           <TextField id="item-source" select label={kind === 'income' ? '入金先' : '支払い元'} value={source} onChange={(e) => setSource(e.target.value)} fullWidth
             helperText={kind === 'income' ? undefined : 'カードを選ぶと翌月のカード請求の予測に入ります'}>
             <MenuItem value="">（未設定）</MenuItem>
@@ -265,7 +264,12 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
             </TextField>
           )}
           {recType === 'once'
-            ? monthSelect('item-once', '月', once, setOnce)
+            ? (
+              <>
+                {monthSelect('item-once', '月', once, setOnce)}
+                <MoneyField id="item-amount" label="金額" value={amount} onChange={setAmount} fullWidth />
+              </>
+            )
             : (
               <>
                 {monthSelect('item-start', '開始月', startPeriod, changeStart)}
@@ -283,6 +287,9 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
                     error={countText !== '' && !countEnd}
                     helperText={countEnd ? `最終回は ${periodYearLabel(countEnd, startDay)}` : '開始月から数えて何回か'} />
                 )}
+                {/* 最初の金額と途中からの変更を、時間の順に並べる */}
+                <MoneyField id="item-amount" label={changes.length ? `金額（${periodFromLabel(startPeriod, startDay)}）` : '金額（毎回の予算）'}
+                  value={amount} onChange={setAmount} fullWidth />
                 <AmountChanges changes={changes} onChange={setChanges} months={withValue('').filter((p) => comparePeriods(p, startPeriod) > 0)}
                   label={(p) => periodFromLabel(p, startDay)} />
               </>
