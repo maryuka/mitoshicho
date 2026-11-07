@@ -110,6 +110,8 @@ export interface PeriodSummary {
   cardPaidTotal: number;
   /** 口座から直接出ていく項目の合計 */
   directOutTotal: number;
+  /** directOutTotal のうち、貯金・投資カテゴリの分（ホームで分けて見せる） */
+  savingDirectTotal: number;
   cardBills: CardBillRow[];
   cardBillTotal: number;
   receivableTotal: number;
@@ -240,6 +242,7 @@ export function summarize(data: AppData, pid: string, current = pid): PeriodSumm
   const spendTotal = sum(outCats.map((c) => c.effective));
   const cardPaidTotal = sum(outCats.map((c) => c.cardPaid));
   const directOutTotal = sum(outCats.map((c) => c.direct));
+  const savingDirectTotal = sum(outCats.filter((c) => c.kind === 'saving').map((c) => c.direct));
   const cardBillTotal = sum(cardBills.map((b) => b.effective));
   const receivableTotal = sum(
     data.receivables.filter((r) => r.expectedPeriod === pid).map((r) => r.amount),
@@ -292,6 +295,7 @@ export function summarize(data: AppData, pid: string, current = pid): PeriodSumm
     spendTotal,
     cardPaidTotal,
     directOutTotal,
+    savingDirectTotal,
     cardBills,
     cardBillTotal,
     receivableTotal,

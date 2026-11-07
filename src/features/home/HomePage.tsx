@@ -76,8 +76,9 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
             {mode === 'normal' && (
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5, mt: 2, pt: 2, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
                 <Figure label="収入" value={s.incomeTotal} />
-                <Figure label="口座から出る" value={s.directOutTotal} minus />
+                <Figure label="口座から出る" value={s.directOutTotal - s.savingDirectTotal} minus />
                 <Figure label="カード請求" value={s.cardBillTotal} minus />
+                {s.savingDirectTotal > 0 && <Figure label="貯金・投資" value={s.savingDirectTotal} />}
                 {s.receivableTotal > 0 && <Figure label="立替回収" value={s.receivableTotal} />}
               </Box>
             )}
