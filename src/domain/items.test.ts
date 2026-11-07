@@ -56,3 +56,11 @@ describe('途中からの金額の変更', () => {
     expect(amountFor(i, '2027-05')).toBe(1500);
   });
 });
+
+describe('◯か月に1回', () => {
+  it('開始月から数えて n か月ごと', () => {
+    const i = { ...base, startPeriod: '2026-11', recurrence: { type: 'interval' as const, months: 3 } };
+    expect(['2026-11', '2026-12', '2027-01', '2027-02', '2027-05'].map((p) => itemOccurs(i, p))).toEqual([true, false, false, true, true]);
+    expect(endAfterCount(i, 3)).toBe('2027-05');
+  });
+});

@@ -16,6 +16,11 @@ export function itemOccurs(item: Item, pid: string): boolean {
   switch (r.type) {
     case 'monthly':
       return true;
+    case 'interval': {
+      const a = parsePeriod(item.startPeriod);
+      const b = parsePeriod(pid);
+      return ((b.year - a.year) * 12 + (b.month - a.month)) % Math.max(1, r.months) === 0;
+    }
     case 'yearly':
       return parsePeriod(pid).month === r.month;
     case 'once':

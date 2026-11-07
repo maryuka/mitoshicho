@@ -169,6 +169,7 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   const [source, setSource] = useState(value?.sourceAccountId ?? '');
   const [recType, setRecType] = useState<Recurrence['type']>(value?.recurrence.type ?? 'monthly');
   const [month, setMonth] = useState(value?.recurrence.type === 'yearly' ? value.recurrence.month : 1);
+  const [intervalMonths, setIntervalMonths] = useState(value?.recurrence.type === 'interval' ? value.recurrence.months : 2);
   const [once, setOnce] = useState(value?.recurrence.type === 'once' ? value.recurrence.periodId : current);
   const [startPeriod, setStartPeriod] = useState(value?.startPeriod ?? current);
   const [endPeriod, setEndPeriod] = useState(value?.endPeriod ?? '');
@@ -181,6 +182,7 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   const accounts = data.accounts.filter((a) => (!a.archived || a.id === source) && (kind !== 'income' || a.kind === 'bank'));
 
   const recurrence: Recurrence = recType === 'monthly' ? { type: 'monthly' }
+    : recType === 'interval' ? { type: 'interval', months: intervalMonths }
     : recType === 'yearly' ? { type: 'yearly', month } : { type: 'once', periodId: once };
   const schedule = { recurrence, startPeriod };
   const countEnd = endMode === 'count' ? endAfterCount(schedule, Number(countText)) : undefined;
@@ -255,9 +257,16 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
           <DayField id="item-day" label="入出金日（任意・予定の表示用）" value={day} onChange={setDay} />
           <TextField id="item-recurrence" select label="頻度" value={recType} onChange={(e) => setRecType(e.target.value as Recurrence['type'])} fullWidth>
             <MenuItem value="monthly">毎月</MenuItem>
+            <MenuItem value="interval">数か月に1回</MenuItem>
             <MenuItem value="yearly">毎年（年会費など）</MenuItem>
             <MenuItem value="once">1回のみ（臨時）</MenuItem>
           </TextField>
+          {recType === 'interval' && (
+            <TextField id="item-interval" select label="何か月に1回か" value={intervalMonths} onChange={(e) => setIntervalMonths(Number(e.target.value))} fullWidth
+              helperText="開始月から数えます">
+              {Array.from({ length: 11 }, (_, i) => i + 2).map((n) => <MenuItem key={n} value={n}>{n}か月に1回</MenuItem>)}
+            </TextField>
+          )}
           {recType === 'yearly' && (
             <TextField id="item-month" select label="何月か" value={month} onChange={(e) => setMonth(Number(e.target.value))} fullWidth>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <MenuItem key={m} value={m}>{m}月</MenuItem>)}

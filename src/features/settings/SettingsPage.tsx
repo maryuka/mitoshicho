@@ -21,6 +21,7 @@ import { DataSection } from './DataSection';
 
 function recurrenceText(r: Recurrence, startDay: number) {
   if (r.type === 'monthly') return '毎月';
+  if (r.type === 'interval') return `${r.months}か月に1回`;
   if (r.type === 'yearly') return `毎年${r.month}月`;
   return `1回のみ（${periodYearLabel(r.periodId, startDay)}）`;
 }

@@ -38,6 +38,8 @@ export interface Category {
 
 export type Recurrence =
   | { type: 'monthly' }
+  /** 開始月から months か月ごと（2〜12） */
+  | { type: 'interval'; months: number }
   | { type: 'yearly'; month: number }
   | { type: 'once'; periodId: string };
 
