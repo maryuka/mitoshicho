@@ -1,5 +1,4 @@
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import AddIcon from '@mui/icons-material/Add';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
@@ -16,6 +15,7 @@ import { yen } from '../../lib/money';
 import { AccountDialog, CategoryDialog, ChecklistDialog, ItemDialog, KIND_LABEL } from './dialogs';
 import { DataSection } from './DataSection';
 import { PaydayFields } from './PaydayFields';
+import { AddFab } from '../../components/AddFab';
 import { useThemePref } from '../../theme';
 
 function recurrenceText(r: Recurrence, startDay: StartDay) {
@@ -160,14 +160,17 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
   );
 }
 
+/** onAdd があれば、画面右下に「追加」ボタンを出す */
 function Section({ title, subheader, onAdd, children }: { title?: string; subheader?: string; onAdd?: () => void; children: ReactNode }) {
   return (
-    <Card>
-      <CardHeader title={title} subheader={subheader}
-        titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} subheaderTypographyProps={{ variant: 'caption' }}
-        action={onAdd && <Button size="small" startIcon={<AddIcon />} onClick={onAdd}>追加</Button>} sx={{ pb: 0 }} />
-      {children}
-    </Card>
+    <>
+      <Card>
+        <CardHeader title={title} subheader={subheader}
+          titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} subheaderTypographyProps={{ variant: 'caption' }} sx={{ pb: 0 }} />
+        {children}
+      </Card>
+      {onAdd && <AddFab onClick={onAdd} />}
+    </>
   );
 }
 

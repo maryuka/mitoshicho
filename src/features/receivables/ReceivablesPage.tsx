@@ -1,4 +1,3 @@
-import AddIcon from '@mui/icons-material/Add';
 import {
   Button, Card, CardHeader, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, List, ListItem,
   ListItemButton, ListItemIcon, ListItemText, MenuItem, Stack, TextField, Typography,
@@ -7,6 +6,7 @@ import { useState } from 'react';
 import { addPeriods, periodYearLabel, periodShortLabel, periodRule, type StartDay } from '../../domain/period';
 import type { AppData, Receivable } from '../../domain/types';
 import { db, newId } from '../../db/db';
+import { AddFab } from '../../components/AddFab';
 import { yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
 import { canAutoFocus } from '../../lib/device';
@@ -36,10 +36,7 @@ export function ReceivablesPage({ data, current }: { data: AppData; current: str
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
-        <Typography variant="body2" color="text.secondary">回収予定の月のバッファに加算されます。チェックで回収済みにします。</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setEditing('new')} sx={{ flexShrink: 0 }}>追加</Button>
-      </Stack>
+      <Typography variant="body2" color="text.secondary">回収予定の月のバッファに加算されます。チェックで回収済みにします。</Typography>
       <Card>
         <CardHeader title="未回収" subheader={open.length > 0 ? yen(open.reduce((s, r) => s + r.amount, 0)) : undefined}
           titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} sx={{ pb: 0 }} />
@@ -51,6 +48,7 @@ export function ReceivablesPage({ data, current }: { data: AppData; current: str
           <List>{closed.map(row)}</List>
         </Card>
       )}
+      <AddFab onClick={() => setEditing('new')} />
       {editing && (
         <ReceivableDialog value={editing === 'new' ? undefined : editing} defaultPeriod={addPeriods(current, 1)}
           periodOptions={Array.from({ length: 8 }, (_, i) => addPeriods(current, i - 2))} startDay={startDay}
