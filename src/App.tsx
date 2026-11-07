@@ -98,7 +98,8 @@ export function App() {
           : <HomePage data={data} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} menu={menu} />}
       </Container>
 
-      {!noNav && <Paper elevation={3} sx={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 10, pb: 'env(safe-area-inset-bottom, 0px)' }}>
+      {/* 左のメニューを開いている間は、下のメニューを隠す */}
+      {!noNav && !menuOpen && <Paper elevation={3} sx={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 10, pb: 'env(safe-area-inset-bottom, 0px)' }}>
         <BottomNavigation showLabels value={isSub ? lastMain : route} onChange={(_, v: MainRoute) => go(v)}
           sx={{
             maxWidth: 600, mx: 'auto', height: 64,
