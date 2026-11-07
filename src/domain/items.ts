@@ -1,6 +1,6 @@
-import { itemOccurs } from './cashflow';
+import { amountFor, itemOccurs } from './cashflow';
 import { addPeriods, comparePeriods } from './period';
-import type { Item, Recurrence } from './types';
+import type { Entry, Item, Recurrence } from './types';
 
 /**
  * 定期項目のアーカイブ／使用中に戻すときの変更内容。
@@ -42,4 +42,23 @@ export function countBetween(s: Schedule, end: string, from?: string): number {
     if (itemOccurs({ ...s, endPeriod: undefined } as Item, p)) count++;
   }
   return count;
+}
+
+export interface ScheduleRow { period: string; amount: number; overridden: boolean }
+
+/**
+ * 定期項目が入る月と、その月の金額の一覧（月ごとの上書きも反映）。
+ * 開始月から終了月まで。終了月がなければ from から months か月先まで
+ */
+export function itemSchedule(item: Item, entries: Entry[], from: string, months = 24): ScheduleRow[] {
+  const byPeriod = new Map(entries.filter((e) => e.itemId === item.id).map((e) => [e.periodId, e]));
+  const first = comparePeriods(item.startPeriod, from) > 0 ? item.startPeriod : from;
+  const last = item.endPeriod ?? addPeriods(first, months - 1);
+  const rows: ScheduleRow[] = [];
+  for (let p = first, i = 0; comparePeriods(p, last) <= 0 && i < 600; p = addPeriods(p, 1), i++) {
+    if (!itemOccurs(item, p)) continue;
+    const planned = byPeriod.get(p)?.planned;
+    rows.push({ period: p, amount: planned ?? amountFor(item, p), overridden: planned !== undefined });
+  }
+  return rows;
 }

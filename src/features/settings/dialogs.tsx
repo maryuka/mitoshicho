@@ -2,20 +2,22 @@ import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AddIcon from '@mui/icons-material/Add';
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, ListItemIcon, ListItemText, ListSubheader, Menu, MenuItem,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, InputAdornment, ListItemIcon, ListItemText, ListSubheader, Menu, MenuItem,
   Stack, TextField, Typography,
 } from '@mui/material';
 import { useState } from 'react';
-import { countBetween, endAfterCount, itemArchivePatch } from '../../domain/items';
+import { countBetween, endAfterCount, itemArchivePatch, itemSchedule, type ScheduleRow } from '../../domain/items';
 import { addPeriods, comparePeriods, periodFromLabel, periodYearLabel } from '../../domain/period';
 import type { Account, AmountChange, AppData, Category, CategoryKind, ChecklistTemplate, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { MoneyField } from '../../components/MoneyField';
 import { confirmDialog } from '../../components/ConfirmDialog';
 import { canAutoFocus } from '../../lib/device';
+import { yen } from '../../lib/money';
 
 export const KIND_LABEL: Record<CategoryKind, string> = { income: '収入', expense: '支出', debt: '返済', saving: '貯金・投資' };
 const nextOrder = (xs: { sortOrder: number }[]) => (xs.length ? Math.max(...xs.map((x) => x.sortOrder)) + 1 : 0);
@@ -177,6 +179,7 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   const [endMode, setEndMode] = useState<'none' | 'month' | 'count'>(
     !value?.endPeriod ? 'none' : value.endBy === 'count' ? 'count' : 'month');
   // 回数で決めていた項目は、保存してある終了月から回数を出して入れておく
+  const [showSchedule, setShowSchedule] = useState(false);
   const [countText, setCountText] = useState(value?.endPeriod && value.endBy === 'count'
     ? String(countBetween({ recurrence: value.recurrence, startPeriod: value.startPeriod }, value.endPeriod)) : '');
   const options = Array.from({ length: 49 }, (_, i) => addPeriods(current, i - 24));
@@ -307,9 +310,20 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
                 )}
               </>
             )}
+          <Button size="small" startIcon={<CalendarMonthOutlinedIcon />} onClick={() => setShowSchedule(true)} sx={{ alignSelf: 'flex-start' }}>
+            月ごとの金額を見る
+          </Button>
         </Stack>
       </DialogContent>
       <Actions valid={valid} onSave={save} onClose={onClose} />
+      {showSchedule && (
+        <ScheduleDialog name={name || '定期項目'} startDay={startDay} onClose={() => setShowSchedule(false)}
+          rows={itemSchedule({
+            id: value?.id ?? '', name, categoryId, defaultAmount: amount ?? 0, recurrence, startPeriod: recType === 'once' ? once : startPeriod,
+            endPeriod: recType === 'once' ? once : finalEnd || undefined, amountChanges: recType === 'once' ? undefined : cleanChanges(changes, startPeriod),
+            sortOrder: 0, archived: false,
+          }, value ? data.entries : [], addPeriods(current, -12))} />
+      )}
     </Dialog>
   );
 }
@@ -428,6 +442,37 @@ export function ChecklistDialog({ value, data, current, onClose }: {
         </Stack>
       </DialogContent>
       <Actions valid={valid} onSave={save} onClose={onClose} />
+    </Dialog>
+  );
+}
+
+/** 定期項目が入る月と金額の一覧（保存前の入力内容で出す） */
+function ScheduleDialog({ name, rows, startDay, onClose }: {
+  name: string; rows: ScheduleRow[]; startDay: number; onClose: () => void;
+}) {
+  return (
+    <Dialog open onClose={onClose}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', pr: 1.5 }}>
+        <Box component="span" sx={{ flex: 1, minWidth: 0 }}>{name}の月ごとの金額</Box>
+        <IconButton aria-label="閉じる" onClick={onClose}><CloseIcon /></IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ pb: 3 }}>
+        <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 1 }}>
+          1年前から表示します。終了月がない項目は2年先まで。保存前の入力内容で計算しています
+        </Typography>
+        {rows.length === 0 && <Typography variant="body2" color="text.secondary">この期間に入る月はありません</Typography>}
+        <Stack divider={<Divider flexItem />}>
+          {rows.map((r) => (
+            <Stack key={r.period} direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.75 }}>
+              <Typography variant="body2">{periodYearLabel(r.period, startDay)}</Typography>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="body2" fontWeight={700}>{yen(r.amount)}</Typography>
+                {r.overridden && <Typography variant="caption" color="primary" display="block">この月だけ変更</Typography>}
+              </Box>
+            </Stack>
+          ))}
+        </Stack>
+      </DialogContent>
     </Dialog>
   );
 }

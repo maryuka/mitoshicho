@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { amountFor, itemOccurs } from './cashflow';
-import { countBetween, endAfterCount, itemArchivePatch } from './items';
+import { countBetween, endAfterCount, itemArchivePatch, itemSchedule } from './items';
 import type { Item } from './types';
 
 const base: Item = {
@@ -62,5 +62,18 @@ describe('◯か月に1回', () => {
     const i = { ...base, startPeriod: '2026-11', recurrence: { type: 'interval' as const, months: 3 } };
     expect(['2026-11', '2026-12', '2027-01', '2027-02', '2027-05'].map((p) => itemOccurs(i, p))).toEqual([true, false, false, true, true]);
     expect(endAfterCount(i, 3)).toBe('2027-05');
+  });
+});
+
+describe('itemSchedule', () => {
+  it('月ごとの金額（途中からの変更と、その月だけの変更）', () => {
+    const i = { ...base, startPeriod: '2026-10', endPeriod: '2027-01', amountChanges: [{ from: '2026-12', amount: 1200 }] };
+    const rows = itemSchedule(i, [{ id: '2026-11:i', periodId: '2026-11', itemId: 'i', planned: 500 }], '2026-09');
+    expect(rows).toEqual([
+      { period: '2026-10', amount: 1000, overridden: false },
+      { period: '2026-11', amount: 500, overridden: true },
+      { period: '2026-12', amount: 1200, overridden: false },
+      { period: '2027-01', amount: 1200, overridden: false },
+    ]);
   });
 });
