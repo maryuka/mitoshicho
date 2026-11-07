@@ -1,13 +1,11 @@
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
-  Box, Button, Card, CardContent, Chip, Collapse, Divider, IconButton, Link, Stack, TextField, Typography,
+  Box, Button, Card, CardContent, Chip, Divider, IconButton, Link, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { amountFor, summarize, type CategoryRow } from '../../domain/cashflow';
-import { periodLabel } from '../../domain/period';
+import { comparePeriods, periodLabel } from '../../domain/period';
 import type { AppData, CategoryKind } from '../../domain/types';
 import { patchEntry, setCategoryActual } from '../../db/ops';
 import { db, newId } from '../../db/db';
@@ -25,12 +23,15 @@ const SECTIONS: { kind: CategoryKind; label: string }[] = [
 ];
 
 /** ふりかえり（月ごとの予算と実績）。実績は Zaim で集計したカテゴリ合計を入れて振り返る */
+type Mode = 'budget' | 'actual';
+
 export function BudgetPage({ data, period, setPeriod, current, menu }: {
   data: AppData; period: string; setPeriod: (p: string) => void; current: string; menu?: ReactNode;
 }) {
   const startDay = data.settings.periodStartDay;
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
-  const [open, setOpen] = useState<Set<string>>(new Set());
+  // 予算を決める画面と、月末に実績を入れる画面を分ける。最初は過去の月なら実績、今月以降なら予算
+  const [mode, setMode] = useState<Mode>(() => (comparePeriods(period, current) < 0 ? 'actual' : 'budget'));
 
   const expense = s.categories.filter((c) => c.kind === 'expense');
   const budget = expense.reduce((a, c) => a + c.planned, 0);
@@ -38,41 +39,61 @@ export function BudgetPage({ data, period, setPeriod, current, menu }: {
   const spent = entered.reduce((a, c) => a + (c.actual ?? 0), 0);
   const diff = spent - entered.reduce((a, c) => a + c.planned, 0);
   const enteredAll = s.categories.filter((c) => c.actual !== undefined).length;
-
-  const toggle = (id: string) => {
-    const next = new Set(open);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    setOpen(next);
-  };
+  const totalOf = (kind: CategoryKind) => s.categories.filter((c) => c.kind === kind).reduce((a, c) => a + c.planned, 0);
 
   return (
     <Stack spacing={2}>
       <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} leading={menu} />
 
-      <Card>
-        <CardContent>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={2} sx={{ mb: 1.5 }}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">支出の実績 / 予算</Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {yen(spent)} <Typography component="span" color="text.secondary">/ {yen(budget)}</Typography>
-              </Typography>
-            </Box>
-            {entered.length > 0 && (
-              <Box textAlign="right">
-                <Typography variant="caption" color="text.secondary">予算との差</Typography>
-                <Typography variant="h6" fontWeight={700} color={diff > 0 ? 'error' : 'success.main'}>{signedYen(diff)}</Typography>
+      <ToggleButtonGroup value={mode} exclusive fullWidth size="small" color="primary"
+        onChange={(_, m: Mode | null) => { if (m) setMode(m); }}>
+        <ToggleButton value="budget">予算</ToggleButton>
+        <ToggleButton value="actual">実績</ToggleButton>
+      </ToggleButtonGroup>
+
+      {mode === 'budget' ? (
+        <Card>
+          <CardContent>
+            <Typography variant="caption" color="text.secondary">この月の予算（支出）</Typography>
+            <Typography variant="h5" fontWeight={700}>{yen(budget)}</Typography>
+            <Stack direction="row" spacing={2} sx={{ mt: 1 }} useFlexGap flexWrap="wrap">
+              {(['debt', 'saving', 'income'] as CategoryKind[]).map((k) => totalOf(k) > 0 && (
+                <Typography key={k} variant="caption" color="text.secondary">
+                  {SECTIONS.find((x) => x.kind === k)!.label} {yen(totalOf(k))}
+                </Typography>
+              ))}
+            </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              項目の金額を変えると、この月だけの予算になります（空欄ならいつもの金額）。この月だけの項目も足せます。
+            </Typography>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={2} sx={{ mb: 1.5 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">支出の実績 / 予算</Typography>
+                <Typography variant="h5" fontWeight={700}>
+                  {yen(spent)} <Typography component="span" color="text.secondary">/ {yen(budget)}</Typography>
+                </Typography>
               </Box>
-            )}
-          </Stack>
-          <BudgetBar value={spent} max={budget} />
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-            {enteredAll === 0
-              ? `月末に Zaim でこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、実績欄に入力してください。予算どおりのものは「＝予算」で入れられます。`
-              : `${enteredAll} / ${s.categories.length} カテゴリ入力済み`}
-          </Typography>
-        </CardContent>
-      </Card>
+              {entered.length > 0 && (
+                <Box textAlign="right">
+                  <Typography variant="caption" color="text.secondary">予算との差</Typography>
+                  <Typography variant="h6" fontWeight={700} color={diff > 0 ? 'error' : 'success.main'}>{signedYen(diff)}</Typography>
+                </Box>
+              )}
+            </Stack>
+            <BudgetBar value={spent} max={budget} />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              {enteredAll === 0
+                ? `月末に Zaim でこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。`
+                : `${enteredAll} / ${s.categories.length} カテゴリ入力済み`}
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
 
       {SECTIONS.map(({ kind, label }) => {
         const cats = s.categories.filter((c) => c.kind === kind);
@@ -82,12 +103,18 @@ export function BudgetPage({ data, period, setPeriod, current, menu }: {
             <CardContent sx={{ pb: '8px !important' }}>
               <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
                 <Typography variant="subtitle1" fontWeight={700}>{label}</Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ width: 132, textAlign: 'center' }}>実績</Typography>
+                {mode === 'actual' && (
+                  <Typography variant="caption" color="text.secondary" sx={{ width: 132, textAlign: 'center' }}>
+                    {kind === 'income' ? '入金額' : '実績'}
+                  </Typography>
+                )}
               </Stack>
               {cats.map((c, i) => (
                 <Fragment key={c.category.id}>
                   {i > 0 && <Divider />}
-                  <ReviewRow row={c} period={period} open={open.has(c.category.id)} onToggle={() => toggle(c.category.id)} data={data} />
+                  {mode === 'actual'
+                    ? <ActualRow row={c} period={period} />
+                    : <BudgetRow row={c} period={period} data={data} />}
                 </Fragment>
               ))}
             </CardContent>
@@ -98,9 +125,8 @@ export function BudgetPage({ data, period, setPeriod, current, menu }: {
   );
 }
 
-function ReviewRow({ row, period, open, onToggle, data }: {
-  row: CategoryRow; period: string; open: boolean; onToggle: () => void; data: AppData;
-}) {
+/** 実績: カテゴリごとに Zaim の合計を入れる */
+function ActualRow({ row, period }: { row: CategoryRow; period: string }) {
   const income = row.kind === 'income';
   const actual = row.actual;
   const over = actual !== undefined && !income && actual > row.planned;
@@ -108,12 +134,8 @@ function ReviewRow({ row, period, open, onToggle, data }: {
     <Box sx={{ py: 1.25 }}>
       <Stack direction="row" alignItems="center" spacing={1}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box component="button" onClick={onToggle} aria-expanded={open}
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.5, maxWidth: '100%', p: 0, border: 0, bgcolor: 'transparent', color: 'inherit', cursor: 'pointer', textAlign: 'left', font: 'inherit' }}>
-            {open ? <ExpandLessIcon fontSize="small" color="action" /> : <ExpandMoreIcon fontSize="small" color="action" />}
-            <Typography noWrap>{row.category.name}</Typography>
-          </Box>
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ pl: 3 }}>
+          <Typography noWrap>{row.category.name}</Typography>
+          <Stack direction="row" alignItems="center" spacing={1}>
             <Typography variant="caption" color="text.secondary" noWrap>予算 {yen(row.planned)}</Typography>
             {actual === undefined && row.planned > 0 && (
               <Link component="button" variant="caption" underline="hover"
@@ -138,35 +160,44 @@ function ReviewRow({ row, period, open, onToggle, data }: {
           </Typography>
         </Stack>
       ) : null}
+    </Box>
+  );
+}
 
-      <Collapse in={open} unmountOnExit>
-        <Stack spacing={1} sx={{ mt: 1, ml: 2.5, pl: 1.5, borderLeft: 2, borderColor: 'divider' }}>
-          {row.items.length === 0 && <Typography variant="caption" color="text.secondary">このカテゴリの項目はこの月にありません</Typography>}
-          {row.items.map((r) => (
-            <Stack key={r.item.id} direction="row" alignItems="center" spacing={1}>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="body2" noWrap>
-                  {r.item.name}
-                  {r.viaCard && <Chip label="カード" size="small" variant="outlined" sx={{ ml: 0.5, height: 18, fontSize: 10 }} />}
-                </Typography>
-                {r.item.recurrence.type === 'once' && <Typography variant="caption" color="primary" display="block">この月だけ</Typography>}
-              </Box>
-              <MoneyField value={r.hasOverride ? r.planned : undefined} placeholder={amountFor(r.item, period)} sx={{ width: 132, flexShrink: 0 }}
-                ariaLabel={`${r.item.name} のこの月の予算`}
-                onChange={(v) => patchEntry(period, r.item.id, { planned: v ?? null })} />
-              {r.item.recurrence.type === 'once' && (
-                <IconButton size="small" aria-label={`${r.item.name} を消す`} onClick={() => removeOnceItem(r.item.id, r.item.name)} sx={{ ml: -0.5 }}>
-                  <CloseIcon fontSize="small" />
-                </IconButton>
+/** 予算: カテゴリの中の項目ごとに、この月の予算を見る・変える */
+function BudgetRow({ row, period, data }: { row: CategoryRow; period: string; data: AppData }) {
+  return (
+    <Box sx={{ py: 1.25 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="baseline">
+        <Typography noWrap sx={{ minWidth: 0 }}>{row.category.name}</Typography>
+        <Typography fontWeight={700} sx={{ flexShrink: 0 }}>{yen(row.planned)}</Typography>
+      </Stack>
+      <Stack spacing={1} sx={{ mt: 1, ml: 1, pl: 1.5, borderLeft: 2, borderColor: 'divider' }}>
+        {row.items.length === 0 && <Typography variant="caption" color="text.secondary">この月の項目はありません</Typography>}
+        {row.items.map((r) => (
+          <Stack key={r.item.id} direction="row" alignItems="center" spacing={1}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="body2" noWrap>
+                {r.item.name}
+                {r.viaCard && <Chip label="カード" size="small" variant="outlined" sx={{ ml: 0.5, height: 18, fontSize: 10 }} />}
+              </Typography>
+              {r.item.recurrence.type === 'once' && <Typography variant="caption" color="primary" display="block">この月だけ</Typography>}
+              {r.hasOverride && r.item.recurrence.type !== 'once' && (
+                <Typography variant="caption" color="primary" display="block">いつもは {yen(amountFor(r.item, period))}</Typography>
               )}
-            </Stack>
-          ))}
-          <AddOnceItem period={period} categoryId={row.category.id} data={data} />
-          {row.items.length > 0 && (
-            <Typography variant="caption" color="text.secondary">この月だけの予算に変えられます（空欄ならいつもの金額）。この月だけの項目も足せます</Typography>
-          )}
-        </Stack>
-      </Collapse>
+            </Box>
+            <MoneyField value={r.hasOverride ? r.planned : undefined} placeholder={amountFor(r.item, period)} sx={{ width: 132, flexShrink: 0 }}
+              ariaLabel={`${r.item.name} のこの月の予算`}
+              onChange={(v) => patchEntry(period, r.item.id, { planned: v ?? null })} />
+            {r.item.recurrence.type === 'once' && (
+              <IconButton size="small" aria-label={`${r.item.name} を消す`} onClick={() => removeOnceItem(r.item.id, r.item.name)} sx={{ ml: -0.5 }}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Stack>
+        ))}
+        <AddOnceItem period={period} categoryId={row.category.id} data={data} />
+      </Stack>
     </Box>
   );
 }
