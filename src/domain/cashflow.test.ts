@@ -194,7 +194,7 @@ describe('カテゴリの実績', () => {
 });
 describe('periodYearLabel', () => {
   it('年を入れて表示する', () => {
-    expect(periodYearLabel('2026-10', 15)).toBe('2026/10/15〜11/14');
+    expect(periodYearLabel('2026-10', 15)).toBe('2026/10/15〜11/12'); // 11/15 は日曜なので次の期は 11/13 から
     expect(periodYearLabel('2026-12', 15)).toBe('2026/12/15〜2027/1/14');
     expect(periodYearLabel('2026-10', 1)).toBe('2026年10月');
   });

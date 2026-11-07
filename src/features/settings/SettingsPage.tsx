@@ -57,7 +57,8 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
         <CardContent>
           <Stack spacing={2}>
             <TextField id="set-start-day" select label="月の開始日（給料日）" value={s.periodStartDay}
-              onChange={(e) => updateSettings({ periodStartDay: Number(e.target.value) })} fullWidth>
+              onChange={(e) => updateSettings({ periodStartDay: Number(e.target.value) })} fullWidth
+              helperText={s.periodStartDay === 1 ? undefined : '土日・祝日のときは、前の平日から次の月が始まります'}>
               {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <MenuItem key={d} value={d}>{d === 1 ? '1日（暦月）' : `${d}日`}</MenuItem>)}
             </TextField>
             <MoneyField id="set-threshold" label="バッファの下限" value={s.bufferThreshold} fullWidth
