@@ -2,8 +2,10 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import {
-  Button, Card, CardContent, CardHeader, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
+  Box, Button, Card, CardContent, CardHeader, Chip, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   ListSubheader, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
@@ -29,6 +31,12 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
   const [account, setAccount] = useState<Account | 'new' | null>(null);
   const [category, setCategory] = useState<Category | 'new' | null>(null);
   const [item, setItem] = useState<Item | 'new' | null>(null);
+  const [showArchived, setShowArchivedState] = useState(readShowArchived);
+  const setShowArchived = (v: boolean) => { setShowArchivedState(v); writeShowArchived(v); };
+  const visible = <T extends { archived: boolean }>(list: T[]) => (showArchived ? list : list.filter((x) => !x.archived));
+  const toggle = (list: { archived: boolean }[]) => (
+    <ArchivedToggle count={list.filter((x) => x.archived).length} shown={showArchived} onChange={setShowArchived} />
+  );
   const startDay = data.settings.periodStartDay;
   const accounts = [...data.accounts].sort((a, b) => a.sortOrder - b.sortOrder);
   const categories = [...data.categories].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -54,7 +62,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
       {page === 'accounts' && <Section onAdd={() => setAccount('new')}>
         <List dense>
           {accounts.length === 0 && <Empty>口座やカードを登録してください</Empty>}
-          {accounts.map((a) => (
+          {visible(accounts).map((a) => (
             <ListItem key={a.id} disablePadding sx={{ opacity: a.archived ? 0.5 : 1 }}>
               <ListItemButton onClick={() => setAccount(a)}>
                 <ListItemIcon sx={{ minWidth: 36 }}>{a.kind === 'card' ? <CreditCardIcon fontSize="small" /> : <AccountBalanceIcon fontSize="small" />}</ListItemIcon>
@@ -62,25 +70,29 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
                   secondary={a.kind === 'card'
                     ? `${a.confirmDay ? `${a.confirmDay}日確定・` : ''}${a.withdrawDay ?? '?'}日引落 → ${accName(a.withdrawAccountId)}`
                     : '銀行口座'} />
+                {a.archived && <ArchivedChip />}
               </ListItemButton>
             </ListItem>
           ))}
         </List>
+        {toggle(accounts)}
       </Section>}
 
       {page === 'categories' && <Section onAdd={() => setCategory('new')}
         subheader="Zaim のカテゴリ名に合わせておくと、月末の振り返りが楽です。">
         <List dense>
           {categories.length === 0 && <Empty>カテゴリを登録してください</Empty>}
-          {categories.map((c) => (
+          {visible(categories).map((c) => (
             <ListItem key={c.id} disablePadding sx={{ opacity: c.archived ? 0.5 : 1 }}>
               <ListItemButton onClick={() => setCategory(c)}>
                 <ListItemText primary={c.name} />
+                {c.archived && <ArchivedChip />}
                 <Typography variant="caption" color="text.secondary">{KIND_LABEL[c.kind]}</Typography>
               </ListItemButton>
             </ListItem>
           ))}
         </List>
+        {toggle(categories)}
       </Section>}
 
       {page === 'items' && <Section onAdd={categories.length > 0 ? () => setItem('new') : undefined}
@@ -88,7 +100,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
         <List dense>
           {data.items.length === 0 && <Empty>定期項目を登録してください</Empty>}
           {categories.map((c) => {
-            const items = data.items.filter((i) => i.categoryId === c.id).sort((a, b) => a.sortOrder - b.sortOrder);
+            const items = visible(data.items.filter((i) => i.categoryId === c.id)).sort((a, b) => a.sortOrder - b.sortOrder);
             if (items.length === 0) return null;
             return (
               <li key={c.id}>
@@ -99,6 +111,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
                       <ListItemButton onClick={() => setItem(i)}>
                         <ListItemText primary={i.name}
                           secondary={`${recurrenceText(i.recurrence, startDay)}${i.day ? `・${i.day}日` : ''}・${accName(i.sourceAccountId)}`} />
+                        {i.archived && <ArchivedChip />}
                         <Typography variant="body2" fontWeight={600}>{yen(i.defaultAmount)}</Typography>
                       </ListItemButton>
                     </ListItem>
@@ -108,6 +121,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
             );
           })}
         </List>
+        {toggle(data.items)}
       </Section>}
 
       {page === 'checklist' && <ChecklistSection data={data} />}
@@ -130,6 +144,28 @@ function Section({ title, subheader, onAdd, children }: { title?: string; subhea
       {children}
     </Card>
   );
+}
+
+// アーカイブ済みを一覧に出すかどうか（端末ごとに覚える。口座・カテゴリ・定期項目で共通）
+const SHOW_ARCHIVED_KEY = 'mitoshicho:showArchived';
+const readShowArchived = () => { try { return localStorage.getItem(SHOW_ARCHIVED_KEY) === '1'; } catch { return false; } };
+const writeShowArchived = (v: boolean) => { try { localStorage.setItem(SHOW_ARCHIVED_KEY, v ? '1' : '0'); } catch { /* 保存できなくても動く */ } };
+
+/** 一覧の下に置く「アーカイブ済みを表示／隠す」。アーカイブ済みがないときは出さない */
+function ArchivedToggle({ count, shown, onChange }: { count: number; shown: boolean; onChange: (v: boolean) => void }) {
+  if (count === 0) return null;
+  return (
+    <Box sx={{ px: 1, pb: 1 }}>
+      <Button size="small" color="inherit" sx={{ color: 'text.secondary' }} onClick={() => onChange(!shown)}
+        startIcon={shown ? <VisibilityOffOutlinedIcon fontSize="small" /> : <Inventory2OutlinedIcon fontSize="small" />}>
+        {shown ? 'アーカイブ済みを隠す' : `アーカイブ済みを表示（${count}件）`}
+      </Button>
+    </Box>
+  );
+}
+
+function ArchivedChip() {
+  return <Chip label="アーカイブ" size="small" variant="outlined" sx={{ mx: 1, height: 20, fontSize: 10 }} />;
 }
 
 function Empty({ children }: { children: ReactNode }) {
