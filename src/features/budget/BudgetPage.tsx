@@ -4,7 +4,7 @@ import {
   Box, Card, CardContent, Chip, Collapse, Divider, Link, Stack, Typography,
 } from '@mui/material';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
-import { summarize, type CategoryRow } from '../../domain/cashflow';
+import { amountFor, summarize, type CategoryRow } from '../../domain/cashflow';
 import { periodLabel } from '../../domain/period';
 import type { AppData, CategoryKind } from '../../domain/types';
 import { patchEntry, setCategoryActual } from '../../db/ops';
@@ -144,7 +144,7 @@ function ReviewRow({ row, period, open, onToggle }: {
                 {r.item.name}
                 {r.viaCard && <Chip label="カード" size="small" variant="outlined" sx={{ ml: 0.5, height: 18, fontSize: 10 }} />}
               </Typography>
-              <MoneyField value={r.hasOverride ? r.planned : undefined} placeholder={r.item.defaultAmount} sx={{ width: 132, flexShrink: 0 }}
+              <MoneyField value={r.hasOverride ? r.planned : undefined} placeholder={amountFor(r.item, period)} sx={{ width: 132, flexShrink: 0 }}
                 ariaLabel={`${r.item.name} のこの月の予算`}
                 onChange={(v) => patchEntry(period, r.item.id, { planned: v ?? null })} />
             </Stack>

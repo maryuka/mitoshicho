@@ -40,11 +40,15 @@ export type Recurrence =
   | { type: 'yearly'; month: number }
   | { type: 'once'; periodId: string };
 
+export interface AmountChange { from: string; amount: number }
+
 export interface Item {
   id: string;
   name: string;
   categoryId: string;
   defaultAmount: number;
+  /** 途中から金額が変わる場合（家賃の改定など）。from の月から amount になる。from の古い順 */
+  amountChanges?: AmountChange[];
   /** 入出金日（タイムライン用） */
   day?: number;
   /** 収入: 入金先口座 / それ以外: 支払い元（口座 or カード） */

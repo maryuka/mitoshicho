@@ -10,7 +10,8 @@ import {
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { countBetween } from '../../domain/items';
-import { comparePeriods, periodYearLabel } from '../../domain/period';
+import { amountFor } from '../../domain/cashflow';
+import { comparePeriods, periodFromLabel, periodYearLabel } from '../../domain/period';
 import type { Account, AppData, Category, Item, Recurrence } from '../../domain/types';
 import { DEFAULT_SETTINGS } from '../../domain/types';
 import { db, newId } from '../../db/db';
@@ -29,6 +30,11 @@ function recurrenceText(r: Recurrence, startDay: number) {
 function remainingText(i: Item, current: string) {
   if (!i.endPeriod || i.recurrence.type === 'once' || comparePeriods(i.endPeriod, current) < 0) return '';
   return `・あと${countBetween(i, i.endPeriod, current)}回`;
+}
+
+/** 今月より後にある、いちばん近い金額の変更 */
+function nextChange(i: Item, current: string) {
+  return i.amountChanges?.find((c) => comparePeriods(c.from, current) > 0);
 }
 
 export type SettingsPageId = 'basic' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';
@@ -120,7 +126,14 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
                         <ListItemText primary={i.name}
                           secondary={`${recurrenceText(i.recurrence, startDay)}${i.day ? `・${i.day}日` : ''}・${accName(i.sourceAccountId)}${remainingText(i, current)}`} />
                         {i.archived && <ArchivedChip />}
-                        <Typography variant="body2" fontWeight={600}>{yen(i.defaultAmount)}</Typography>
+                        <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                          <Typography variant="body2" fontWeight={600}>{yen(amountFor(i, current))}</Typography>
+                          {nextChange(i, current) && (
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {periodFromLabel(nextChange(i, current)!.from, startDay)} {yen(nextChange(i, current)!.amount)}
+                            </Typography>
+                          )}
+                        </Box>
                       </ListItemButton>
                     </ListItem>
                   ))}

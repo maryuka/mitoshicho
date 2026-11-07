@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { itemOccurs } from './cashflow';
+import { amountFor, itemOccurs } from './cashflow';
 import { countBetween, endAfterCount, itemArchivePatch } from './items';
 import type { Item } from './types';
 
@@ -44,5 +44,15 @@ describe('回数で終わる', () => {
   it('0 回や小数は決められない', () => {
     expect(endAfterCount(base, 0)).toBeUndefined();
     expect(endAfterCount(base, 1.5)).toBeUndefined();
+  });
+});
+
+describe('途中からの金額の変更', () => {
+  it('変更の月から新しい金額になる', () => {
+    const i = { ...base, amountChanges: [{ from: '2026-04', amount: 1200 }, { from: '2027-04', amount: 1500 }] };
+    expect(amountFor(i, '2026-03')).toBe(1000);
+    expect(amountFor(i, '2026-04')).toBe(1200);
+    expect(amountFor(i, '2027-03')).toBe(1200);
+    expect(amountFor(i, '2027-05')).toBe(1500);
   });
 });

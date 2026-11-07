@@ -1,6 +1,8 @@
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, ListItemIcon, ListItemText, ListSubheader, Menu, MenuItem,
@@ -8,8 +10,8 @@ import {
 } from '@mui/material';
 import { useState } from 'react';
 import { countBetween, endAfterCount, itemArchivePatch } from '../../domain/items';
-import { addPeriods, comparePeriods, periodYearLabel } from '../../domain/period';
-import type { Account, AppData, Category, CategoryKind, Item, Recurrence } from '../../domain/types';
+import { addPeriods, comparePeriods, periodFromLabel, periodYearLabel } from '../../domain/period';
+import type { Account, AmountChange, AppData, Category, CategoryKind, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { MoneyField } from '../../components/MoneyField';
 import { confirmDialog } from '../../components/ConfirmDialog';
@@ -161,6 +163,8 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   const [name, setName] = useState(value?.name ?? '');
   const [categoryId, setCategoryId] = useState(value?.categoryId ?? cats[0]?.id ?? '');
   const [amount, setAmount] = useState<number | undefined>(value?.defaultAmount);
+  // 途中からの金額の変更（家賃の改定など）。金額が空の行は保存しない
+  const [changes, setChanges] = useState<{ from: string; amount?: number }[]>(value?.amountChanges ?? []);
   const [day, setDay] = useState<number | undefined>(value?.day);
   const [source, setSource] = useState(value?.sourceAccountId ?? '');
   const [recType, setRecType] = useState<Recurrence['type']>(value?.recurrence.type ?? 'monthly');
@@ -194,6 +198,7 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
     if (!valid) return;
     await db.items.put({
       id: value?.id ?? newId(), name: name.trim(), categoryId, defaultAmount: amount!, day,
+      amountChanges: recType === 'once' ? undefined : cleanChanges(changes, startPeriod),
       sourceAccountId: source || undefined, recurrence,
       startPeriod: recType === 'once' ? once : startPeriod,
       endPeriod: recType === 'once' ? once : finalEnd || undefined,
@@ -278,11 +283,57 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
                     error={countText !== '' && !countEnd}
                     helperText={countEnd ? `最終回は ${periodYearLabel(countEnd, startDay)}` : '開始月から数えて何回か'} />
                 )}
+                <AmountChanges changes={changes} onChange={setChanges} months={withValue('').filter((p) => comparePeriods(p, startPeriod) > 0)}
+                  label={(p) => periodFromLabel(p, startDay)} />
               </>
             )}
         </Stack>
       </DialogContent>
       <Actions valid={valid} onSave={save} onClose={onClose} />
     </Dialog>
+  );
+}
+
+/** 金額が空の行・開始月以前の行を除き、同じ月は後の行を残して、月の古い順に並べる */
+function cleanChanges(rows: { from: string; amount?: number }[], start: string): AmountChange[] | undefined {
+  const byMonth = new Map<string, number>();
+  for (const r of rows) if (r.amount !== undefined && comparePeriods(r.from, start) > 0) byMonth.set(r.from, r.amount);
+  const list = [...byMonth].map(([from, amount]) => ({ from, amount })).sort((a, b) => comparePeriods(a.from, b.from));
+  return list.length ? list : undefined;
+}
+
+/** 「途中から金額を変える」の入力。月と金額の組を並べる */
+function AmountChanges({ changes, onChange, months, label }: {
+  changes: { from: string; amount?: number }[]; onChange: (c: { from: string; amount?: number }[]) => void;
+  months: string[]; label: (p: string) => string;
+}) {
+  const set = (i: number, patch: Partial<{ from: string; amount?: number }>) =>
+    onChange(changes.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+  const add = () => {
+    const used = new Set(changes.map((c) => c.from));
+    const from = months.find((m) => !used.has(m) && (!changes.length || comparePeriods(m, changes[changes.length - 1].from) > 0)) ?? months[0];
+    if (from) onChange([...changes, { from, amount: undefined }]);
+  };
+  return (
+    <Stack spacing={1.5}>
+      {changes.map((c, i) => (
+        <Stack key={i} direction="row" spacing={0.5} alignItems="flex-start">
+          {/* 幅が足りないときは月と金額を2段にする。消すボタンは右に置いたまま */}
+          <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            <TextField id={`item-change-from-${i}`} select label="この月から" value={c.from} onChange={(e) => set(i, { from: e.target.value })}
+              sx={{ flex: '1 1 160px' }}>
+              {(months.includes(c.from) ? months : [c.from, ...months]).map((p) => <MenuItem key={p} value={p}>{label(p)}</MenuItem>)}
+            </TextField>
+            <MoneyField id={`item-change-amount-${i}`} label="金額" value={c.amount} onChange={(v) => set(i, { amount: v })} sx={{ flex: '1 1 110px' }} />
+          </Box>
+          <IconButton aria-label="この変更を消す" onClick={() => onChange(changes.filter((_, j) => j !== i))} sx={{ mt: 0.5 }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      ))}
+      {months.length > 0 && (
+        <Button size="small" startIcon={<AddIcon />} onClick={add} sx={{ alignSelf: 'flex-start' }}>途中から金額を変える</Button>
+      )}
+    </Stack>
   );
 }

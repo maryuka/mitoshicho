@@ -78,6 +78,13 @@ export function periodYearLabel(id: string, startDay: number): string {
   return `${s.getFullYear()}/${md(s)}〜${end}`;
 }
 
+/** 期の初日だけを年つきで（例: 2027/4/15〜）。幅の狭い場所で使う */
+export function periodFromLabel(id: string, startDay: number): string {
+  if (startDay === 1) { const { year, month } = parsePeriod(id); return `${year}年${month}月〜`; }
+  const s = periodStart(id, startDay);
+  return `${s.getFullYear()}/${md(s)}〜`;
+}
+
 export function periodShortLabel(id: string, startDay: number): string {
   if (startDay === 1) return `${parsePeriod(id).month}月`;
   return `${md(periodStart(id, startDay))}-${md(periodEnd(id, startDay))}`;

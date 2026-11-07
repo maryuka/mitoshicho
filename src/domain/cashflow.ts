@@ -2,6 +2,13 @@
 import { addPeriods, comparePeriods, dateInPeriod, lastDayBefore, parseISODate, parsePeriod } from './period';
 import type { Account, AppData, Category, CategoryActual, CategoryKind, Entry, Item } from './types';
 
+/** その月のいつもの金額（途中からの金額の変更を反映。月ごとの上書きは含まない） */
+export function amountFor(item: Item, pid: string): number {
+  let amount = item.defaultAmount;
+  for (const c of item.amountChanges ?? []) if (comparePeriods(c.from, pid) <= 0) amount = c.amount;
+  return amount;
+}
+
 export function itemOccurs(item: Item, pid: string): boolean {
   if (comparePeriods(pid, item.startPeriod) < 0) return false;
   if (item.endPeriod && comparePeriods(pid, item.endPeriod) > 0) return false;
@@ -128,7 +135,7 @@ export function itemRows(data: AppData, pid: string, idx = buildIndex(data)): It
     const category = idx.categories.get(item.categoryId);
     if (!category) continue;
     const entry = idx.entries.get(entryId(pid, item.id));
-    const planned = entry?.planned ?? (itemOccurs(item, pid) ? item.defaultAmount : undefined);
+    const planned = entry?.planned ?? (itemOccurs(item, pid) ? amountFor(item, pid) : undefined);
     if (planned === undefined && !entry) continue;
     const source = item.sourceAccountId ? idx.accounts.get(item.sourceAccountId) : undefined;
     rows.push({
