@@ -65,10 +65,10 @@ describe('カードの引落日のずらし方', () => {
 });
 
 describe('この月だけの項目', () => {
-  it('アーカイブしてあっても、その月の予算には入る', () => {
+  it('その月の予算にだけ入る', () => {
     const d = baseData();
     d.items.push(item({
-      id: 'gift', categoryId: 'exp', defaultAmount: 7000, sourceAccountId: 'bank', archived: true,
+      id: 'gift', categoryId: 'exp', defaultAmount: 7000, sourceAccountId: 'bank',
       recurrence: { type: 'once', periodId: '2026-04' }, startPeriod: '2026-04', endPeriod: '2026-04',
     }));
     const exp = (pid: string) => summarize(d, pid).categories.find((c) => c.category.id === 'exp')!.planned;

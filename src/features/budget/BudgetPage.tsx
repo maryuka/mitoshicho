@@ -1,15 +1,15 @@
 import AddIcon from '@mui/icons-material/Add';
-import CloseIcon from '@mui/icons-material/Close';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import {
   Box, Button, Card, CardContent, Chip, Divider, IconButton, Link, Stack, TextField, Typography,
 } from '@mui/material';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
-import { amountFor, summarize, type CategoryRow } from '../../domain/cashflow';
+import { amountFor, summarize, type CategoryRow, type ItemRow } from '../../domain/cashflow';
+import { OnceItemDialog } from '../settings/dialogs';
 import { periodLabel, periodRule } from '../../domain/period';
 import type { AppData, CategoryKind } from '../../domain/types';
 import { patchEntry, setCategoryActual } from '../../db/ops';
 import { db, newId } from '../../db/db';
-import { confirmDialog } from '../../components/ConfirmDialog';
 import { signedYen, yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
 import { PeriodNav } from '../../components/PeriodNav';
@@ -159,6 +159,7 @@ function ActualRow({ row, period }: { row: CategoryRow; period: string }) {
 
 /** 予算: カテゴリの中の項目ごとに、この月の予算を見る・変える */
 function BudgetRow({ row, period, data }: { row: CategoryRow; period: string; data: AppData }) {
+  const [editing, setEditing] = useState<ItemRow | null>(null);
   return (
     <Box sx={{ py: 1.25 }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline">
@@ -183,19 +184,20 @@ function BudgetRow({ row, period, data }: { row: CategoryRow; period: string; da
               ariaLabel={`${r.item.name} のこの月の予算`}
               onChange={(v) => patchEntry(period, r.item.id, { planned: v ?? null })} />
             {r.item.recurrence.type === 'once' && (
-              <IconButton size="small" aria-label={`${r.item.name} を消す`} onClick={() => removeOnceItem(r.item.id, r.item.name)} sx={{ ml: -0.5 }}>
-                <CloseIcon fontSize="small" />
+              <IconButton size="small" aria-label={`${r.item.name} を編集`} onClick={() => setEditing(r)} sx={{ ml: -0.5 }}>
+                <EditOutlinedIcon fontSize="small" />
               </IconButton>
             )}
           </Stack>
         ))}
         <AddOnceItem period={period} categoryId={row.category.id} data={data} />
       </Stack>
+      {editing && <OnceItemDialog value={editing.item} planned={editing.planned ?? 0} data={data} onClose={() => setEditing(null)} />}
     </Box>
   );
 }
 
-/** カテゴリの中に、この月だけの項目を足す（頻度「1回のみ」の定期項目として保存する） */
+/** カテゴリの中に、この月だけの項目を足す（頻度「1回のみ」の項目として保存する。定期項目の一覧には出さない） */
 function AddOnceItem({ period, categoryId, data }: { period: string; categoryId: string; data: AppData }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
@@ -206,9 +208,8 @@ function AddOnceItem({ period, categoryId, data }: { period: string; categoryId:
     const order = data.items.length ? Math.max(...data.items.map((i) => i.sortOrder)) + 1 : 0;
     await db.items.add({
       id: newId(), name: name.trim(), categoryId, defaultAmount: amount!,
-      // この月だけの項目は、定期項目の一覧に出ないよう最初からアーカイブにしておく（計画・ふりかえりには出る）
       recurrence: { type: 'once', periodId: period }, startPeriod: period, endPeriod: period,
-      sortOrder: order, archived: true,
+      sortOrder: order, archived: false,
     });
     setName(''); setAmount(undefined); setAdding(false);
   };
@@ -235,10 +236,3 @@ function AddOnceItem({ period, categoryId, data }: { period: string; categoryId:
   );
 }
 
-async function removeOnceItem(id: string, name: string) {
-  if (!await confirmDialog(`この月だけの項目「${name}」を消します。よろしいですか？`)) return;
-  await db.transaction('rw', db.items, db.entries, async () => {
-    await db.entries.where('itemId').equals(id).delete();
-    await db.items.delete(id);
-  });
-}

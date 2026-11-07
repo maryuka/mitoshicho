@@ -51,6 +51,8 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
     <ArchivedToggle count={list.filter((x) => x.archived).length} shown={showArchived} onChange={setShowArchived} />
   );
   const startDay = periodRule(data.settings);
+  // 1回のみの項目は計画で扱うので、定期項目の一覧には出さない
+  const recurring = data.items.filter((i) => i.recurrence.type !== 'once');
   const accounts = [...data.accounts].sort((a, b) => a.sortOrder - b.sortOrder);
   const categories = [...data.categories].sort((a, b) => a.sortOrder - b.sortOrder);
   const accName = (id?: string) => data.accounts.find((a) => a.id === id)?.name ?? '未設定';
@@ -115,11 +117,11 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
       </Section>}
 
       {page === 'items' && <Section onAdd={categories.length > 0 ? () => setItem('new') : undefined}
-        note="登録した金額が毎月の予算に自動で入ります。その月だけの変更は下のメニューの「計画」で行えます。">
+        note="登録した金額が毎月の予算に自動で入ります。その月だけの金額の変更や、1回だけの項目は「計画」で入れます。">
         <List dense>
-          {data.items.length === 0 && <Empty>定期項目を登録してください</Empty>}
+          {recurring.length === 0 && <Empty>定期項目を登録してください</Empty>}
           {categories.map((c) => {
-            const items = visible(data.items.filter((i) => i.categoryId === c.id)).sort((a, b) => a.sortOrder - b.sortOrder);
+            const items = visible(recurring.filter((i) => i.categoryId === c.id)).sort((a, b) => a.sortOrder - b.sortOrder);
             if (items.length === 0) return null;
             return (
               <li key={c.id}>
@@ -147,7 +149,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
             );
           })}
         </List>
-        {toggle(data.items)}
+        {toggle(recurring)}
       </Section>}
 
       {page === 'checklist' && <ChecklistSection data={data} current={current} />}
