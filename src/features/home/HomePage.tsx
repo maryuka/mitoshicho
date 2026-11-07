@@ -8,7 +8,7 @@ import type { AppData } from '../../domain/types';
 import { yen } from '../../lib/money';
 import { PeriodNav } from '../../components/PeriodNav';
 import { CardBillDialog } from '../../components/CardBillDialog';
-import { Bubble, HIYOKO } from '../../components/Hiyoko';
+import { Bubble, KITSUNE } from '../../components/Kitsune';
 import { NormalView } from './NormalView';
 import { PaydayPanel } from './PaydayPanel';
 import { BREAKDOWN_LABEL, BreakdownDialog, type BreakdownKind } from './Breakdown';
@@ -58,7 +58,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
         }}>
           <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} leading={menu} onHero />
           <Box sx={{ mt: 1.5 }}><Bubble>{message}</Bubble></Box>
-          <Box component="img" src={ok ? HIYOKO.happy : HIYOKO.worried} alt={ok ? '喜ぶひよこ' : '困っているひよこ'}
+          <Box component="img" src={ok ? KITSUNE.happy : KITSUNE.worried} alt={ok ? '喜ぶ狐' : '困っている狐'}
             // 絵によって縦横比が違うので、高さをそろえて帯の高さが変わらないようにする
             sx={{ display: 'block', height: 112, width: 'auto', maxWidth: '60%', objectFit: 'contain', mx: 'auto', mt: 1.5, mb: 1.5 }} />
           <ToggleButtonGroup value={mode} exclusive onChange={(_, m) => setMode(m)} size="small"

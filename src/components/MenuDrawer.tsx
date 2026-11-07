@@ -104,9 +104,6 @@ export function MenuDrawer({ open, onClose, onSelect }: {
             </Box>
           ))}
         </Stack>
-        <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 4 }}>
-          イラスト: ぴよたそ（hiyokoyarou.com）
-        </Typography>
       </Box>
     </Drawer>
   );

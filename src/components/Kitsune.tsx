@@ -1,14 +1,13 @@
 import { Box, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
-import counting from '../assets/hiyoko/counting.webp';
-import happy from '../assets/hiyoko/happy.webp';
-import rain from '../assets/hiyoko/rain.webp';
-import reading from '../assets/hiyoko/reading.webp';
-import sunglasses from '../assets/hiyoko/sunglasses.webp';
-import worried from '../assets/hiyoko/worried.webp';
+import counting from '../assets/kitsune/counting.webp';
+import happy from '../assets/kitsune/happy.webp';
+import money from '../assets/kitsune/money.webp';
+import reading from '../assets/kitsune/reading.webp';
+import worried from '../assets/kitsune/worried.webp';
 
-// イラスト: ぴよたそ（https://hiyokoyarou.com/）。規約により直リンクはせず、ダウンロードした画像を同梱している
-export const HIYOKO = { happy, worried, counting, reading, sunglasses, rain };
+/** 狐のイラスト */
+export const KITSUNE = { happy, worried, counting, reading, money };
 
 /** 下向きのしっぽが付いた吹き出し（ホームの上部用） */
 export function Bubble({ children }: { children: ReactNode }) {
@@ -24,12 +23,12 @@ export function Bubble({ children }: { children: ReactNode }) {
   );
 }
 
-/** ひよこのアイコンと、ひとことの吹き出し（メニューから開くページの先頭用） */
-export function HiyokoSays({ children }: { children: ReactNode }) {
+/** 狐のアイコンと、ひとことの吹き出し（メニューから開くページの先頭用） */
+export function KitsuneSays({ children }: { children: ReactNode }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
       <Box sx={{ width: 64, height: 64, borderRadius: '50%', bgcolor: 'soft', flexShrink: 0, overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
-        <Box component="img" src={HIYOKO.counting} alt="" sx={{ width: 60, mt: 1 }} />
+        <Box component="img" src={KITSUNE.counting} alt="" sx={{ width: 60, mt: 1 }} />
       </Box>
       <Box sx={(t) => ({
         position: 'relative', flex: 1, minWidth: 0, bgcolor: 'background.paper', border: `1.5px solid ${t.palette.divider}`,
@@ -47,13 +46,13 @@ export function HiyokoSays({ children }: { children: ReactNode }) {
 }
 
 /** 読み込み中の表示 */
-export function HiyokoLoading() {
+export function KitsuneLoading() {
   return (
     <Box role="status" sx={{ display: 'grid', placeItems: 'center', alignContent: 'center', gap: 1.5, minHeight: '70vh', textAlign: 'center', px: 3 }}>
       <Box sx={{ width: 170, height: 170, borderRadius: '50%', bgcolor: 'soft', display: 'grid', placeItems: 'center' }}>
-        <Box component="img" src={HIYOKO.reading} alt="" sx={{
-          width: 130, animation: 'hiyoko-bob 1.6s ease-in-out infinite',
-          '@keyframes hiyoko-bob': { '50%': { transform: 'translateY(-5px) rotate(-2deg)' } },
+        <Box component="img" src={KITSUNE.reading} alt="" sx={{
+          width: 130, animation: 'kitsune-bob 1.6s ease-in-out infinite',
+          '@keyframes kitsune-bob': { '50%': { transform: 'translateY(-5px) rotate(-2deg)' } },
           '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
         }} />
       </Box>

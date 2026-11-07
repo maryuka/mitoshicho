@@ -16,7 +16,7 @@ import { ReceivablesPage } from './features/receivables/ReceivablesPage';
 import { SettingsPage, type SettingsPageId } from './features/settings/SettingsPage';
 import { ConfirmHost } from './components/ConfirmDialog';
 import { MENU_LABEL, MenuButton, MenuDrawer } from './components/MenuDrawer';
-import { HiyokoLoading, HiyokoSays } from './components/Hiyoko';
+import { KitsuneLoading, KitsuneSays } from './components/Kitsune';
 import { Walkthrough } from './features/welcome/Walkthrough';
 
 // 画面は #home 形式のハッシュで切り替える（静的ホスティングと埋め込みの両方で動く）
@@ -31,7 +31,7 @@ const MAIN_TABS: { id: MainRoute; label: string; icon: ReactElement }[] = [
 const isMain = (r: string): r is MainRoute => MAIN_TABS.some((t) => t.id === r);
 const SUB_ROUTES = Object.keys(MENU_LABEL);
 
-/** メニューから開くページの先頭で、ひよこが言うひとこと */
+/** メニューから開くページの先頭で、狐が言うひとこと */
 const TIPS: Record<string, string> = {
   receivables: '立て替えたお金は、戻ってくる月を入れておくと見通しに入るよ！',
   'prefs-basic': '月の区切りは給料日。土日祝なら前の平日から次の月になるよ！',
@@ -65,7 +65,7 @@ export function App() {
   useEffect(() => { if (isMain(route)) setLastMain(route); }, [route]);
 
   if (!data) {
-    return <HiyokoLoading />;
+    return <KitsuneLoading />;
   }
 
   const current = periodOf(new Date(), data.settings.periodStartDay);
@@ -86,7 +86,7 @@ export function App() {
         {isSub ? (
           <Stack spacing={2}>
             <SubHeader title={MENU_LABEL[route]} onBack={() => go(lastMain)} />
-            {TIPS[route] && <HiyokoSays>{TIPS[route]}</HiyokoSays>}
+            {TIPS[route] && <KitsuneSays>{TIPS[route]}</KitsuneSays>}
             {route === 'receivables'
               ? <ReceivablesPage data={data} current={current} />
               : <SettingsPage page={route.replace('prefs-', '') as SettingsPageId} data={data} current={current} />}

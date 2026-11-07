@@ -1,28 +1,28 @@
 import { Box, Button, Stack, Typography } from '@mui/material';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { HIYOKO } from '../../components/Hiyoko';
+import { KITSUNE } from '../../components/Kitsune';
 
 interface Step { image: string; title: string; body: ReactNode }
 
 const STEPS: Step[] = [
   {
-    image: HIYOKO.happy, title: 'みとおし帳へようこそ！',
+    image: KITSUNE.happy, title: 'みとおし帳へようこそ！',
     body: <>給料日ごとに「今月お金が回るか」を<br />見通すための家計アプリだよ。</>,
   },
   {
-    image: HIYOKO.counting, title: '月ごとに予算を立てる',
+    image: KITSUNE.counting, title: '月ごとに予算を立てる',
     body: <>月の区切りは給料日。<br />カテゴリごとに「使っていい額」を決めておこう。</>,
   },
   {
-    image: HIYOKO.sunglasses, title: '給料日のチェックもかんたん',
+    image: KITSUNE.money, title: '給料日のチェックもかんたん',
     body: <>入金・カード請求・口座への振り分けを<br />まとめてチェックできるよ。</>,
   },
   {
-    image: HIYOKO.reading, title: '月末に振り返る',
+    image: KITSUNE.reading, title: '月末に振り返る',
     body: <>日々の記録は Zaim で。<br />月末にカテゴリの合計を入れて<br />予算と比べよう。</>,
   },
   {
-    image: HIYOKO.rain, title: 'さっそく始めよう',
+    image: KITSUNE.happy, title: 'さっそく始めよう',
     body: <>データはこの端末の中だけに保存されるよ。<br />どこから始める？</>,
   },
 ];

@@ -28,7 +28,3 @@ npm run build:artifact  # 1枚の HTML（artifact/mitoshicho.html）にまとめ
 
 `main` に push すると GitHub Actions で GitHub Pages にデプロイします（リポジトリ設定の Pages で Source を「GitHub Actions」にしてください）。
 スマホではホーム画面に追加して使うことを推奨します（ブラウザによるデータ削除を避けるため）。
-
-## イラスト
-
-ひよこのイラストは [ぴよたそ](https://hiyokoyarou.com/) の素材です（著作権はぴよたそ管理人に帰属）。このアプリの中での利用のために同梱しており、画像単体の再配布・転用はできません。

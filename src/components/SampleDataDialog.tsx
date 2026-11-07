@@ -1,7 +1,7 @@
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
 import { loadSampleData } from '../db/sample';
-import { HIYOKO } from './Hiyoko';
+import { KITSUNE } from './Kitsune';
 
 // sample.ts の中身と合わせておく
 const CONTENTS: [string, string][] = [
@@ -27,7 +27,7 @@ export function SampleDataDialog({ open, hasData, onClose, onLoaded }: {
         <Stack spacing={2}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box sx={{ width: 64, height: 64, borderRadius: '50%', bgcolor: 'soft', flexShrink: 0, display: 'grid', placeItems: 'center' }}>
-              <Box component="img" src={HIYOKO.counting} alt="" sx={{ width: 48 }} />
+              <Box component="img" src={KITSUNE.counting} alt="" sx={{ width: 48 }} />
             </Box>
             <Typography variant="body2" fontWeight={700} sx={{ lineHeight: 1.7 }}>
               ひとり暮らしの会社員を想定した、架空のお金のデータが入るよ。

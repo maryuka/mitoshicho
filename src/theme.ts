@@ -1,7 +1,7 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 import { useEffect, useMemo, useState } from 'react';
 
-// ライトはひよこに合わせたオレンジと黄色。ダークは黒に近い無彩色を背景にし、オレンジと黄色はアクセントだけに使う
+// ライトは狐に合わせたオレンジと黄色。ダークは黒に近い無彩色を背景にし、オレンジと黄色はアクセントだけに使う
 const palette = {
   light: { primary: '#ea7d12', bg: '#fffaf0', paper: '#ffffff', text: '#3b2a17', muted: '#8c7558', divider: '#f1e4cc', error: '#d9480f', success: '#3f9a4a', warning: '#c77700', hero: '#f7a531', heroText: '#ffffff', soft: '#fff3c4', bubble: '#ffffff' },
   dark: { primary: '#ffad4d', bg: '#0b0b0c', paper: '#161618', text: '#ededef', muted: '#a1a1aa', divider: '#2a2a2e', error: '#ff8a5b', success: '#6bcf77', warning: '#ffd23f', hero: '#161617', heroText: '#ededef', soft: '#232325', bubble: '#232325' },
