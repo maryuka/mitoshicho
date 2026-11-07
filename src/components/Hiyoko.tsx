@@ -2,11 +2,13 @@ import { Box, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 import counting from '../assets/hiyoko/counting.webp';
 import happy from '../assets/hiyoko/happy.webp';
+import rain from '../assets/hiyoko/rain.webp';
 import reading from '../assets/hiyoko/reading.webp';
+import sunglasses from '../assets/hiyoko/sunglasses.webp';
 import worried from '../assets/hiyoko/worried.webp';
 
 // イラスト: ぴよたそ（https://hiyokoyarou.com/）。規約により直リンクはせず、ダウンロードした画像を同梱している
-export const HIYOKO = { happy, worried, counting, reading };
+export const HIYOKO = { happy, worried, counting, reading, sunglasses, rain };
 
 /** 下向きのしっぽが付いた吹き出し（ホームの上部用） */
 export function Bubble({ children }: { children: ReactNode }) {
