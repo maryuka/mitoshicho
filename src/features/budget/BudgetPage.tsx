@@ -206,8 +206,9 @@ function AddOnceItem({ period, categoryId, data }: { period: string; categoryId:
     const order = data.items.length ? Math.max(...data.items.map((i) => i.sortOrder)) + 1 : 0;
     await db.items.add({
       id: newId(), name: name.trim(), categoryId, defaultAmount: amount!,
+      // この月だけの項目は、定期項目の一覧に出ないよう最初からアーカイブにしておく（計画・ふりかえりには出る）
       recurrence: { type: 'once', periodId: period }, startPeriod: period, endPeriod: period,
-      sortOrder: order, archived: false,
+      sortOrder: order, archived: true,
     });
     setName(''); setAmount(undefined); setAdding(false);
   };

@@ -64,6 +64,18 @@ describe('カードの引落日のずらし方', () => {
   });
 });
 
+describe('この月だけの項目', () => {
+  it('アーカイブしてあっても、その月の予算には入る', () => {
+    const d = baseData();
+    d.items.push(item({
+      id: 'gift', categoryId: 'exp', defaultAmount: 7000, sourceAccountId: 'bank', archived: true,
+      recurrence: { type: 'once', periodId: '2026-04' }, startPeriod: '2026-04', endPeriod: '2026-04',
+    }));
+    const exp = (pid: string) => summarize(d, pid).categories.find((c) => c.category.id === 'exp')!.planned;
+    expect(exp('2026-04') - exp('2026-05')).toBe(7000);
+  });
+});
+
 describe('period', () => {
   it('15日始まりの期を判定する', () => {
     expect(periodOf(new Date(2026, 10, 4), 15)).toBe('2026-10');
