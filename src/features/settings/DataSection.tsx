@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AppData } from '../../domain/types';
 import { db } from '../../db/db';
 import { clearAll, downloadBackup, exportJson, importJson } from '../../db/backup';
-import { loadSampleData } from '../../db/sample';
+import { SampleDataDialog } from '../../components/SampleDataDialog';
 import { confirmDialog } from '../../components/ConfirmDialog';
 import { ImportSheetDialog } from './ImportSheetDialog';
 
@@ -17,6 +17,7 @@ export function DataSection({ data, current, part }: { data: AppData; current: s
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [textMode, setTextMode] = useState<'export' | 'import' | null>(null);
   const [importing, setImporting] = useState(false);
+  const [sampleOpen, setSampleOpen] = useState(false);
   useEffect(() => {
     try { navigator.storage?.persisted?.().then(setPersisted).catch(() => setPersisted(null)); } catch { setPersisted(null); }
   }, []);
@@ -60,11 +61,7 @@ export function DataSection({ data, current, part }: { data: AppData; current: s
             <Button variant="outlined" onClick={() => setTextMode('import')}>テキストを貼り付けて復元</Button>
           </Stack>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Button onClick={async () => {
-              if (data.items.length > 0 && !await confirmDialog('現在のデータを消してサンプルデータを読み込みます。よろしいですか？')) return;
-              await loadSampleData();
-              setMessage({ text: 'サンプルデータを読み込みました' });
-            }}>サンプルデータを読み込む</Button>
+            <Button onClick={() => setSampleOpen(true)}>サンプルデータを読み込む</Button>
             <Button color="error" onClick={async () => {
               if (!await confirmDialog('すべてのデータを削除します。元に戻せません。よろしいですか？')) return;
               await clearAll();
@@ -77,6 +74,8 @@ export function DataSection({ data, current, part }: { data: AppData; current: s
         </Stack>
         )}
       </CardContent>
+      <SampleDataDialog open={sampleOpen} hasData={data.items.length > 0 || data.accounts.length > 0} onClose={() => setSampleOpen(false)}
+        onLoaded={() => setMessage({ text: 'サンプルデータを読み込みました' })} />
       {importing && <ImportSheetDialog current={current} hasData={data.items.length > 0} onClose={() => setImporting(false)} />}
       {textMode && (
         <BackupTextDialog mode={textMode} onClose={() => setTextMode(null)}
