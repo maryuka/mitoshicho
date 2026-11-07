@@ -88,7 +88,7 @@ export function MenuDrawer({ open, onClose, onSelect }: {
                   <ButtonBase key={e.route} onClick={() => onSelect(e.route)} focusRipple
                     sx={(t) => ({
                       display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1.5, p: 2, minHeight: 112,
-                      bgcolor: 'background.paper', borderRadius: 3, border: 1, borderColor: 'divider', textAlign: 'left',
+                      bgcolor: 'background.paper', borderRadius: '12px', border: 1, borderColor: 'divider', textAlign: 'left',
                       '&:hover': { borderColor: alpha(toneColor(t, e.tone), 0.5) },
                     })}>
                     <Box sx={(t) => ({

@@ -22,7 +22,7 @@ const STEPS: Step[] = [
     body: <>日々の記録は Zaim で。<br />月末にカテゴリの合計を入れて<br />予算と比べよう。</>,
   },
   {
-    image: HIYOKO.rain, title: 'さっそく始めよう',
+    image: HIYOKO.rocket, title: 'さっそく始めよう',
     body: <>データはこの端末の中だけに保存されるよ。<br />どこから始める？</>,
   },
 ];
