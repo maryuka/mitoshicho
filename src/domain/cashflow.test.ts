@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardTodos, summarize, itemOccurs } from './cashflow';
+import { cardBillRows, cardTodos, summarize, itemOccurs } from './cashflow';
 import { addPeriods, dateInPeriod, lastDayBefore, periodLabel, periodOf, periodStart, periodYearLabel } from './period';
 import { DEFAULT_SETTINGS, type AppData, type Item } from './types';
 
@@ -44,6 +44,25 @@ function baseData(): AppData {
 function actual(periodId: string, categoryId: string, amount: number) {
   return { id: `${periodId}:${categoryId}`, periodId, categoryId, amount };
 }
+
+describe('カードの引落日のずらし方', () => {
+  // 2026/4/26 は日曜。確定日はずらす前の引落日を基準にする
+  const withShift = (shift?: 'before' | 'none' | 'after') => {
+    const d = baseData();
+    d.accounts = d.accounts.map((a) => (a.id === 'card' ? { ...a, withdrawShift: shift, confirmDay: 26 } : a));
+    return cardBillRows(d, '2026-04')[0];
+  };
+  it('ずらし方に合わせて引落日が変わる', () => {
+    expect(withShift().withdrawDate).toEqual(new Date(2026, 3, 26));
+    expect(withShift('none').withdrawDate).toEqual(new Date(2026, 3, 26));
+    expect(withShift('after').withdrawDate).toEqual(new Date(2026, 3, 27));
+    expect(withShift('before').withdrawDate).toEqual(new Date(2026, 3, 24));
+  });
+  it('確定日はずらす前の引落日から決まる', () => {
+    expect(withShift('after').confirmDate).toEqual(new Date(2026, 2, 26));
+    expect(withShift('before').confirmDate).toEqual(new Date(2026, 2, 26));
+  });
+});
 
 describe('period', () => {
   it('15日始まりの期を判定する', () => {

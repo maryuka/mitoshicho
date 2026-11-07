@@ -15,8 +15,8 @@ export async function loadSampleData(): Promise<void> {
     { id: 'acc-life', name: '生活費口座', kind: 'bank', sortOrder: 1, archived: false },
     { id: 'acc-pay', name: '引落口座', kind: 'bank', sortOrder: 2, archived: false },
     { id: 'acc-save', name: '貯金口座', kind: 'bank', sortOrder: 3, archived: false },
-    { id: 'card-a', name: 'カードA', kind: 'card', withdrawDay: 26, confirmDay: 11, withdrawAccountId: 'acc-pay', billLagPeriods: 1, sortOrder: 10, archived: false },
-    { id: 'card-b', name: 'カードB', kind: 'card', withdrawDay: 10, confirmDay: 25, withdrawAccountId: 'acc-pay', billLagPeriods: 1, sortOrder: 11, archived: false },
+    { id: 'card-a', name: 'カードA', kind: 'card', withdrawDay: 26, withdrawShift: 'after', confirmDay: 11, withdrawAccountId: 'acc-pay', billLagPeriods: 1, sortOrder: 10, archived: false },
+    { id: 'card-b', name: 'カードB', kind: 'card', withdrawDay: 10, withdrawShift: 'after', confirmDay: 25, withdrawAccountId: 'acc-pay', billLagPeriods: 1, sortOrder: 11, archived: false },
   ];
 
   const cat = (id: string, name: string, kind: Category['kind'], sortOrder: number): Category =>

@@ -19,6 +19,8 @@ export interface Account {
   kind: AccountKind;
   /** card: 引落日（毎月） */
   withdrawDay?: number;
+  /** card: 引落日が土日・祝日のときのずらし方（なければずらさない） */
+  withdrawShift?: HolidayShift;
   /** card: 請求額の確定日（毎月）。引落日より前の直近のこの日に確定する */
   confirmDay?: number;
   /** card: 引落口座 */
