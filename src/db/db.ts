@@ -30,7 +30,7 @@ export class MitoshichoDB extends Dexie {
     });
     // v2: 実績を項目ごとの記録で持っていた時期（v3 で廃止）
     this.version(2).stores({ records: 'id, periodId, itemId' });
-    // v3: 実績はカテゴリ合計で持つ（Zaim などで記録し、振り返りで合計を入れる）
+    // v3: 実績はカテゴリ合計で持つ（家計簿アプリなどで記録し、振り返りで合計を入れる）
     this.version(3).stores({ records: null, categoryActuals: 'id, periodId' }).upgrade(async (tx) => {
       const items = await tx.table('items').toArray();
       const entries = await tx.table('entries').toArray();
@@ -40,6 +40,10 @@ export class MitoshichoDB extends Dexie {
       await tx.table('entries').clear();
       await tx.table('entries').bulkAdd(m.entries);
       await tx.table('categoryActuals').bulkPut(m.categoryActuals);
+    });
+    // v4: 使わなくなったバッファの下限（bufferThreshold）を消す
+    this.version(4).stores({}).upgrade(async (tx) => {
+      await tx.table('settings').toCollection().modify((s: Record<string, unknown>) => { delete s.bufferThreshold; });
     });
   }
 }

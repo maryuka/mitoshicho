@@ -8,8 +8,6 @@ export interface Settings {
   periodStartDay: number; // 給料日（期の開始日）
   /** 給料日が土日・祝日のとき、期の始まりをどうずらすか（なければ before） */
   holidayShift?: HolidayShift;
-  /** 使っていない（以前のバッファの下限。バックアップの互換のため残す） */
-  bufferThreshold: number;
   lastBackupAt?: string;
 }
 
@@ -82,7 +80,7 @@ export interface Entry {
   memo?: string;
 }
 
-/** 期 × カテゴリ の実績合計（Zaim などで集計した額を振り返りで入力） */
+/** 期 × カテゴリ の実績合計（家計簿アプリなどで集計した額を振り返りで入力） */
 export interface CategoryActual {
   id: string; // `${periodId}:${categoryId}`
   periodId: string;
@@ -147,5 +145,4 @@ export interface AppData {
 export const DEFAULT_SETTINGS: Settings = {
   id: 'app',
   periodStartDay: 15,
-  bufferThreshold: 10000,
 };

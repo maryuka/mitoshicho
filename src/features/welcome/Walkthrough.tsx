@@ -19,7 +19,7 @@ const STEPS: Step[] = [
   },
   {
     image: KITSUNE.reading, title: '月末に振り返る',
-    body: <>日々の記録は Zaim で。<br />月末にカテゴリの合計を入れて<br />予算と比べよう。</>,
+    body: <>日々の記録はいつもの家計簿アプリで。<br />月末にカテゴリの合計を入れて<br />予算と比べよう。</>,
   },
   {
     image: KITSUNE.happy, title: 'さっそく始めよう',

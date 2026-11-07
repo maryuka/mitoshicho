@@ -27,7 +27,7 @@ export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget
       .sort((a, b) => a.confirmDate!.getTime() - b.confirmDate!.getTime());
   }, [data, current]);
 
-  // 先月の実績（Zaim のカテゴリ合計）が未入力なら、やることに出す
+  // 先月の実績（家計簿アプリのカテゴリ合計）が未入力なら、やることに出す
   const prev = addPeriods(current, -1);
   const missing = useMemo(
     () => summarize(data, prev, current).categories.filter((c) => c.kind === 'expense' && c.actual === undefined && c.planned > 0),
@@ -56,7 +56,7 @@ export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget
                 onClick={() => onCardTodo(t)} />
             ))}
             {missing.length > 0 && (
-              <Todo icon={<EditNoteIcon color="warning" />} primary="先月の実績を入力（Zaim のカテゴリ合計）"
+              <Todo icon={<EditNoteIcon color="warning" />} primary="先月の実績を入力（カテゴリごとの合計）"
                 secondary={`${periodLabel(prev, startDay)}・未入力 ${missing.length} カテゴリ`} onClick={() => onOpenBudget(prev)} />
             )}
             {pending.length > 0 && (

@@ -121,7 +121,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
       </Section>}
 
       {page === 'categories' && <Section onAdd={() => setCategory('new')}
-        subheader="Zaim のカテゴリ名に合わせておくと、月末の振り返りが楽です。">
+        subheader="家計簿アプリのカテゴリ名に合わせておくと、月末の振り返りが楽です。">
         <List dense>
           {categories.length === 0 && <Empty>カテゴリを登録してください</Empty>}
           {visible(categories).map((c) => (

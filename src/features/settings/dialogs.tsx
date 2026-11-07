@@ -151,7 +151,7 @@ export function CategoryDialog({ value, data, onClose }: { value?: Category; dat
         onArchive={value && (async (a) => { await db.categories.update(value.id, { archived: a }); onClose(); })} />
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField id="cat-name" label="名前（Zaim のカテゴリ名に合わせると振り返りが楽です）" value={name} onChange={(e) => setName(e.target.value)} autoFocus={canAutoFocus} fullWidth />
+          <TextField id="cat-name" label="名前（家計簿アプリのカテゴリ名に合わせると振り返りが楽です）" value={name} onChange={(e) => setName(e.target.value)} autoFocus={canAutoFocus} fullWidth />
           <TextField id="cat-kind" select label="種類" value={kind} onChange={(e) => setKind(e.target.value as CategoryKind)} fullWidth>
             {(Object.keys(KIND_LABEL) as CategoryKind[]).map((k) => <MenuItem key={k} value={k}>{KIND_LABEL[k]}</MenuItem>)}
           </TextField>

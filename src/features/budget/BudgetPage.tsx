@@ -22,7 +22,7 @@ const SECTIONS: { kind: CategoryKind; label: string }[] = [
   { kind: 'income', label: '収入' },
 ];
 
-/** ふりかえり（月ごとの予算と実績）。実績は Zaim で集計したカテゴリ合計を入れて振り返る */
+/** ふりかえり（月ごとの予算と実績）。実績は家計簿アプリで集計したカテゴリ合計を入れて振り返る */
 export type Mode = 'budget' | 'actual';
 
 /** 下のメニューの「計画」（mode=budget）と「ふりかえり」（mode=actual）の画面 */
@@ -81,7 +81,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
             <BudgetBar value={spent} max={budget} />
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
               {enteredAll === 0
-                ? `月末に Zaim でこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。`
+                ? `月末に家計簿アプリでこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。`
                 : `${enteredAll} / ${s.categories.length} カテゴリ入力済み`}
             </Typography>
           </CardContent>
@@ -118,7 +118,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
   );
 }
 
-/** 実績: カテゴリごとに Zaim の合計を入れる */
+/** 実績: カテゴリごとに家計簿アプリの合計を入れる */
 function ActualRow({ row, period }: { row: CategoryRow; period: string }) {
   const income = row.kind === 'income';
   const actual = row.actual;

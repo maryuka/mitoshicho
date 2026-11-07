@@ -33,6 +33,10 @@ export async function importJson(text: string): Promise<void> {
     tables.entries = m.entries;
     tables.categoryActuals = [...(Array.isArray(tables.categoryActuals) ? tables.categoryActuals : []), ...m.categoryActuals];
   }
+  // 以前のバッファの下限（使わなくなった値）は捨てる
+  if (Array.isArray(tables.settings)) {
+    tables.settings = tables.settings.map(({ bufferThreshold: _old, ...rest }: Record<string, unknown>) => rest);
+  }
   await db.transaction('rw', TABLES.map((t) => db.table(t)), async () => {
     for (const t of TABLES) {
       await db.table(t).clear();

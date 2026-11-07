@@ -72,7 +72,7 @@ export async function loadSampleData(): Promise<void> {
     it('生活防衛費', 'c-save', 30000, 'acc-save', 15),
   ];
 
-  // 実績（Zaim で集計したカテゴリ合計を振り返りで入れた想定）。前期は一部未入力にしておく
+  // 実績（家計簿アプリで集計したカテゴリ合計を振り返りで入れた想定）。前期は一部未入力にしておく
   const categoryActuals: CategoryActual[] = [];
   const act = (periodId: string, categoryId: string, amount: number) =>
     categoryActuals.push({ id: `${periodId}:${categoryId}`, periodId, categoryId, amount });
