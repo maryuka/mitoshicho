@@ -58,7 +58,7 @@ git push origin HEAD:main HEAD:<作業ブランチ>
 
 - main への push で GitHub Pages に自動デプロイされる（https://maryuka.github.io/mitoshicho/）。
   このコンテナからは github.io に届かないので、結果は Actions で見てもらうよう伝える
-- リモートブランチは消せない（削除はプロキシで切られる）。不要なブランチは GitHub の画面で消してもらう
+- リモートブランチは消せない（クラウドのセッションのプロキシが `403 branch deletion is not allowed` で拒否する。設定では変えられない）。不要なブランチは GitHub の画面で消してもらう
 
 ## 返事の書き方
 
