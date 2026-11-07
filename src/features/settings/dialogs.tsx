@@ -1,5 +1,10 @@
+import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, ListSubheader, MenuItem, Stack, TextField, Typography,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ListItemIcon, ListSubheader, Menu, MenuItem,
+  Stack, TextField, Typography,
 } from '@mui/material';
 import { useState } from 'react';
 import { addPeriods, periodYearLabel } from '../../domain/period';
@@ -12,23 +17,46 @@ import { canAutoFocus } from '../../lib/device';
 export const KIND_LABEL: Record<CategoryKind, string> = { income: '収入', expense: '支出', debt: '返済', saving: '貯金・投資' };
 const nextOrder = (xs: { sortOrder: number }[]) => (xs.length ? Math.max(...xs.map((x) => x.sortOrder)) + 1 : 0);
 
-function Actions({ archived, onArchive, onDelete, onSave, onClose, valid }: {
-  archived?: boolean; onArchive?: (archived: boolean) => void; onDelete?: () => void;
-  onSave: () => void; onClose: () => void; valid: boolean;
+/** ダイアログのタイトル。編集のときは右上の「⋮」からアーカイブ・削除を選ぶ */
+function Title({ text, archived, onArchive, onDelete }: {
+  text: string; archived?: boolean; onArchive?: (archived: boolean) => void; onDelete?: () => void;
 }) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const hasMenu = !!(onArchive || onDelete);
   return (
-    // 削除・アーカイブは左、キャンセル・保存は右。幅が足りないときは折り返して2段にする（ボタンの文字は折らない）
-    <DialogActions sx={{ flexWrap: 'wrap', rowGap: 1, '& .MuiButton-root': { whiteSpace: 'nowrap' } }}>
-      {(onDelete || onArchive) && (
-        <Box sx={{ display: 'flex', gap: 0.5, mr: 'auto' }}>
-          {onDelete && <Button color="error" onClick={onDelete}>削除</Button>}
-          {onArchive && <Button color="inherit" sx={{ color: 'text.secondary' }} onClick={() => onArchive(!archived)}>{archived ? '使用中に戻す' : 'アーカイブ'}</Button>}
-        </Box>
+    <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: hasMenu ? 1.5 : 3 }}>
+      <Box component="span" sx={{ flex: 1, minWidth: 0 }}>{text}</Box>
+      {hasMenu && (
+        <>
+          <IconButton aria-label="その他の操作" onClick={(e) => setAnchor(e.currentTarget)} sx={{ color: 'text.secondary' }}>
+            <MoreVertIcon />
+          </IconButton>
+          <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+            {onArchive && (
+              <MenuItem onClick={() => { setAnchor(null); onArchive(!archived); }}>
+                <ListItemIcon>{archived ? <UnarchiveOutlinedIcon fontSize="small" /> : <ArchiveOutlinedIcon fontSize="small" />}</ListItemIcon>
+                {archived ? '使用中に戻す' : 'アーカイブ'}
+              </MenuItem>
+            )}
+            {onDelete && (
+              <MenuItem onClick={() => { setAnchor(null); onDelete(); }} sx={{ color: 'error.main' }}>
+                <ListItemIcon sx={{ color: 'inherit' }}><DeleteOutlineIcon fontSize="small" /></ListItemIcon>
+                削除
+              </MenuItem>
+            )}
+          </Menu>
+        </>
       )}
-      <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
-        <Button onClick={onClose}>キャンセル</Button>
-        <Button variant="contained" disabled={!valid} onClick={onSave} sx={{ px: 3 }}>保存</Button>
-      </Box>
+    </DialogTitle>
+  );
+}
+
+function Actions({ onSave, onClose, valid }: { onSave: () => void; onClose: () => void; valid: boolean }) {
+  return (
+    <DialogActions sx={{ '& .MuiButton-root': { whiteSpace: 'nowrap' } }}>
+      <Button onClick={onClose}>キャンセル</Button>
+      <Button variant="contained" disabled={!valid} onClick={onSave} sx={{ px: 3 }}>保存</Button>
     </DialogActions>
   );
 }
@@ -52,7 +80,8 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
   };
   return (
     <Dialog open onClose={onClose}>
-      <DialogTitle>{value ? '口座・カードを編集' : '口座・カードを追加'}</DialogTitle>
+      <Title text={value ? '口座・カードを編集' : '口座・カードを追加'} archived={value?.archived}
+        onArchive={value && (async (a) => { await db.accounts.update(value.id, { archived: a }); onClose(); })} />
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <TextField id="acc-name" label="名前" value={name} onChange={(e) => setName(e.target.value)} autoFocus={canAutoFocus} fullWidth />
@@ -82,8 +111,7 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
           )}
         </Stack>
       </DialogContent>
-      <Actions archived={value?.archived} valid={valid} onSave={save} onClose={onClose}
-        onArchive={value && (async (a) => { await db.accounts.update(value.id, { archived: a }); onClose(); })} />
+      <Actions valid={valid} onSave={save} onClose={onClose} />
     </Dialog>
   );
 }
@@ -107,7 +135,8 @@ export function CategoryDialog({ value, data, onClose }: { value?: Category; dat
   };
   return (
     <Dialog open onClose={onClose}>
-      <DialogTitle>{value ? 'カテゴリを編集' : 'カテゴリを追加'}</DialogTitle>
+      <Title text={value ? 'カテゴリを編集' : 'カテゴリを追加'} archived={value?.archived}
+        onArchive={value && (async (a) => { await db.categories.update(value.id, { archived: a }); onClose(); })} />
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <TextField id="cat-name" label="名前（Zaim のカテゴリ名に合わせると振り返りが楽です）" value={name} onChange={(e) => setName(e.target.value)} autoFocus={canAutoFocus} fullWidth />
@@ -116,8 +145,7 @@ export function CategoryDialog({ value, data, onClose }: { value?: Category; dat
           </TextField>
         </Stack>
       </DialogContent>
-      <Actions archived={value?.archived} valid={valid} onSave={save} onClose={onClose}
-        onArchive={value && (async (a) => { await db.categories.update(value.id, { archived: a }); onClose(); })} />
+      <Actions valid={valid} onSave={save} onClose={onClose} />
     </Dialog>
   );
 }
@@ -172,7 +200,9 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
 
   return (
     <Dialog open onClose={onClose}>
-      <DialogTitle>{value ? '定期項目を編集' : '定期項目を追加'}</DialogTitle>
+      <Title text={value ? '定期項目を編集' : '定期項目を追加'} archived={value?.archived}
+        onArchive={value && (async (a) => { await db.items.update(value.id, { archived: a }); onClose(); })}
+        onDelete={value && remove} />
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <TextField id="item-name" label="名前" value={name} onChange={(e) => setName(e.target.value)} autoFocus={canAutoFocus} fullWidth />
@@ -209,9 +239,7 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
             )}
         </Stack>
       </DialogContent>
-      <Actions archived={value?.archived} valid={valid} onSave={save} onClose={onClose}
-        onArchive={value && (async (a) => { await db.items.update(value.id, { archived: a }); onClose(); })}
-        onDelete={value && remove} />
+      <Actions valid={valid} onSave={save} onClose={onClose} />
     </Dialog>
   );
 }
