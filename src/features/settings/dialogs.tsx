@@ -273,13 +273,18 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
             : (
               <>
                 {monthSelect('item-start', '開始月', startPeriod, changeStart)}
-                <TextField id="item-end-mode" select label="終わり" value={endMode} fullWidth
+                {/* 最初の金額と途中からの変更を、時間の順に並べる */}
+                <MoneyField id="item-amount" label={changes.length ? `金額（${periodFromLabel(startPeriod, startDay)}）` : '金額（毎回の予算）'}
+                  value={amount} onChange={setAmount} fullWidth />
+                <AmountChanges changes={changes} onChange={setChanges} months={withValue('').filter((p) => comparePeriods(p, startPeriod) > 0)}
+                  label={(p) => periodFromLabel(p, startDay)} />
+                <TextField id="item-end-mode" select label="終了月" value={endMode} fullWidth
                   onChange={(e) => changeEndMode(e.target.value as typeof endMode)}>
-                  <MenuItem value="none">ずっと続ける</MenuItem>
-                  <MenuItem value="month">終了月を決める</MenuItem>
-                  <MenuItem value="count">回数を決める（分割払いなど）</MenuItem>
+                  <MenuItem value="none">なし（ずっと続ける）</MenuItem>
+                  <MenuItem value="month">月で決める</MenuItem>
+                  <MenuItem value="count">回数で決める（分割払いなど）</MenuItem>
                 </TextField>
-                {endMode === 'month' && monthSelect('item-end', '終了月（最終回の月）', endPeriod, setEndPeriod, false, startPeriod)}
+                {endMode === 'month' && monthSelect('item-end', '最終回の月', endPeriod, setEndPeriod, false, startPeriod)}
                 {endMode === 'count' && (
                   <TextField id="item-count" label="回数" value={countText} fullWidth
                     onChange={(e) => setCountText(e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/\D/g, ''))}
@@ -287,11 +292,6 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
                     error={countText !== '' && !countEnd}
                     helperText={countEnd ? `最終回は ${periodYearLabel(countEnd, startDay)}` : '開始月から数えて何回か'} />
                 )}
-                {/* 最初の金額と途中からの変更を、時間の順に並べる */}
-                <MoneyField id="item-amount" label={changes.length ? `金額（${periodFromLabel(startPeriod, startDay)}）` : '金額（毎回の予算）'}
-                  value={amount} onChange={setAmount} fullWidth />
-                <AmountChanges changes={changes} onChange={setChanges} months={withValue('').filter((p) => comparePeriods(p, startPeriod) > 0)}
-                  label={(p) => periodFromLabel(p, startDay)} />
               </>
             )}
         </Stack>
