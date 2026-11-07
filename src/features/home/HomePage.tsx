@@ -25,7 +25,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
   const [editing, setEditing] = useState<CardTodo | null>(null);
 
-  // 月の初日から5日間は給料日モードをすすめる
+  // 月の初日から5日間は「給料日」への切り替えをすすめる
   const daysIntoPeriod = Math.floor((Date.now() - periodStart(current, startDay).getTime()) / 86400000);
   const suggestPayday = mode === 'normal' && period === current && daysIntoPeriod < 5;
   const ok = s.buffer >= bufferThreshold;
@@ -61,7 +61,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
               '&.Mui-selected': { bgcolor: 'background.paper', color: 'primary.main', '&:hover': { bgcolor: 'background.paper' } },
             } }}>
             <ToggleButton value="normal">ふだん</ToggleButton>
-            <ToggleButton value="payday">給料日モード</ToggleButton>
+            <ToggleButton value="payday">給料日</ToggleButton>
           </ToggleButtonGroup>
         </Box>
 
@@ -93,7 +93,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
 
       {suggestPayday && (
         <Alert severity="info" onClick={() => setMode('payday')} sx={{ cursor: 'pointer' }}>
-          給料日です。給料日モードで入金・請求・振り分けを確認しましょう
+          給料日です。「給料日」に切り替えて、入金・請求・振り分けを確認しましょう
         </Alert>
       )}
 

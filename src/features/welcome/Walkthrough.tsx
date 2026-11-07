@@ -14,7 +14,7 @@ const STEPS: Step[] = [
     body: <>月の区切りは給料日。<br />カテゴリごとに「使っていい額」を決めておこう。</>,
   },
   {
-    image: HIYOKO.sunglasses, title: '給料日は給料日モードで',
+    image: HIYOKO.sunglasses, title: '給料日のチェックもかんたん',
     body: <>入金・カード請求・口座への振り分けを<br />まとめてチェックできるよ。</>,
   },
   {
