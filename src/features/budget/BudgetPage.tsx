@@ -20,7 +20,7 @@ const SECTIONS: { kind: CategoryKind; label: string }[] = [
   { kind: 'income', label: '収入' },
 ];
 
-/** 月ごとの予算と実績。実績は Zaim で集計したカテゴリ合計を入れて振り返る */
+/** ふりかえり（月ごとの予算と実績）。実績は Zaim で集計したカテゴリ合計を入れて振り返る */
 export function BudgetPage({ data, period, setPeriod, current, menu }: {
   data: AppData; period: string; setPeriod: (p: string) => void; current: string; menu?: ReactNode;
 }) {

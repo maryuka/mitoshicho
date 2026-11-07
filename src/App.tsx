@@ -19,11 +19,11 @@ import { HiyokoLoading, HiyokoSays } from './components/Hiyoko';
 import { Walkthrough } from './features/welcome/Walkthrough';
 
 // 画面は #home 形式のハッシュで切り替える（静的ホスティングと埋め込みの両方で動く）
-// ヘッダーは置かず、ホーム・予算と実績は左上のメニューボタンから、立替と設定の各ページを開く
+// ヘッダーは置かず、ホーム・ふりかえりは左上のメニューボタンから、立替と設定の各ページを開く
 type MainRoute = 'home' | 'budget';
 const MAIN_TABS: { id: MainRoute; label: string; icon: ReactElement }[] = [
   { id: 'home', label: 'ホーム', icon: <HomeIcon /> },
-  { id: 'budget', label: '予算と実績', icon: <TableChartIcon /> },
+  { id: 'budget', label: 'ふりかえり', icon: <TableChartIcon /> },
 ];
 const SUB_ROUTES = Object.keys(MENU_LABEL);
 

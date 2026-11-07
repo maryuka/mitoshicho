@@ -21,7 +21,7 @@ npm run build:artifact  # 1枚の HTML（artifact/mitoshicho.html）にまとめ
 
 - `src/domain/` 期（月）・予算・カード請求・バッファの計算（純粋関数とテスト）
 - `src/db/` Dexie による IndexedDB のスキーマ、操作、バックアップ、サンプルデータ
-- `src/features/` 画面（ホーム／予算と実績／立替／設定）。UI は MUI
+- `src/features/` 画面（ホーム／ふりかえり／立替／設定）。UI は MUI
 - `src/components/` 共通部品（金額入力、月の切り替え、カード請求ダイアログなど）
 
 ## 配布
