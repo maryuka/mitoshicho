@@ -49,7 +49,7 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
       {allDone && (
         <Card sx={{ bgcolor: 'soft', borderColor: 'transparent' }}>
           <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: '16px !important' }}>
-            <Box component="img" src={HIYOKO.happy} alt="" sx={{ width: 72, flexShrink: 0 }} />
+            <Box component="img" src={HIYOKO.cracker} alt="" sx={{ width: 72, flexShrink: 0 }} />
             <Box>
               <Typography fontWeight={900}>ぜんぶ完了！</Typography>
               <Typography variant="body2" color="text.secondary">給料日のやること、おつかれさま</Typography>
