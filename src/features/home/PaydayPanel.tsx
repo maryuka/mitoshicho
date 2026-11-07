@@ -52,7 +52,7 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
             <Box component="img" src={HIYOKO.cracker} alt="" sx={{ width: 72, flexShrink: 0 }} />
             <Box>
               <Typography fontWeight={900}>ぜんぶ完了！</Typography>
-              <Typography variant="body2" color="text.secondary">給料日のやること、おつかれさま</Typography>
+              <Typography variant="body2" color="text.secondary">給料日のやることがぜんぶ終わったよ。おつかれさま！</Typography>
             </Box>
           </CardContent>
         </Card>
