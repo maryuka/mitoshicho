@@ -1,5 +1,5 @@
 import {
-  Button, Dialog, DialogActions, DialogContent, DialogTitle, ListSubheader, MenuItem, Stack, TextField, Typography,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, ListSubheader, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useState } from 'react';
 import { addPeriods, periodYearLabel } from '../../domain/period';
@@ -17,11 +17,18 @@ function Actions({ archived, onArchive, onDelete, onSave, onClose, valid }: {
   onSave: () => void; onClose: () => void; valid: boolean;
 }) {
   return (
-    <DialogActions>
-      {onDelete && <Button color="error" onClick={onDelete}>削除</Button>}
-      {onArchive && <Button onClick={() => onArchive(!archived)}>{archived ? '使用中に戻す' : 'アーカイブ'}</Button>}
-      <Button onClick={onClose}>キャンセル</Button>
-      <Button variant="contained" disabled={!valid} onClick={onSave}>保存</Button>
+    // 削除・アーカイブは左、キャンセル・保存は右。幅が足りないときは折り返して2段にする（ボタンの文字は折らない）
+    <DialogActions sx={{ flexWrap: 'wrap', rowGap: 1, '& .MuiButton-root': { whiteSpace: 'nowrap' } }}>
+      {(onDelete || onArchive) && (
+        <Box sx={{ display: 'flex', gap: 0.5, mr: 'auto' }}>
+          {onDelete && <Button color="error" onClick={onDelete}>削除</Button>}
+          {onArchive && <Button color="inherit" sx={{ color: 'text.secondary' }} onClick={() => onArchive(!archived)}>{archived ? '使用中に戻す' : 'アーカイブ'}</Button>}
+        </Box>
+      )}
+      <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+        <Button onClick={onClose}>キャンセル</Button>
+        <Button variant="contained" disabled={!valid} onClick={onSave} sx={{ px: 3 }}>保存</Button>
+      </Box>
     </DialogActions>
   );
 }
