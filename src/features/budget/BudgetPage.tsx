@@ -1,13 +1,17 @@
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
-  Box, Card, CardContent, Chip, Collapse, Divider, Link, Stack, Typography,
+  Box, Button, Card, CardContent, Chip, Collapse, Divider, IconButton, Link, Stack, TextField, Typography,
 } from '@mui/material';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { amountFor, summarize, type CategoryRow } from '../../domain/cashflow';
 import { periodLabel } from '../../domain/period';
 import type { AppData, CategoryKind } from '../../domain/types';
 import { patchEntry, setCategoryActual } from '../../db/ops';
+import { db, newId } from '../../db/db';
+import { confirmDialog } from '../../components/ConfirmDialog';
 import { signedYen, yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
 import { PeriodNav } from '../../components/PeriodNav';
@@ -83,7 +87,7 @@ export function BudgetPage({ data, period, setPeriod, current, menu }: {
               {cats.map((c, i) => (
                 <Fragment key={c.category.id}>
                   {i > 0 && <Divider />}
-                  <ReviewRow row={c} period={period} open={open.has(c.category.id)} onToggle={() => toggle(c.category.id)} />
+                  <ReviewRow row={c} period={period} open={open.has(c.category.id)} onToggle={() => toggle(c.category.id)} data={data} />
                 </Fragment>
               ))}
             </CardContent>
@@ -94,8 +98,8 @@ export function BudgetPage({ data, period, setPeriod, current, menu }: {
   );
 }
 
-function ReviewRow({ row, period, open, onToggle }: {
-  row: CategoryRow; period: string; open: boolean; onToggle: () => void;
+function ReviewRow({ row, period, open, onToggle, data }: {
+  row: CategoryRow; period: string; open: boolean; onToggle: () => void; data: AppData;
 }) {
   const income = row.kind === 'income';
   const actual = row.actual;
@@ -140,20 +144,76 @@ function ReviewRow({ row, period, open, onToggle }: {
           {row.items.length === 0 && <Typography variant="caption" color="text.secondary">このカテゴリの項目はこの月にありません</Typography>}
           {row.items.map((r) => (
             <Stack key={r.item.id} direction="row" alignItems="center" spacing={1}>
-              <Typography variant="body2" noWrap sx={{ flex: 1, minWidth: 0 }}>
-                {r.item.name}
-                {r.viaCard && <Chip label="カード" size="small" variant="outlined" sx={{ ml: 0.5, height: 18, fontSize: 10 }} />}
-              </Typography>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="body2" noWrap>
+                  {r.item.name}
+                  {r.viaCard && <Chip label="カード" size="small" variant="outlined" sx={{ ml: 0.5, height: 18, fontSize: 10 }} />}
+                </Typography>
+                {r.item.recurrence.type === 'once' && <Typography variant="caption" color="primary" display="block">この月だけ</Typography>}
+              </Box>
               <MoneyField value={r.hasOverride ? r.planned : undefined} placeholder={amountFor(r.item, period)} sx={{ width: 132, flexShrink: 0 }}
                 ariaLabel={`${r.item.name} のこの月の予算`}
                 onChange={(v) => patchEntry(period, r.item.id, { planned: v ?? null })} />
+              {r.item.recurrence.type === 'once' && (
+                <IconButton size="small" aria-label={`${r.item.name} を消す`} onClick={() => removeOnceItem(r.item.id, r.item.name)} sx={{ ml: -0.5 }}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              )}
             </Stack>
           ))}
+          <AddOnceItem period={period} categoryId={row.category.id} data={data} />
           {row.items.length > 0 && (
-            <Typography variant="caption" color="text.secondary">この月だけの予算に変えられます（空欄ならいつもの金額）</Typography>
+            <Typography variant="caption" color="text.secondary">この月だけの予算に変えられます（空欄ならいつもの金額）。この月だけの項目も足せます</Typography>
           )}
         </Stack>
       </Collapse>
     </Box>
   );
+}
+
+/** カテゴリの中に、この月だけの項目を足す（頻度「1回のみ」の定期項目として保存する） */
+function AddOnceItem({ period, categoryId, data }: { period: string; categoryId: string; data: AppData }) {
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState<number | undefined>();
+  const valid = name.trim() !== '' && amount !== undefined;
+  const add = async () => {
+    if (!valid) return;
+    const order = data.items.length ? Math.max(...data.items.map((i) => i.sortOrder)) + 1 : 0;
+    await db.items.add({
+      id: newId(), name: name.trim(), categoryId, defaultAmount: amount!,
+      recurrence: { type: 'once', periodId: period }, startPeriod: period, endPeriod: period,
+      sortOrder: order, archived: false,
+    });
+    setName(''); setAmount(undefined); setAdding(false);
+  };
+  if (!adding) {
+    return (
+      <Button size="small" startIcon={<AddIcon />} onClick={() => setAdding(true)} sx={{ alignSelf: 'flex-start' }}>
+        この月だけの項目を追加
+      </Button>
+    );
+  }
+  return (
+    <Stack spacing={1}>
+      <Stack direction="row" spacing={1}>
+        <TextField id={`once-name-${categoryId}`} size="small" placeholder="項目名（例: 旅行）" value={name}
+          onChange={(e) => setName(e.target.value)} sx={{ flex: 1, minWidth: 0 }} />
+        <MoneyField value={amount} onChange={setAmount} ariaLabel="この月だけの項目の金額" sx={{ width: 132, flexShrink: 0 }} />
+      </Stack>
+      <Stack direction="row" spacing={1} justifyContent="flex-end">
+        <Button size="small" onClick={() => { setAdding(false); setName(''); setAmount(undefined); }}>やめる</Button>
+        {/* 金額は欄を離れたときに確定するので、名前が入っていれば押せるようにしておく */}
+        <Button size="small" variant="contained" disabled={!name.trim()} onClick={add}>追加</Button>
+      </Stack>
+    </Stack>
+  );
+}
+
+async function removeOnceItem(id: string, name: string) {
+  if (!await confirmDialog(`この月だけの項目「${name}」を消します。よろしいですか？`)) return;
+  await db.transaction('rw', db.items, db.entries, async () => {
+    await db.entries.where('itemId').equals(id).delete();
+    await db.items.delete(id);
+  });
 }
