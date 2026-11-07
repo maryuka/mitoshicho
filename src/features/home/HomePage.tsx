@@ -30,8 +30,9 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
   const suggestPayday = mode === 'normal' && period === current && daysIntoPeriod < 5;
   const ok = s.buffer >= bufferThreshold;
 
-  const message = !ok
-    ? `下限まで あと ${yen(bufferThreshold - s.buffer)}…ピンチかも`
+  const minus = s.buffer < 0;
+  const message = minus ? `今月 ${yen(-s.buffer)} 足りない！`
+    : !ok ? `下限まで あと ${yen(bufferThreshold - s.buffer)}…ピンチかも`
     : mode === 'payday' ? '給料日だね！ 入金と請求をチェックしよう'
     : period === current ? '今月もお金はちゃんと回りそう！' : 'この月もお金は回りそう！';
 
@@ -68,10 +69,13 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
           <CardContent>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography variant="body2" color="text.secondary">今月のバッファ</Typography>
-              <Chip size="small" label={ok ? 'OK' : '不足'}
-                sx={{ fontWeight: 900, bgcolor: ok ? 'soft' : 'error.main', color: ok ? 'success.main' : '#ffffff' }} />
+              {/* OK は淡い黄、下限割れ（不足）は赤の枠、マイナスは赤で塗る */}
+              <Chip size="small" label={ok ? 'OK' : minus ? 'マイナス' : '不足'} variant={!ok && !minus ? 'outlined' : 'filled'}
+                sx={{ fontWeight: 900, ...(ok ? { bgcolor: 'soft', color: 'success.main' }
+                  : minus ? { bgcolor: 'error.main', color: '#ffffff' }
+                  : { borderColor: 'error.main', color: 'error.main', borderWidth: 1.5 }) }} />
             </Stack>
-            <Typography variant="h3" component="p" fontWeight={900} sx={{ my: 0.5 }}>{yen(s.buffer)}</Typography>
+            <Typography variant="h3" component="p" fontWeight={900} color={minus ? 'error.main' : 'text.primary'} sx={{ my: 0.5 }}>{yen(s.buffer)}</Typography>
             <Box sx={{ display: 'inline-block', bgcolor: 'soft', color: ok ? 'primary.main' : 'error.main', fontWeight: 700, fontSize: 12, borderRadius: 999, px: 1.5, py: 0.5 }}>
               {ok ? `下限 ${yen(bufferThreshold)} をクリア` : `下限 ${yen(bufferThreshold)} まで あと ${yen(bufferThreshold - s.buffer)}`}
             </Box>

@@ -1,6 +1,7 @@
 const fmt = new Intl.NumberFormat('ja-JP');
 
-export const yen = (n: number) => `¥${fmt.format(n)}`;
+// マイナスは「−¥1,000」と書く（「¥-1,000」にしない）
+export const yen = (n: number) => (n < 0 ? `−¥${fmt.format(-n)}` : `¥${fmt.format(n)}`);
 export const num = (n: number) => fmt.format(n);
 export const signedYen = (n: number) => (n > 0 ? `+${yen(n)}` : n < 0 ? `−${yen(-n)}` : yen(0));
 
