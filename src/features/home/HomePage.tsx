@@ -1,4 +1,4 @@
-import { Box, Card, Chip, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { Alert, Box, Card, Chip, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useMemo, useState, type ReactNode } from 'react';
 import { summarize, type CardTodo } from '../../domain/cashflow';
@@ -12,21 +12,22 @@ import { NormalView } from './NormalView';
 import { PaydayPanel } from './PaydayPanel';
 
 type Mode = 'normal' | 'payday';
+const MODE_KEY = 'mitoshicho:mode';
+const readMode = (): Mode => { try { return localStorage.getItem(MODE_KEY) === 'payday' ? 'payday' : 'normal'; } catch { return 'normal'; } };
+const writeMode = (m: Mode) => { try { localStorage.setItem(MODE_KEY, m); } catch { /* 保存できなくても動く */ } };
 
 export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu }: {
   data: AppData; period: string; setPeriod: (p: string) => void; current: string; onOpenBudget: (p: string) => void; menu?: ReactNode;
 }) {
   const { periodStartDay: startDay, bufferThreshold } = data.settings;
-  // 給料日モードは給料日（今月の初日）だけ。給料日に開くと給料日モードから始まり、ふだんにも切り替えられる
-  const today = new Date();
-  const payStart = periodStart(current, startDay);
-  const isPayday = period === current && today.getFullYear() === payStart.getFullYear()
-    && today.getMonth() === payStart.getMonth() && today.getDate() === payStart.getDate();
-  const [chosen, setChosen] = useState<Mode>('payday');
-  const mode: Mode = isPayday ? chosen : 'normal';
-  const setMode = (m: Mode | null) => { if (m) setChosen(m); };
+  const [mode, setModeState] = useState<Mode>(readMode);
+  const setMode = (m: Mode | null) => { if (m) { setModeState(m); writeMode(m); } };
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
   const [editing, setEditing] = useState<CardTodo | null>(null);
+
+  // 月の初日から5日間は給料日モードをすすめる
+  const daysIntoPeriod = Math.floor((Date.now() - periodStart(current, startDay).getTime()) / 86400000);
+  const suggestPayday = mode === 'normal' && period === current && daysIntoPeriod < 5;
   const ok = s.buffer >= bufferThreshold;
 
   const minus = s.buffer < 0;
@@ -53,17 +54,15 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
           <Box sx={{ mt: 1.5 }}><Bubble>{message}</Bubble></Box>
           <Box component="img" src={ok ? HIYOKO.happy : HIYOKO.worried} alt={ok ? '喜ぶひよこ' : '困っているひよこ'}
             sx={{ display: 'block', width: 150, maxWidth: '45%', mx: 'auto', mt: 1.5, mb: 1.5 }} />
-          {isPayday && (
-            <ToggleButtonGroup value={mode} exclusive onChange={(_, m) => setMode(m)} size="small"
-              sx={{ position: 'relative', zIndex: 1, '& .MuiToggleButton-root': {
-                color: 'inherit', borderColor: alpha('#ffffff', 0.7), borderWidth: 2, px: 2.5, fontWeight: 700,
-                '&:first-of-type': { borderRadius: '999px 0 0 999px' }, '&:last-of-type': { borderRadius: '0 999px 999px 0' },
-                '&.Mui-selected': { bgcolor: 'background.paper', color: 'primary.main', '&:hover': { bgcolor: 'background.paper' } },
-              } }}>
-              <ToggleButton value="normal">ふだん</ToggleButton>
-              <ToggleButton value="payday">給料日モード</ToggleButton>
-            </ToggleButtonGroup>
-          )}
+          <ToggleButtonGroup value={mode} exclusive onChange={(_, m) => setMode(m)} size="small"
+            sx={{ position: 'relative', zIndex: 1, '& .MuiToggleButton-root': {
+              color: 'inherit', borderColor: alpha('#ffffff', 0.7), borderWidth: 2, px: 2.5, fontWeight: 700,
+              '&:first-of-type': { borderRadius: '999px 0 0 999px' }, '&:last-of-type': { borderRadius: '0 999px 999px 0' },
+              '&.Mui-selected': { bgcolor: 'background.paper', color: 'primary.main', '&:hover': { bgcolor: 'background.paper' } },
+            } }}>
+            <ToggleButton value="normal">ふだん</ToggleButton>
+            <ToggleButton value="payday">給料日モード</ToggleButton>
+          </ToggleButtonGroup>
         </Box>
 
         <Card sx={{ position: 'relative', zIndex: 1, mt: -4 }}>
@@ -92,6 +91,11 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
         </Card>
       </Box>
 
+      {suggestPayday && (
+        <Alert severity="info" onClick={() => setMode('payday')} sx={{ cursor: 'pointer' }}>
+          給料日です。給料日モードで入金・請求・振り分けを確認しましょう
+        </Alert>
+      )}
 
       {mode === 'payday'
         ? <PaydayPanel data={data} period={period} current={current} />
