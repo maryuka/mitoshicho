@@ -55,10 +55,12 @@ const toneColor = (t: Theme, tone: MenuEntry['tone']) =>
 
 /** 左上の丸いメニューボタン */
 export function MenuButton({ onClick }: { onClick: () => void }) {
+  // ホームの色付きの帯（data-hero）の上では、白の半透明にする
   return (
     <IconButton aria-label="メニュー" onClick={onClick}
-      sx={(t) => ({ width: 44, height: 44, bgcolor: alpha(t.palette.primary.main, 0.1), color: 'primary.main',
-        '&:hover': { bgcolor: alpha(t.palette.primary.main, 0.18) } })}>
+      sx={(t) => ({ width: 44, height: 44, flexShrink: 0, color: 'primary.main', bgcolor: alpha(t.palette.primary.main, 0.12),
+        '&:hover': { bgcolor: alpha(t.palette.primary.main, 0.2) },
+        '[data-hero] &': { color: 'inherit', bgcolor: alpha('#ffffff', 0.22), '&:hover': { bgcolor: alpha('#ffffff', 0.3) } } })}>
       <MenuIcon />
     </IconButton>
   );
@@ -74,7 +76,7 @@ export function MenuDrawer({ open, onClose, onSelect }: {
       <Box sx={{ pt: 'calc(16px + env(safe-area-inset-top, 0px))', pb: 'calc(24px + env(safe-area-inset-bottom, 0px))',
         pl: 'max(16px, env(safe-area-inset-left, 0px))', pr: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-          <Typography variant="h6" fontWeight={700} color="primary">見通し帳</Typography>
+          <Typography variant="h6" fontWeight={700} color="primary">みとおし帳</Typography>
           <IconButton aria-label="メニューを閉じる" onClick={onClose}><CloseIcon /></IconButton>
         </Stack>
         <Stack spacing={3}>
@@ -102,6 +104,9 @@ export function MenuDrawer({ open, onClose, onSelect }: {
             </Box>
           ))}
         </Stack>
+        <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 4 }}>
+          イラスト: ぴよたそ（hiyokoyarou.com）
+        </Typography>
       </Box>
     </Drawer>
   );

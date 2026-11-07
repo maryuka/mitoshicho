@@ -1,9 +1,9 @@
 {
-  "name": "見通し帳",
-  "short_name": "見通し帳",
+  "name": "みとおし帳",
+  "short_name": "みとおし帳",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f4f6fa",
-  "theme_color": "#1e40af",
+  "background_color": "#fffaf0",
+  "theme_color": "#f7a531",
   "lang": "ja"
 }

@@ -25,7 +25,7 @@ export async function downloadBackup(): Promise<void> {
 export async function importJson(text: string): Promise<void> {
   const parsed = JSON.parse(text);
   if (parsed?.format !== FORMAT || typeof parsed.tables !== 'object') {
-    throw new Error('見通し帳のバックアップファイルではありません');
+    throw new Error('みとおし帳のバックアップファイルではありません');
   }
   const tables = { ...parsed.tables };
   if (Array.isArray(tables.entries) && Array.isArray(tables.items)) {

@@ -1,4 +1,4 @@
-# 見通し帳 (mitoshicho)
+# みとおし帳 (mitoshicho)
 
 給料日ごとに「今月お金が回るか」を確認し、月末に Zaim の集計で予算を振り返る、個人用の予算管理アプリ。
 静的ファイルとして配布でき、データはブラウザの IndexedDB にだけ保存されます。
@@ -28,3 +28,7 @@ npm run build:artifact  # 1枚の HTML（artifact/mitoshicho.html）にまとめ
 
 `main` に push すると GitHub Actions で GitHub Pages にデプロイします（リポジトリ設定の Pages で Source を「GitHub Actions」にしてください）。
 スマホではホーム画面に追加して使うことを推奨します（ブラウザによるデータ削除を避けるため）。
+
+## イラスト
+
+ひよこのイラストは [ぴよたそ](https://hiyokoyarou.com/) の素材です（著作権はぴよたそ管理人に帰属）。このアプリの中での利用のために同梱しており、画像単体の再配布・転用はできません。

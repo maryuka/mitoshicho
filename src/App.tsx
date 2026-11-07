@@ -2,7 +2,7 @@ import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import HomeIcon from '@mui/icons-material/Home';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import {
-  BottomNavigation, BottomNavigationAction, Box, Button, Card, CardContent, CircularProgress, Container,
+  BottomNavigation, BottomNavigationAction, Box, Button, Card, CardContent, Container,
   IconButton, Paper, Stack, Typography,
 } from '@mui/material';
 import { useEffect, useState, type ReactElement } from 'react';
@@ -15,6 +15,7 @@ import { ReceivablesPage } from './features/receivables/ReceivablesPage';
 import { SettingsPage, type SettingsPageId } from './features/settings/SettingsPage';
 import { ConfirmHost } from './components/ConfirmDialog';
 import { MENU_LABEL, MenuButton, MenuDrawer } from './components/MenuDrawer';
+import { HIYOKO, HiyokoLoading, HiyokoSays } from './components/Hiyoko';
 
 // 画面は #home 形式のハッシュで切り替える（静的ホスティングと埋め込みの両方で動く）
 // ヘッダーは置かず、ホーム・予算と実績は左上のメニューボタンから、立替と設定の各ページを開く
@@ -24,6 +25,18 @@ const MAIN_TABS: { id: MainRoute; label: string; icon: ReactElement }[] = [
   { id: 'budget', label: '予算と実績', icon: <TableChartIcon /> },
 ];
 const SUB_ROUTES = Object.keys(MENU_LABEL);
+
+/** メニューから開くページの先頭で、ひよこが言うひとこと */
+const TIPS: Record<string, string> = {
+  receivables: '立て替えたお金は、戻ってくる月を入れておくと見通しに入るよ！',
+  'prefs-basic': '月の区切りは給料日。バッファの下限を決めておくと、足りないときに教えるよ！',
+  'prefs-accounts': '請求確定日を入れておくと、確定したときに「やること」で知らせるよ！',
+  'prefs-categories': 'カテゴリは Zaim と同じ名前にしておくと、実績を入れやすいよ！',
+  'prefs-items': '毎月・毎年決まって出入りするお金を入れておこう！',
+  'prefs-checklist': '給料日にやることを並べておくと、給料日モードでチェックできるよ！',
+  'prefs-import': 'スプレッドシートのセルをコピーして貼り付けるだけで取り込めるよ！',
+  'prefs-backup': 'データはこの端末の中だけ。ときどきバックアップしておくと安心だよ！',
+};
 
 const routeFromHash = (): string => {
   const h = location.hash.replace(/^#\/?/, '');
@@ -46,7 +59,7 @@ export function App() {
   useEffect(() => { if (route === 'home' || route === 'budget') setLastMain(route); }, [route]);
 
   if (!data) {
-    return <Box sx={{ display: 'grid', placeItems: 'center', height: '60vh' }}><CircularProgress /></Box>;
+    return <HiyokoLoading />;
   }
 
   const current = periodOf(new Date(), data.settings.periodStartDay);
@@ -65,6 +78,7 @@ export function App() {
         {isSub ? (
           <Stack spacing={2}>
             <SubHeader title={MENU_LABEL[route]} onBack={() => go(lastMain)} />
+            {TIPS[route] && <HiyokoSays>{TIPS[route]}</HiyokoSays>}
             {route === 'receivables'
               ? <ReceivablesPage data={data} current={current} />
               : <SettingsPage page={route.replace('prefs-', '') as SettingsPageId} data={data} current={current} />}
@@ -72,6 +86,7 @@ export function App() {
         ) : isEmpty ? (
           <Stack spacing={2}>
             <Box>{menu}</Box>
+            <Box component="img" src={HIYOKO.happy} alt="" sx={{ width: 150, mx: 'auto', display: 'block' }} />
             <Card>
               <CardContent>
                 <Typography variant="h6" fontWeight={700} gutterBottom>ようこそ</Typography>

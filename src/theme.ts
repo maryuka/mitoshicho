@@ -1,15 +1,18 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 import { useEffect, useMemo, useState } from 'react';
 
-// ライトは紺〜青を軸にした落ち着いた配色。ダークは黒に近い無彩色を背景にし、青はアクセントだけに使う
+// ライトはひよこに合わせたオレンジと黄色。ダークは黒に近い無彩色を背景にし、オレンジと黄色はアクセントだけに使う
 const palette = {
-  light: { primary: '#1e40af', bg: '#f4f6fa', paper: '#ffffff', text: '#0f172a', muted: '#64748b', divider: '#e2e8f0', error: '#dc2626', success: '#15803d', warning: '#b45309', hero: '#1e3a8a' },
-  dark: { primary: '#7da4f5', bg: '#0b0b0c', paper: '#161618', text: '#ededef', muted: '#a1a1aa', divider: '#2a2a2e', error: '#f87171', success: '#4ade80', warning: '#fbbf24', hero: '#1f2024' },
+  light: { primary: '#ea7d12', bg: '#fffaf0', paper: '#ffffff', text: '#3b2a17', muted: '#8c7558', divider: '#f1e4cc', error: '#d9480f', success: '#3f9a4a', warning: '#c77700', hero: '#f7a531', heroText: '#ffffff', soft: '#fff3c4', bubble: '#ffffff' },
+  dark: { primary: '#ffad4d', bg: '#0b0b0c', paper: '#161618', text: '#ededef', muted: '#a1a1aa', divider: '#2a2a2e', error: '#ff8a5b', success: '#6bcf77', warning: '#ffd23f', hero: '#161617', heroText: '#ededef', soft: '#232325', bubble: '#232325' },
 };
 
+/** 丸ゴシック。index.html で Google Fonts から読み込む（読めないときは端末の丸ゴシック・ゴシック） */
+export const FONT = '"Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif';
+
 declare module '@mui/material/styles' {
-  interface Palette { hero: { main: string; contrastText: string } }
-  interface PaletteOptions { hero?: { main: string; contrastText: string } }
+  interface Palette { hero: { main: string; contrastText: string }; soft: string; bubble: string }
+  interface PaletteOptions { hero?: { main: string; contrastText: string }; soft?: string; bubble?: string }
 }
 
 function build(mode: 'light' | 'dark'): Theme {
@@ -24,16 +27,20 @@ function build(mode: 'light' | 'dark'): Theme {
       background: { default: p.bg, paper: p.paper },
       text: { primary: p.text, secondary: p.muted },
       divider: p.divider,
-      hero: { main: p.hero, contrastText: '#ffffff' },
+      hero: { main: p.hero, contrastText: p.heroText },
+      soft: p.soft,
+      bubble: p.bubble,
     },
-    shape: { borderRadius: 12 },
+    shape: { borderRadius: 16 },
     typography: {
-      fontFamily: 'system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif',
-      button: { textTransform: 'none', fontWeight: 600 },
+      fontFamily: FONT,
+      fontWeightMedium: 700,
+      fontWeightBold: 900,
+      button: { textTransform: 'none', fontWeight: 700 },
     },
     components: {
-      MuiCard: { defaultProps: { variant: 'outlined' } },
-      MuiButton: { defaultProps: { disableElevation: true } },
+      MuiButton: { defaultProps: { disableElevation: true }, styleOverrides: { root: { borderRadius: 999 } } },
+      MuiCard: { defaultProps: { variant: 'outlined' }, styleOverrides: { root: { borderRadius: 20, borderWidth: 1.5 } } },
       MuiTextField: { defaultProps: { size: 'small' } },
       MuiDialog: { defaultProps: { fullWidth: true, maxWidth: 'xs' } },
       MuiLinearProgress: { styleOverrides: { root: { height: 6, borderRadius: 3 }, bar: { borderRadius: 3 } } },
