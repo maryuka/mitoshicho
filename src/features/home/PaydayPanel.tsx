@@ -5,7 +5,7 @@ import {
   Accordion, AccordionDetails, AccordionSummary, Avatar, Box, Button, Card, CardContent, CardHeader, Checkbox, Chip,
   FormControlLabel, IconButton, Link, List, ListItem, ListItemText, Stack, TextField, Typography,
 } from '@mui/material';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { checklistOccurs, summarize, type CardBillRow } from '../../domain/cashflow';
 import type { AppData, ChecklistTemplate } from '../../domain/types';
 import { saveCardBill, setCategoryActual, toggleCheck } from '../../db/ops';
@@ -14,6 +14,8 @@ import { BILL_STATUS, billDatesText, billStatus } from '../../lib/cardBill';
 import { signedYen, yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
 import { CardBillDialog } from '../../components/CardBillDialog';
+import { Confetti } from '../../components/Confetti';
+import { KITSUNE } from '../../components/Kitsune';
 
 /** 給料日の作業: 収入確定 → カード請求 → 立替回収 → 振り分け → チェックリスト */
 export function PaydayPanel({ data, period, current }: { data: AppData; period: string; current: string }) {
@@ -25,8 +27,37 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
   const done = new Set(data.checklistDone.filter((c) => c.periodId === period).map((c) => c.key));
   const templates = data.checklistTemplates.filter((t) => checklistOccurs(t, period)).sort((a, b) => a.sortOrder - b.sortOrder);
 
+  // 給料日のやることが全部終わったか（収入・カード請求の入力、立替の回収、振り分けとチェックリストのチェック）
+  const tasks = [
+    ...incomes.map((c) => c.actual !== undefined),
+    ...s.cardBills.filter((b) => b.forecast > 0 || b.actual !== undefined).map((b) => b.actual !== undefined),
+    ...receivables.map((r) => !!r.receivedAt),
+    ...s.allocation.map((a) => done.has(`alloc:${a.account.id}`)),
+    ...templates.map((t) => done.has(t.id)),
+  ];
+  const allDone = tasks.length > 0 && tasks.every(Boolean);
+  // 終わっていない状態から全部終わった瞬間だけクラッカーを鳴らす（開いたときに終わっていたら鳴らさない）
+  const [fire, setFire] = useState(0);
+  const wasDone = useRef(allDone);
+  useEffect(() => {
+    if (allDone && !wasDone.current) setFire((n) => n + 1);
+    wasDone.current = allDone;
+  }, [allDone]);
+
   return (
     <>
+      <Confetti fire={fire} />
+      {allDone && (
+        <Card sx={{ bgcolor: 'soft', borderColor: 'transparent' }}>
+          <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: '16px !important' }}>
+            <Box component="img" src={KITSUNE.happy} alt="" sx={{ width: 72, flexShrink: 0 }} />
+            <Box>
+              <Typography fontWeight={900}>ぜんぶ完了！</Typography>
+              <Typography variant="body2" color="text.secondary">給料日のやることがぜんぶ終わったよ。おつかれさま！</Typography>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
       <Step no={1} title="収入を確定">
         {incomes.length === 0 && <Empty>この月の収入項目がありません</Empty>}
         <Stack spacing={1.5}>

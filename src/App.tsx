@@ -71,8 +71,8 @@ export function App() {
   const p = period ?? current;
   const isEmpty = !data.settings.startedAt && data.items.length === 0 && data.accounts.length === 0;
   const isSub = SUB_ROUTES.includes(route);
-  // データが空のあいだ（ウォークスルーと、そこから開く取り込み・復元のページ）は下のメニューを出さない
-  const noNav = isEmpty;
+  // 下のメニューを出さないのは、データが空のあいだ（ウォークスルーなど）と、左のメニューから開いたページ（「‹ 戻る」で戻る）
+  const noNav = isEmpty || isSub;
   const openBudget = (pid: string) => { setPeriod(pid); go('budget'); };
   const menu = <MenuButton onClick={() => setMenuOpen(true)} />;
 
