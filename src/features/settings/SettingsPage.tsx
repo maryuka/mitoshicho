@@ -9,7 +9,8 @@ import {
   ListSubheader, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
-import { periodYearLabel } from '../../domain/period';
+import { countBetween } from '../../domain/items';
+import { comparePeriods, periodYearLabel } from '../../domain/period';
 import type { Account, AppData, Category, Item, Recurrence } from '../../domain/types';
 import { DEFAULT_SETTINGS } from '../../domain/types';
 import { db, newId } from '../../db/db';
@@ -22,6 +23,12 @@ function recurrenceText(r: Recurrence, startDay: number) {
   if (r.type === 'monthly') return '毎月';
   if (r.type === 'yearly') return `毎年${r.month}月`;
   return `1回のみ（${periodYearLabel(r.periodId, startDay)}）`;
+}
+
+/** 終わりが決まっている項目の「あと何回」（今月を含む）。毎月・毎年だけ */
+function remainingText(i: Item, current: string) {
+  if (!i.endPeriod || i.recurrence.type === 'once' || comparePeriods(i.endPeriod, current) < 0) return '';
+  return `・あと${countBetween(i, i.endPeriod, current)}回`;
 }
 
 export type SettingsPageId = 'basic' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';
@@ -110,7 +117,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
                     <ListItem key={i.id} disablePadding sx={{ opacity: i.archived ? 0.5 : 1 }}>
                       <ListItemButton onClick={() => setItem(i)}>
                         <ListItemText primary={i.name}
-                          secondary={`${recurrenceText(i.recurrence, startDay)}${i.day ? `・${i.day}日` : ''}・${accName(i.sourceAccountId)}`} />
+                          secondary={`${recurrenceText(i.recurrence, startDay)}${i.day ? `・${i.day}日` : ''}・${accName(i.sourceAccountId)}${remainingText(i, current)}`} />
                         {i.archived && <ArchivedChip />}
                         <Typography variant="body2" fontWeight={600}>{yen(i.defaultAmount)}</Typography>
                       </ListItemButton>

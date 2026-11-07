@@ -3,11 +3,11 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ListItemIcon, ListItemText, ListSubheader, Menu, MenuItem,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, ListItemIcon, ListItemText, ListSubheader, Menu, MenuItem,
   Stack, TextField, Typography,
 } from '@mui/material';
 import { useState } from 'react';
-import { itemArchivePatch } from '../../domain/items';
+import { countBetween, endAfterCount, itemArchivePatch } from '../../domain/items';
 import { addPeriods, comparePeriods, periodYearLabel } from '../../domain/period';
 import type { Account, AppData, Category, CategoryKind, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
@@ -168,24 +168,38 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   const [once, setOnce] = useState(value?.recurrence.type === 'once' ? value.recurrence.periodId : current);
   const [startPeriod, setStartPeriod] = useState(value?.startPeriod ?? current);
   const [endPeriod, setEndPeriod] = useState(value?.endPeriod ?? '');
+  // 終わり方: ずっと続ける／終了月で決める／回数で決める（回数は終了月に直して保存する）
+  const [endMode, setEndMode] = useState<'none' | 'month' | 'count'>(value?.endPeriod ? 'month' : 'none');
+  const [countText, setCountText] = useState('');
   const options = Array.from({ length: 49 }, (_, i) => addPeriods(current, i - 24));
   const withValue = (v: string) => (v && !options.includes(v) ? [v, ...options] : options);
   const kind = data.categories.find((c) => c.id === categoryId)?.kind;
-  const valid = name.trim() !== '' && amount !== undefined && categoryId !== '';
   const accounts = data.accounts.filter((a) => (!a.archived || a.id === source) && (kind !== 'income' || a.kind === 'bank'));
+
+  const recurrence: Recurrence = recType === 'monthly' ? { type: 'monthly' }
+    : recType === 'yearly' ? { type: 'yearly', month } : { type: 'once', periodId: once };
+  const schedule = { recurrence, startPeriod };
+  const countEnd = endMode === 'count' ? endAfterCount(schedule, Number(countText)) : undefined;
+  const finalEnd = recType === 'once' || endMode === 'none' ? '' : endMode === 'count' ? countEnd ?? '' : endPeriod;
+  const valid = name.trim() !== '' && amount !== undefined && categoryId !== ''
+    && (recType === 'once' || endMode !== 'count' || countEnd !== undefined);
+  const changeEndMode = (m: typeof endMode) => {
+    // 終了月が決まっていれば、回数に切り替えたときにその回数を入れておく
+    if (m === 'count' && endPeriod) setCountText(String(countBetween(schedule, endPeriod)));
+    if (m === 'month' && countEnd) setEndPeriod(countEnd);
+    setEndMode(m);
+  };
 
   const save = async () => {
     if (!valid) return;
-    const recurrence: Recurrence = recType === 'monthly' ? { type: 'monthly' }
-      : recType === 'yearly' ? { type: 'yearly', month } : { type: 'once', periodId: once };
     await db.items.put({
       id: value?.id ?? newId(), name: name.trim(), categoryId, defaultAmount: amount!, day,
       sourceAccountId: source || undefined, recurrence,
       startPeriod: recType === 'once' ? once : startPeriod,
-      endPeriod: recType === 'once' ? once : endPeriod || undefined,
+      endPeriod: recType === 'once' ? once : finalEnd || undefined,
       sortOrder: value?.sortOrder ?? nextOrder(data.items), archived: value?.archived ?? false,
       // 終了月を自分で変えたら、アーカイブ前の終了月の記録は使わない
-      endBeforeArchive: (endPeriod || undefined) === value?.endPeriod ? value?.endBeforeArchive : undefined,
+      endBeforeArchive: (finalEnd || undefined) === value?.endPeriod ? value?.endBeforeArchive : undefined,
     });
     onClose();
   };
@@ -201,7 +215,7 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   // 終了月の選択肢は開始月から。開始月を終了月より後にしたら、終了月を空に戻す
   const changeStart = (s: string) => {
     setStartPeriod(s);
-    if (endPeriod && comparePeriods(endPeriod, s) < 0) setEndPeriod('');
+    if (endPeriod && comparePeriods(endPeriod, s) < 0) { setEndPeriod(''); if (endMode === 'month') setEndMode('none'); }
   };
   const monthSelect = (id: string, label: string, v: string, set: (s: string) => void, allowEmpty = false, from?: string) => (
     <TextField id={id} select label={label} value={v} onChange={(e) => set(e.target.value)} fullWidth>
@@ -250,7 +264,20 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
             : (
               <>
                 {monthSelect('item-start', '開始月', startPeriod, changeStart)}
-                {monthSelect('item-end', '終了月（返済の最終回など）', endPeriod, setEndPeriod, true, startPeriod)}
+                <TextField id="item-end-mode" select label="終わり" value={endMode} fullWidth
+                  onChange={(e) => changeEndMode(e.target.value as typeof endMode)}>
+                  <MenuItem value="none">ずっと続ける</MenuItem>
+                  <MenuItem value="month">終了月を決める</MenuItem>
+                  <MenuItem value="count">回数を決める（分割払いなど）</MenuItem>
+                </TextField>
+                {endMode === 'month' && monthSelect('item-end', '終了月（最終回の月）', endPeriod, setEndPeriod, false, startPeriod)}
+                {endMode === 'count' && (
+                  <TextField id="item-count" label="回数" value={countText} fullWidth
+                    onChange={(e) => setCountText(e.target.value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/\D/g, ''))}
+                    slotProps={{ htmlInput: { inputMode: 'numeric' }, input: { endAdornment: <InputAdornment position="end">回</InputAdornment> } }}
+                    error={countText !== '' && !countEnd}
+                    helperText={countEnd ? `最終回は ${periodYearLabel(countEnd, startDay)}` : '開始月から数えて何回か'} />
+                )}
               </>
             )}
         </Stack>

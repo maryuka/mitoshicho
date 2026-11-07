@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { itemOccurs } from './cashflow';
-import { itemArchivePatch } from './items';
+import { countBetween, endAfterCount, itemArchivePatch } from './items';
 import type { Item } from './types';
 
 const base: Item = {
@@ -27,5 +27,22 @@ describe('itemArchivePatch', () => {
     const a = itemArchivePatch({ ...base, endPeriod: '2026-05' }, true, '2026-10');
     expect(a).toEqual({ archived: true, endBeforeArchive: undefined });
     expect(itemArchivePatch({ ...base, endPeriod: '2026-05', ...a }, false, '2026-10')).toEqual({ archived: false });
+  });
+});
+
+describe('回数で終わる', () => {
+  it('毎月 12 回なら 11 か月後が最終回', () => {
+    expect(endAfterCount(base, 12)).toBe('2026-12');
+    expect(countBetween(base, '2026-12')).toBe(12);
+    expect(countBetween(base, '2026-12', '2026-10')).toBe(3);
+  });
+  it('毎年は指定の月だけ数える', () => {
+    const y = { ...base, recurrence: { type: 'yearly' as const, month: 3 } };
+    expect(endAfterCount(y, 2)).toBe('2027-03');
+    expect(countBetween(y, '2027-03')).toBe(2);
+  });
+  it('0 回や小数は決められない', () => {
+    expect(endAfterCount(base, 0)).toBeUndefined();
+    expect(endAfterCount(base, 1.5)).toBeUndefined();
   });
 });
