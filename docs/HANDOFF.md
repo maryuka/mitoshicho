@@ -8,7 +8,7 @@
 |---|---|
 | アプリ | 見通し帳。給料日（15日）区切りの「月」で予算を立て、給料日に入金・カード請求・振り分けを確認し、月末に Zaim の集計で振り返る個人用アプリ |
 | 構成 | Vite + React 19 + TypeScript + MUI v7 + Dexie（IndexedDB）。静的配布、データは端末内のみ |
-| ブランチ | `main` と `app` が同じ内容。作業は `app` で行い、`main` に反映（fast-forward）してきた |
+| ブランチ | `main` のみ（`app` は廃止）。作業はセッションごとのブランチで行い、OK をもらってから `main` に fast-forward で反映する（手順は `.claude/skills/change-flow`） |
 | 公開 | リポジトリは public。GitHub Pages（Source: GitHub Actions）で `main` への push ごとにデプロイ。URL: https://maryuka.github.io/mitoshicho/ |
 | デプロイ | 2026-11-04 に初回デプロイ成功（run 4）。以降も main への push ごとに自動デプロイ。結果は Actions で確認する（このコンテナからは github.io に接続できない） |
 | 試用ページ | claude.ai の Artifact（ユーザーの非公開ページ）にも1ファイル版を置いている。`npm run build:artifact` で `artifact/mitoshicho.html` を作って再公開してきた |
@@ -52,7 +52,7 @@
 - **個人情報をリポジトリに入れない**（public）。元のスプレッドシートの名前（借入先・カード名・収入元）や実際の金額は、コード・コメント・テスト・サンプルデータ・コミットメッセージに書かない。サンプルデータとテストは架空の値にしてある。過去に一度、履歴の書き換えと古いブランチの削除で除去している
 - 元のスプレッドシートは Google ドライブにある（Drive コネクタで読める）。URL はユーザーに聞くこと。動作確認で使う場合は scratchpad に置き、リポジトリには入れない
 - ユーザーとのやりとりは日本語。説明は短めに、決めてほしいことは質問として示す
-- コミット・push は依頼の範囲で。`main` への反映は `git push origin app:main`
+- コミット・push は依頼の範囲で。`main` への反映は `git push origin HEAD:main`
 - このコンテナのネットワーク制限: github.io、api.zaim.net、dev.zaim.net には接続できない。リモートブランチの削除はプロキシに拒否される（必要ならユーザーに GitHub の画面で消してもらう）
 - npm で `vitest@4` を入れると依存解決が失敗したため `vitest@3` を使っている
 

@@ -1,6 +1,6 @@
 ---
 name: change-flow
-description: みとおし帳の画面・デザイン・機能を変えるときの進め方。POC や試用版を Artifact で見せ、ユーザーの OK をもらってから main に反映する。「〜にしたい」「〜を変えて」「デザインを変えたい」など、アプリに変更を入れる依頼のときに使う。
+description: みとおし帳の画面・デザイン・機能を変えるときの進め方。実装してスクリーンショットと試用版（Artifact）で見せ、ユーザーの OK をもらってから main に反映する。「〜にしたい」「〜を変えて」「デザインを変えたい」など、アプリに変更を入れる依頼のときに使う。
 ---
 
 # みとおし帳の変更の進め方
@@ -9,33 +9,31 @@ description: みとおし帳の画面・デザイン・機能を変えるとき�
 
 ## 0. はじめに
 
-- `docs/HANDOFF.md` を読む（仕様・配色・作業上の注意・コードの地図）
 - `npm ci` がまだなら入れる
 - 作業はセッションで指定されたブランチで行う
 
-## 1. 見た目が大きく変わるときは、まず POC
+## 1. 実装
 
-デザインの変更・新しい画面など、言葉だけでは伝わりにくいものは**アプリを変える前に**静的なモックを作って Artifact で見せる。
-
-- scratchpad に HTML を書き、Artifact で公開する（リポジトリには入れない）
-- 中身はいまのアプリの画面と同じ項目にし、金額・名前はサンプル（架空）
-- ライト／ダークの両方を見せる（切り替えボタンを付ける）
-- 画像はページに埋め込む（data URI）
-- 決めてほしいことは、返事の最後に番号付きの質問で示す
-
-小さな修正（文言・ボタン1つ・バグ修正）なら POC は省いて 2 へ進む。
-
-## 2. 実装
+モックは作らない。アプリを直接変えて、スクリーンショットで見せる。
 
 - `src/theme.ts` のトークンを使い、色を直書きしない（ダークは黒に近い無彩色の背景。茶色っぽくしない）
-- 個人情報をコード・コメント・テスト・コミットに入れない（リポジトリは public）
+- 個人情報をコード・コメント・テスト・コミットに入れない（リポジトリは public）。サンプルデータ・テストは架空の値
 - `npm run typecheck`、`npm test`、`npm run build` を通す
-- 画面を確認する: `npm run build && npx vite preview --port 4173` を裏で動かし、
-  `node .claude/skills/change-flow/screens.cjs <出力先> [ハッシュ...]` でライト／ダークのスクリーンショットを撮る。
-  見て直すのは1回まで。撮った画像は SendUserFile で見せる
 - コミットして作業ブランチに push（main にはまだ入れない）
 
-## 3. 試用版（Artifact）を更新して見せる
+## 2. スクリーンショットを撮って送る
+
+```sh
+npm run build && npx vite preview --port 4173   # 裏で動かす
+node .claude/skills/change-flow/screens.cjs <scratchpad の出力先> [ハッシュ...]   # 例: home budget prefs-accounts
+```
+
+- ライト／ダークの両方を撮る。ウォークスルーの1枚目を撮ってからサンプルデータを入れ、指定した画面を撮る
+- ダイアログなど操作が要る画面は、同じ要領で Playwright を書いて撮る
+- 自分で見て直すのは1回まで。必要な画像を1枚にまとめて SendUserFile で送る
+- 決めてほしいことは、返事の最後に番号付きの質問で示す
+
+## 3. 試用版（Artifact）を更新する
 
 ```sh
 npm run build:artifact
@@ -46,7 +44,7 @@ cp artifact/mitoshicho.html <scratchpad>/mitoshicho-walkthrough.html
   別の会話からは Artifact の `read` で読んでから、`url` を指定して同じ URL に公開し直す
 - Artifact はブラウザごとにデータが別。最初はデータが空なのでウォークスルーから始まる。
   ダウンロード（バックアップ保存）は Artifact では動かない旨の警告が出るが、いつものこと
-- 返事には、何を変えたか・どこで確認できるか・確認したこと（テスト件数など）を短く書く
+- 返事には、何を変えたか・確認したこと（テスト件数など）・試用版の URL を短く書く
 
 ## 4. OK をもらったら main へ
 
@@ -55,12 +53,12 @@ cp artifact/mitoshicho.html <scratchpad>/mitoshicho-walkthrough.html
 ```sh
 git fetch origin main
 git merge-base --is-ancestor origin/main HEAD   # fast-forward できることを確認
-git push origin HEAD:main HEAD:app HEAD:<作業ブランチ>
+git push origin HEAD:main HEAD:<作業ブランチ>
 ```
 
 - main への push で GitHub Pages に自動デプロイされる（https://maryuka.github.io/mitoshicho/）。
   このコンテナからは github.io に届かないので、結果は Actions で見てもらうよう伝える
-- 決まった仕様は `docs/HANDOFF.md` の「決まっている仕様」に追記し、同じ push に含める
+- リモートブランチは消せない（削除はプロキシで切られる）。不要なブランチは GitHub の画面で消してもらう
 
 ## 返事の書き方
 
