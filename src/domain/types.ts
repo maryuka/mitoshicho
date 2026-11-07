@@ -54,6 +54,8 @@ export interface Item {
   endPeriod?: string;
   sortOrder: number;
   archived: boolean;
+  /** アーカイブで終了月を今月にした場合の、元の終了月（なしなら null）。使用中に戻すときに使う */
+  endBeforeArchive?: string | null;
 }
 
 /** 期 × 項目 の上書き値。テンプレートどおりなら存在しない */

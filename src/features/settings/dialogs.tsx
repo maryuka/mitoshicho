@@ -3,10 +3,11 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ListItemIcon, ListSubheader, Menu, MenuItem,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ListItemIcon, ListItemText, ListSubheader, Menu, MenuItem,
   Stack, TextField, Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import { itemArchivePatch } from '../../domain/items';
 import { addPeriods, periodYearLabel } from '../../domain/period';
 import type { Account, AppData, Category, CategoryKind, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
@@ -18,8 +19,10 @@ export const KIND_LABEL: Record<CategoryKind, string> = { income: '収入', expe
 const nextOrder = (xs: { sortOrder: number }[]) => (xs.length ? Math.max(...xs.map((x) => x.sortOrder)) + 1 : 0);
 
 /** ダイアログのタイトル。編集のときは右上の「⋮」からアーカイブ・削除を選ぶ */
-function Title({ text, archived, onArchive, onDelete }: {
+function Title({ text, archived, onArchive, onDelete, archiveHint, unarchiveHint, deleteHint }: {
   text: string; archived?: boolean; onArchive?: (archived: boolean) => void; onDelete?: () => void;
+  /** メニューの各操作の下に出す説明 */
+  archiveHint?: string; unarchiveHint?: string; deleteHint?: string;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const hasMenu = !!(onArchive || onDelete);
@@ -31,18 +34,18 @@ function Title({ text, archived, onArchive, onDelete }: {
           <IconButton aria-label="その他の操作" onClick={(e) => setAnchor(e.currentTarget)} sx={{ color: 'text.secondary' }}>
             <MoreVertIcon />
           </IconButton>
-          <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}
+          <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)} slotProps={{ paper: { sx: { maxWidth: 300 } } }}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
             {onArchive && (
-              <MenuItem onClick={() => { setAnchor(null); onArchive(!archived); }}>
-                <ListItemIcon>{archived ? <UnarchiveOutlinedIcon fontSize="small" /> : <ArchiveOutlinedIcon fontSize="small" />}</ListItemIcon>
-                {archived ? '使用中に戻す' : 'アーカイブ'}
+              <MenuItem onClick={() => { setAnchor(null); onArchive(!archived); }} sx={{ alignItems: 'flex-start', whiteSpace: 'normal' }}>
+                <ListItemIcon sx={{ mt: 0.75 }}>{archived ? <UnarchiveOutlinedIcon fontSize="small" /> : <ArchiveOutlinedIcon fontSize="small" />}</ListItemIcon>
+                <ListItemText primary={archived ? '使用中に戻す' : 'アーカイブ'} secondary={archived ? unarchiveHint : archiveHint} />
               </MenuItem>
             )}
             {onDelete && (
-              <MenuItem onClick={() => { setAnchor(null); onDelete(); }} sx={{ color: 'error.main' }}>
-                <ListItemIcon sx={{ color: 'inherit' }}><DeleteOutlineIcon fontSize="small" /></ListItemIcon>
-                削除
+              <MenuItem onClick={() => { setAnchor(null); onDelete(); }} sx={{ color: 'error.main', alignItems: 'flex-start', whiteSpace: 'normal' }}>
+                <ListItemIcon sx={{ color: 'inherit', mt: 0.75 }}><DeleteOutlineIcon fontSize="small" /></ListItemIcon>
+                <ListItemText primary="削除" secondary={deleteHint} />
               </MenuItem>
             )}
           </Menu>
@@ -81,6 +84,7 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
   return (
     <Dialog open onClose={onClose}>
       <Title text={value ? '口座・カードを編集' : '口座・カードを追加'} archived={value?.archived}
+        archiveHint="一覧と選択肢から隠す。登録済みの定期項目や過去の記録はそのまま"
         onArchive={value && (async (a) => { await db.accounts.update(value.id, { archived: a }); onClose(); })} />
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
@@ -136,6 +140,7 @@ export function CategoryDialog({ value, data, onClose }: { value?: Category; dat
   return (
     <Dialog open onClose={onClose}>
       <Title text={value ? 'カテゴリを編集' : 'カテゴリを追加'} archived={value?.archived}
+        archiveHint="一覧と選択肢から隠す。中の定期項目や過去の実績はそのまま"
         onArchive={value && (async (a) => { await db.categories.update(value.id, { archived: a }); onClose(); })} />
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
@@ -152,7 +157,7 @@ export function CategoryDialog({ value, data, onClose }: { value?: Category; dat
 
 export function ItemDialog({ value, data, current, onClose }: { value?: Item; data: AppData; current: string; onClose: () => void }) {
   const startDay = data.settings.periodStartDay;
-  const cats = [...data.categories].sort((a, b) => a.sortOrder - b.sortOrder);
+  const cats = data.categories.filter((c) => !c.archived || c.id === value?.categoryId).sort((a, b) => a.sortOrder - b.sortOrder);
   const [name, setName] = useState(value?.name ?? '');
   const [categoryId, setCategoryId] = useState(value?.categoryId ?? cats[0]?.id ?? '');
   const [amount, setAmount] = useState<number | undefined>(value?.defaultAmount);
@@ -179,6 +184,8 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
       startPeriod: recType === 'once' ? once : startPeriod,
       endPeriod: recType === 'once' ? once : endPeriod || undefined,
       sortOrder: value?.sortOrder ?? nextOrder(data.items), archived: value?.archived ?? false,
+      // 終了月を自分で変えたら、アーカイブ前の終了月の記録は使わない
+      endBeforeArchive: (endPeriod || undefined) === value?.endPeriod ? value?.endBeforeArchive : undefined,
     });
     onClose();
   };
@@ -201,7 +208,10 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   return (
     <Dialog open onClose={onClose}>
       <Title text={value ? '定期項目を編集' : '定期項目を追加'} archived={value?.archived}
-        onArchive={value && (async (a) => { await db.items.update(value.id, { archived: a }); onClose(); })}
+        archiveHint="今月までで止める。来月から予算に入らず、過去の月はそのまま残る"
+        unarchiveHint="アーカイブ前の終了月に戻して、また予算に入れる"
+        deleteHint="過去の月も含めて、すべての予算から消す。元に戻せない"
+        onArchive={value && (async (a) => { await db.items.update(value.id, itemArchivePatch(value, a, current)); onClose(); })}
         onDelete={value && remove} />
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
