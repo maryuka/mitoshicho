@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import { useState } from 'react';
 import { itemArchivePatch } from '../../domain/items';
-import { addPeriods, periodYearLabel } from '../../domain/period';
+import { addPeriods, comparePeriods, periodYearLabel } from '../../domain/period';
 import type { Account, AppData, Category, CategoryKind, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { MoneyField } from '../../components/MoneyField';
@@ -198,10 +198,16 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
     });
     onClose();
   };
-  const monthSelect = (id: string, label: string, v: string, set: (s: string) => void, allowEmpty = false) => (
+  // 終了月の選択肢は開始月から。開始月を終了月より後にしたら、終了月を空に戻す
+  const changeStart = (s: string) => {
+    setStartPeriod(s);
+    if (endPeriod && comparePeriods(endPeriod, s) < 0) setEndPeriod('');
+  };
+  const monthSelect = (id: string, label: string, v: string, set: (s: string) => void, allowEmpty = false, from?: string) => (
     <TextField id={id} select label={label} value={v} onChange={(e) => set(e.target.value)} fullWidth>
       {allowEmpty && <MenuItem value="">（なし）</MenuItem>}
-      {withValue(v).map((p) => <MenuItem key={p} value={p}>{periodYearLabel(p, startDay)}</MenuItem>)}
+      {withValue(v).filter((p) => !from || comparePeriods(p, from) >= 0)
+        .map((p) => <MenuItem key={p} value={p}>{periodYearLabel(p, startDay)}</MenuItem>)}
     </TextField>
   );
 
@@ -243,8 +249,8 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
             ? monthSelect('item-once', '月', once, setOnce)
             : (
               <>
-                {monthSelect('item-start', '開始月', startPeriod, setStartPeriod)}
-                {monthSelect('item-end', '終了月（返済の最終回など）', endPeriod, setEndPeriod, true)}
+                {monthSelect('item-start', '開始月', startPeriod, changeStart)}
+                {monthSelect('item-end', '終了月（返済の最終回など）', endPeriod, setEndPeriod, true, startPeriod)}
               </>
             )}
         </Stack>
