@@ -7,7 +7,7 @@ import {
   ListSubheader, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
-import { periodLabel } from '../../domain/period';
+import { periodYearLabel } from '../../domain/period';
 import type { Account, AppData, Category, Item, Recurrence } from '../../domain/types';
 import { DEFAULT_SETTINGS } from '../../domain/types';
 import { db, newId } from '../../db/db';
@@ -19,7 +19,7 @@ import { DataSection } from './DataSection';
 function recurrenceText(r: Recurrence, startDay: number) {
   if (r.type === 'monthly') return '毎月';
   if (r.type === 'yearly') return `毎年${r.month}月`;
-  return `1回のみ（${periodLabel(r.periodId, startDay)}）`;
+  return `1回のみ（${periodYearLabel(r.periodId, startDay)}）`;
 }
 
 export type SettingsPageId = 'basic' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';

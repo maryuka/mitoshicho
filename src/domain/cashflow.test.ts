@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cardTodos, summarize, itemOccurs } from './cashflow';
-import { addPeriods, dateInPeriod, lastDayBefore, periodLabel, periodOf } from './period';
+import { addPeriods, dateInPeriod, lastDayBefore, periodLabel, periodOf, periodYearLabel } from './period';
 import { DEFAULT_SETTINGS, type AppData, type Item } from './types';
 
 function item(p: Partial<Item> & Pick<Item, 'id' | 'categoryId' | 'defaultAmount'>): Item {
@@ -190,5 +190,12 @@ describe('カテゴリの実績', () => {
     const d = baseData();
     d.categoryActuals.push(actual('2026-03', 'inc', 280000));
     expect(summarize(d, '2026-03').incomeTotal).toBe(280000);
+  });
+});
+describe('periodYearLabel', () => {
+  it('年を入れて表示する', () => {
+    expect(periodYearLabel('2026-10', 15)).toBe('2026/10/15〜11/14');
+    expect(periodYearLabel('2026-12', 15)).toBe('2026/12/15〜2027/1/14');
+    expect(periodYearLabel('2026-10', 1)).toBe('2026年10月');
   });
 });

@@ -2,7 +2,7 @@ import {
   Button, Dialog, DialogActions, DialogContent, DialogTitle, ListSubheader, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useState } from 'react';
-import { addPeriods, periodLabel } from '../../domain/period';
+import { addPeriods, periodYearLabel } from '../../domain/period';
 import type { Account, AppData, Category, CategoryKind, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { MoneyField } from '../../components/MoneyField';
@@ -159,7 +159,7 @@ export function ItemDialog({ value, data, current, onClose }: { value?: Item; da
   const monthSelect = (id: string, label: string, v: string, set: (s: string) => void, allowEmpty = false) => (
     <TextField id={id} select label={label} value={v} onChange={(e) => set(e.target.value)} fullWidth>
       {allowEmpty && <MenuItem value="">（なし）</MenuItem>}
-      {withValue(v).map((p) => <MenuItem key={p} value={p}>{periodLabel(p, startDay)}</MenuItem>)}
+      {withValue(v).map((p) => <MenuItem key={p} value={p}>{periodYearLabel(p, startDay)}</MenuItem>)}
     </TextField>
   );
 

@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { useMemo, useRef, useState } from 'react';
 import { parseBudgetSheet, parseTable, splitDefault, type SheetImport } from '../../domain/importSheet';
-import { periodLabel } from '../../domain/period';
+import { periodYearLabel } from '../../domain/period';
 import { applySheetImport, type ImportResult } from '../../db/importSheet';
 import { yen } from '../../lib/money';
 import { KIND_LABEL } from './dialogs';
@@ -85,7 +85,7 @@ export function ImportSheetDialog({ current, hasData, onClose }: { current: stri
                 <Box>
                   <Typography variant="subtitle2" gutterBottom>読み取った内容</Typography>
                   <Typography variant="body2">
-                    {periodLabel(plan.periods[0], startDay)} 〜 {periodLabel(plan.periods[plan.periods.length - 1], startDay)}（{plan.periods.length} か月）
+                    {periodYearLabel(plan.periods[0], startDay)} 〜 {periodYearLabel(plan.periods[plan.periods.length - 1], startDay)}（{plan.periods.length} か月）
                     {plan.startDay && `・月の開始日 ${plan.startDay}日`}
                   </Typography>
                   <List dense disablePadding sx={{ maxHeight: 240, overflow: 'auto', mt: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}>

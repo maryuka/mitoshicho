@@ -4,7 +4,7 @@ import {
   ListItemButton, ListItemIcon, ListItemText, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useState } from 'react';
-import { addPeriods, periodLabel, periodShortLabel } from '../../domain/period';
+import { addPeriods, periodYearLabel, periodShortLabel } from '../../domain/period';
 import type { AppData, Receivable } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { yen } from '../../lib/money';
@@ -90,7 +90,7 @@ function ReceivableDialog({ value, defaultPeriod, periodOptions, startDay, onClo
           </TextField>
           <MoneyField id="rcv-amount" label="金額" value={amount} onChange={setAmount} fullWidth />
           <TextField id="rcv-period" select label="回収予定の月" value={period} onChange={(e) => setPeriod(e.target.value)} fullWidth>
-            {options.map((p) => <MenuItem key={p} value={p}>{periodLabel(p, startDay)}</MenuItem>)}
+            {options.map((p) => <MenuItem key={p} value={p}>{periodYearLabel(p, startDay)}</MenuItem>)}
           </TextField>
         </Stack>
       </DialogContent>

@@ -56,6 +56,18 @@ export function periodLabel(id: string, startDay: number): string {
   return `${md(periodStart(id, startDay))}〜${md(periodEnd(id, startDay))}`;
 }
 
+/** 年まで入れた表記。選択肢など、いつのことか分からなくなる場所で使う（例: 2026/10/15〜11/14、2026/12/15〜2027/1/14） */
+export function periodYearLabel(id: string, startDay: number): string {
+  if (startDay === 1) {
+    const { year, month } = parsePeriod(id);
+    return `${year}年${month}月`;
+  }
+  const s = periodStart(id, startDay);
+  const e = periodEnd(id, startDay);
+  const end = e.getFullYear() === s.getFullYear() ? md(e) : `${e.getFullYear()}/${md(e)}`;
+  return `${s.getFullYear()}/${md(s)}〜${end}`;
+}
+
 export function periodShortLabel(id: string, startDay: number): string {
   if (startDay === 1) return `${parsePeriod(id).month}月`;
   return `${md(periodStart(id, startDay))}-${md(periodEnd(id, startDay))}`;
