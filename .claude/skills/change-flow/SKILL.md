@@ -48,15 +48,23 @@ cp artifact/mitoshicho.html <scratchpad>/mitoshicho-walkthrough.html
 
 ## 4. OK をもらったら main へ
 
+main へは直接 push できない（リポジトリのルールで拒否される）。PR を作って squash でマージする。
 ユーザーが「おけ」「main へ」などと言ったら:
 
 ```sh
 git fetch origin main
-git merge-base --is-ancestor origin/main HEAD   # fast-forward できることを確認
-git push origin HEAD:main HEAD:<作業ブランチ>
+git merge origin/main      # main に別の変更が入っていたら取り込む。衝突は解いて、typecheck・test・build を通し直す
+git push origin HEAD       # 作業ブランチへ
 ```
 
-- main への push で GitHub Pages に自動デプロイされる（https://maryuka.github.io/mitoshicho/）。
+- GitHub の MCP ツールで、作業ブランチ → main の PR を作る（`create_pull_request`）。
+  本文には変えたことと確認したこと（テスト件数など）を書く
+- `merge_pull_request` で `merge_method: "squash"` を指定してマージする（マージコミットは許可されていない）。
+  `expectedHeadSha` に push したコミットを渡す
+- マージ後、`git fetch origin main` して `git diff HEAD origin/main` が空なことを確かめる
+- squash なので、作業ブランチの履歴は main と分かれたままになる。強制 push は許可されていないので、
+  次の変更は作業ブランチのまま続け、PR の前に上の `git merge origin/main` で main を取り込む
+- main への反映で GitHub Pages に自動デプロイされる（https://maryuka.github.io/mitoshicho/）。
   このコンテナからは github.io に届かないので、結果は Actions で見てもらうよう伝える
 - リモートブランチは消せない（クラウドのセッションのプロキシが `403 branch deletion is not allowed` で拒否する。設定では変えられない）。不要なブランチは GitHub の画面で消してもらう
 
