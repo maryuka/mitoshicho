@@ -8,7 +8,7 @@ import { clearAll } from './backup';
 export async function loadSampleData(): Promise<void> {
   // ウォークスルーで選んだ給料日は残す
   const prev = await db.settings.get('app');
-  const settings = { ...DEFAULT_SETTINGS, periodStartDay: prev?.periodStartDay ?? DEFAULT_SETTINGS.periodStartDay, holidayShift: prev?.holidayShift };
+  const settings = { ...DEFAULT_SETTINGS, periodStartDay: prev?.periodStartDay ?? DEFAULT_SETTINGS.periodStartDay, holidayShift: prev?.holidayShift, startedAt: prev?.startedAt ?? new Date().toISOString() };
   await clearAll();
   const now = periodOf(new Date(), periodRule(settings));
   const start = addPeriods(now, -3);

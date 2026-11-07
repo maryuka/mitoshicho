@@ -9,6 +9,8 @@ export interface Settings {
   /** 給料日が土日・祝日のとき、期の始まりをどうずらすか（なければ before） */
   holidayShift?: HolidayShift;
   lastBackupAt?: string;
+  /** ウォークスルーで「始める」を押した日時。データが空でも、これがあればウォークスルーを出さない */
+  startedAt?: string;
 }
 
 export type AccountKind = 'bank' | 'card';

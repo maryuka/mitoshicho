@@ -1,7 +1,8 @@
 import { Box, Button, Stack, Typography } from '@mui/material';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { KITSUNE } from '../../components/Kitsune';
-import type { Settings } from '../../domain/types';
+import { db } from '../../db/db';
+import { DEFAULT_SETTINGS, type Settings } from '../../domain/types';
 import { PaydayFields } from '../settings/PaydayFields';
 
 interface Step { image: string; title: string; body: ReactNode; setup?: boolean }
@@ -24,29 +25,22 @@ const STEPS: Step[] = [
   },
   {
     image: KITSUNE.money, title: 'さっそく始めよう',
-    body: <>データはこの端末の中だけに保存されるよ。<br />どこから始める？</>,
+    body: <>データはこの端末の中だけに保存されるよ。<br />スプレッドシートの取り込みやサンプルデータ、<br />バックアップからの復元は<br />メニューの「データ」からできるよ。</>,
   },
 ];
 
-// 取り込み画面などから戻ってきたときは、最後のページ（始め方の選択）から出す
-let reachedLast = false;
-
 /** はじめて開いたとき（データが空のとき）のウォークスルー。横にスワイプしてページを送る */
-export function Walkthrough({ settings, onImport, onSample, onRestore }: {
-  settings: Settings; onImport: () => void; onSample: () => void; onRestore: () => void;
-}) {
+export function Walkthrough({ settings }: { settings: Settings }) {
   const track = useRef<HTMLDivElement>(null);
   const last = STEPS.length - 1;
-  const [index, setIndex] = useState(reachedLast ? last : 0);
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
     const el = track.current;
     if (!el) return;
-    if (reachedLast) el.scrollLeft = last * el.clientWidth;
     const onScroll = () => {
       const i = Math.round(el.scrollLeft / el.clientWidth);
       setIndex(i);
-      if (i === last) reachedLast = true;
     };
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
@@ -103,11 +97,8 @@ export function Walkthrough({ settings, onImport, onSample, onRestore }: {
       {index < last ? (
         <Button variant="contained" size="large" fullWidth onClick={() => goTo(index + 1)}>次へ</Button>
       ) : (
-        <Stack spacing={1}>
-          <Button variant="contained" size="large" fullWidth onClick={onImport}>スプレッドシートから取り込む</Button>
-          <Button variant="outlined" size="large" fullWidth onClick={onSample}>サンプルデータで試す</Button>
-          <Button color="inherit" sx={{ color: 'text.secondary' }} onClick={onRestore}>バックアップから復元する</Button>
-        </Stack>
+        <Button variant="contained" size="large" fullWidth
+          onClick={() => db.settings.put({ ...DEFAULT_SETTINGS, ...settings, startedAt: new Date().toISOString() })}>始める</Button>
       )}
     </Box>
   );

@@ -8,7 +8,6 @@ import {
 } from '@mui/material';
 import { useEffect, useState, type ReactElement } from 'react';
 import { useAppData } from './db/useAppData';
-import { SampleDataDialog } from './components/SampleDataDialog';
 import { periodOf, periodRule } from './domain/period';
 import { HomePage } from './features/home/HomePage';
 import { BudgetPage } from './features/budget/BudgetPage';
@@ -56,7 +55,6 @@ export function App() {
   const [lastMain, setLastMain] = useState<MainRoute>(isMain(route) ? route : 'home');
   const [period, setPeriod] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sampleOpen, setSampleOpen] = useState(false);
 
   useEffect(() => {
     const onHash = () => { setRoute(routeFromHash()); window.scrollTo(0, 0); };
@@ -71,7 +69,7 @@ export function App() {
 
   const current = periodOf(new Date(), periodRule(data.settings));
   const p = period ?? current;
-  const isEmpty = data.items.length === 0 && data.accounts.length === 0;
+  const isEmpty = !data.settings.startedAt && data.items.length === 0 && data.accounts.length === 0;
   const isSub = SUB_ROUTES.includes(route);
   // データが空のあいだ（ウォークスルーと、そこから開く取り込み・復元のページ）は下のメニューを出さない
   const noNav = isEmpty;
@@ -93,7 +91,7 @@ export function App() {
               : <SettingsPage page={route.replace('prefs-', '') as SettingsPageId} data={data} current={current} />}
           </Stack>
         ) : isEmpty ? (
-          <Walkthrough settings={data.settings} onImport={() => go('prefs-import')} onSample={() => setSampleOpen(true)} onRestore={() => go('prefs-backup')} />
+          <Walkthrough settings={data.settings} />
         ) : route === 'budget' || route === 'plan'
           ? <BudgetPage key={route} mode={route === 'plan' ? 'budget' : 'actual'} data={data} period={p} setPeriod={setPeriod} current={current} menu={menu} />
           : <HomePage data={data} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} menu={menu} />}
@@ -115,7 +113,6 @@ export function App() {
       </Paper>}
 
       <MenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} onSelect={(r) => { setMenuOpen(false); go(r); }} />
-      <SampleDataDialog open={sampleOpen} hasData={false} onClose={() => setSampleOpen(false)} />
       <ConfirmHost />
     </Box>
   );
