@@ -43,7 +43,7 @@ const SHIFT_HELP: Record<HolidayShift, string> = {
   after: '例: 15日が土曜なら、17日（月）から次の月が始まります',
 };
 
-export type SettingsPageId = 'basic' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';
+export type SettingsPageId = 'basic' | 'appearance' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';
 
 /** メニューから開く設定の各ページ。1ページに1つの項目だけを出す */
 export function SettingsPage({ page, data, current }: { page: SettingsPageId; data: AppData; current: string }) {
@@ -82,23 +82,25 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
                 <MenuItem value="after">後の平日にずらす</MenuItem>
               </TextField>
             )}
-            <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75 }}>画面の明るさ</Typography>
-              <ToggleButtonGroup value={themePref} exclusive fullWidth size="small" aria-label="画面の明るさ"
-                onChange={(_, v) => { if (v) setThemePref(v); }}
-                sx={{ '& .MuiToggleButton-root': { fontWeight: 700 } }}>
-                <ToggleButton value="system">端末に合わせる</ToggleButton>
-                <ToggleButton value="light">ライト</ToggleButton>
-                <ToggleButton value="dark">ダーク</ToggleButton>
-              </ToggleButtonGroup>
-              <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.75 }}>
-                この端末だけの設定です（バックアップには入りません）
-              </Typography>
-            </Box>
           </Stack>
         </CardContent>
       </Section>}
 
+      {page === 'appearance' && <Section>
+        <CardContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75 }}>画面の明るさ</Typography>
+          <ToggleButtonGroup value={themePref} exclusive fullWidth size="small" aria-label="画面の明るさ"
+            onChange={(_, v) => { if (v) setThemePref(v); }}
+            sx={{ '& .MuiToggleButton-root': { fontWeight: 700 } }}>
+            <ToggleButton value="system">端末に合わせる</ToggleButton>
+            <ToggleButton value="light">ライト</ToggleButton>
+            <ToggleButton value="dark">ダーク</ToggleButton>
+          </ToggleButtonGroup>
+          <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.75 }}>
+            この端末だけの設定です（バックアップには入りません）
+          </Typography>
+        </CardContent>
+      </Section>}
       {page === 'accounts' && <Section onAdd={() => setAccount('new')}>
         <List dense>
           {accounts.length === 0 && <Empty>口座やカードを登録してください</Empty>}
