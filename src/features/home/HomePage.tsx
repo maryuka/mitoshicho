@@ -1,4 +1,5 @@
-import { Alert, Box, Card, Chip, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { Alert, Box, ButtonBase, Card, Chip, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useMemo, useState, type ReactNode } from 'react';
 import { summarize, type CardTodo } from '../../domain/cashflow';
@@ -10,6 +11,7 @@ import { CardBillDialog } from '../../components/CardBillDialog';
 import { Bubble, HIYOKO } from '../../components/Hiyoko';
 import { NormalView } from './NormalView';
 import { PaydayPanel } from './PaydayPanel';
+import { BREAKDOWN_LABEL, BreakdownDialog, type BreakdownKind } from './Breakdown';
 
 type Mode = 'normal' | 'payday';
 const MODE_KEY = 'mitoshicho:mode';
@@ -24,6 +26,11 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
   const setMode = (m: Mode | null) => { if (m) { setModeState(m); writeMode(m); } };
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
   const [editing, setEditing] = useState<CardTodo | null>(null);
+  const [breakdown, setBreakdown] = useState<BreakdownKind | null>(null);
+  const totals: Record<BreakdownKind, number> = {
+    income: s.incomeTotal, direct: s.directOutTotal - s.savingDirectTotal, card: s.cardBillTotal,
+    saving: s.savingDirectTotal, receivable: s.receivableTotal,
+  };
 
   // 月の初日から5日間は「給料日」への切り替えをすすめる
   const daysIntoPeriod = Math.floor((Date.now() - periodStart(current, startDay).getTime()) / 86400000);
@@ -75,11 +82,11 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
             <Typography variant="h3" component="p" fontWeight={900} color={minus ? 'error.main' : 'text.primary'} sx={{ my: 0.5 }}>{yen(s.buffer)}</Typography>
             {mode === 'normal' && (
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5, mt: 2, pt: 2, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
-                <Figure label="収入" value={s.incomeTotal} />
-                <Figure label="口座から出る" value={s.directOutTotal - s.savingDirectTotal} minus />
-                <Figure label="カード請求" value={s.cardBillTotal} minus />
-                {s.savingDirectTotal > 0 && <Figure label="貯金・投資" value={s.savingDirectTotal} />}
-                {s.receivableTotal > 0 && <Figure label="立替回収" value={s.receivableTotal} />}
+                <Figure kind="income" value={totals.income} onOpen={setBreakdown} />
+                <Figure kind="direct" value={totals.direct} minus onOpen={setBreakdown} />
+                <Figure kind="card" value={totals.card} minus onOpen={setBreakdown} />
+                {totals.saving > 0 && <Figure kind="saving" value={totals.saving} onOpen={setBreakdown} />}
+                {totals.receivable > 0 && <Figure kind="receivable" value={totals.receivable} onOpen={setBreakdown} />}
               </Box>
             )}
           </CardContent>
@@ -96,6 +103,9 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
         ? <PaydayPanel data={data} period={period} current={current} />
         : <NormalView data={data} current={current} summary={s} onCardTodo={setEditing} onOpenBudget={onOpenBudget} />}
 
+      {breakdown && (
+        <BreakdownDialog kind={breakdown} summary={s} data={data} total={totals[breakdown]} onClose={() => setBreakdown(null)} />
+      )}
       {editing && (
         <CardBillDialog periodId={editing.periodId} bill={editing.bill} startDay={startDay} onClose={() => setEditing(null)} />
       )}
@@ -103,11 +113,15 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
   );
 }
 
-function Figure({ label, value, minus }: { label: string; value: number; minus?: boolean }) {
+/** 内訳を開ける数字 */
+function Figure({ kind, value, minus, onOpen }: { kind: BreakdownKind; value: number; minus?: boolean; onOpen: (k: BreakdownKind) => void }) {
   return (
-    <Box>
-      <Typography variant="caption" color="text.secondary">{label}</Typography>
+    <ButtonBase onClick={() => onOpen(kind)} focusRipple aria-label={`${BREAKDOWN_LABEL[kind]}の内訳`}
+      sx={{ display: 'block', textAlign: 'left', borderRadius: 2, mx: -1, px: 1, py: 0.5 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
+        {BREAKDOWN_LABEL[kind]}<ChevronRightIcon sx={{ fontSize: 14 }} />
+      </Typography>
       <Typography variant="subtitle1" fontWeight={700} color={minus ? 'error.main' : 'text.primary'}>{yen(value)}</Typography>
-    </Box>
+    </ButtonBase>
   );
 }
