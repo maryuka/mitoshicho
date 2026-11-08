@@ -4,11 +4,13 @@ import {
   Box, Button, Card, CardContent, Chip, Divider, IconButton, Link, Stack, TextField, Typography,
 } from '@mui/material';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
-import { amountFor, summarize, type CategoryRow, type ItemRow } from '../../domain/cashflow';
+import { amountFor, summarize, type CardBillRow, type CategoryRow, type ItemRow } from '../../domain/cashflow';
 import { OnceItemDialog } from '../settings/dialogs';
 import { periodLabel, periodRule } from '../../domain/period';
 import type { AppData, CategoryKind } from '../../domain/types';
-import { patchEntry, setCategoryActual } from '../../db/ops';
+import { patchEntry, saveCardBill, setCategoryActual } from '../../db/ops';
+import { BILL_STATUS, billDatesText, billStatus } from '../../lib/cardBill';
+import { CardBillDialog } from '../../components/CardBillDialog';
 import { db, newId } from '../../db/db';
 import { signedYen, yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
@@ -57,7 +59,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
               ))}
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              項目の金額を変えると、この月だけの予算になります（空欄ならいつもの金額）。この月だけの項目も足せます。
+              項目の金額を変えると、この月だけの予算になります（空欄ならいつもの金額）。この月だけの項目も足せます。カードの請求額はいちばん下で入力します。
             </Typography>
           </CardContent>
         </Card>
@@ -114,7 +116,56 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
           </Card>
         );
       })}
+
+      {mode === 'budget' && s.cardBills.length > 0 && <CardBills bills={s.cardBills} period={period} data={data} />}
     </Stack>
+  );
+}
+
+/** カード請求: この月に引き落とされる分。確定した日に請求額を入れる（空欄のあいだは予測で計算） */
+function CardBills({ bills, period, data }: { bills: CardBillRow[]; period: string; data: AppData }) {
+  const [editing, setEditing] = useState<CardBillRow | null>(null);
+  return (
+    <Card>
+      <CardContent sx={{ pb: '8px !important' }}>
+        <Typography variant="subtitle1" fontWeight={700}>カード請求</Typography>
+        <Typography variant="caption" color="text.secondary" display="block">
+          この月に引き落とされる分。請求額が確定したら入力してください（空欄のあいだは予測で計算します）。
+        </Typography>
+        {bills.map((b, i) => {
+          const st = BILL_STATUS[billStatus(b)];
+          return (
+            <Fragment key={b.card.id}>
+              {i > 0 && <Divider />}
+              <Box sx={{ py: 1.25 }}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography noWrap>
+                      {b.card.name}
+                      <Chip label={st.label} color={st.color} size="small" variant="outlined" sx={{ ml: 0.5, height: 18, fontSize: 10 }} />
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {billDatesText(b) || '日付未設定'}・予測 {yen(b.forecast)}
+                    </Typography>
+                  </Box>
+                  <MoneyField value={b.actual} placeholder={b.forecast} sx={{ width: 132, flexShrink: 0 }} ariaLabel={`${b.card.name} の請求額`}
+                    onChange={(v) => saveCardBill(period, b.card.id, { actual: v })} />
+                  <IconButton size="small" aria-label={`${b.card.name} の日付・内訳`} onClick={() => setEditing(b)} sx={{ ml: -0.5 }}>
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+                {b.diff !== undefined && b.diff !== 0 && (
+                  <Typography variant="caption" color={b.diff > 0 ? 'error' : 'success.main'}>
+                    予測との差 {signedYen(b.diff)}{b.diff > 0 ? '（予測より多い）' : '（予測より少ない）'}
+                  </Typography>
+                )}
+              </Box>
+            </Fragment>
+          );
+        })}
+      </CardContent>
+      {editing && <CardBillDialog periodId={period} bill={editing} startDay={periodRule(data.settings)} onClose={() => setEditing(null)} />}
+    </Card>
   );
 }
 

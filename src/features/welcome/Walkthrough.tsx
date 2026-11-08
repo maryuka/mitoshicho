@@ -14,7 +14,7 @@ const STEPS: Step[] = [
       給料日ごとに「今月お金が回るか」を<br />見通すための家計アプリだよ。
       <Box component="ul" sx={{ textAlign: 'left', display: 'inline-block', m: 0, mt: 1.5, pl: 2.5 }}>
         <li>月ごとに予算を立てる</li>
-        <li>給料日に入金とカード請求をチェック</li>
+        <li>給料日に入金と振り分けをチェック</li>
         <li>月末に家計簿アプリの合計で振り返る</li>
       </Box>
     </>,

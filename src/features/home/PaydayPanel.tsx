@@ -1,4 +1,3 @@
-import { periodRule } from '../../domain/period';
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
@@ -6,31 +5,26 @@ import {
   FormControlLabel, IconButton, Link, List, ListItem, ListItemText, Stack, TextField, Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { checklistOccurs, summarize, type CardBillRow } from '../../domain/cashflow';
+import { checklistOccurs, summarize } from '../../domain/cashflow';
 import type { AppData, ChecklistTemplate } from '../../domain/types';
-import { saveCardBill, setCategoryActual, toggleCheck } from '../../db/ops';
+import { setCategoryActual, toggleCheck } from '../../db/ops';
 import { db, newId } from '../../db/db';
-import { BILL_STATUS, billDatesText, billStatus } from '../../lib/cardBill';
-import { signedYen, yen } from '../../lib/money';
+import { yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
-import { CardBillDialog } from '../../components/CardBillDialog';
 import { Confetti } from '../../components/Confetti';
 import { KITSUNE } from '../../components/Kitsune';
 
-/** 給料日の作業: 収入確定 → カード請求 → 立替回収 → 振り分け → チェックリスト */
+/** 給料日の作業: 収入確定 → 立替回収 → 振り分け → チェックリスト（カード請求は確定した日に計画で入れる） */
 export function PaydayPanel({ data, period, current }: { data: AppData; period: string; current: string }) {
-  const startDay = periodRule(data.settings);
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
-  const [editingBill, setEditingBill] = useState<CardBillRow | null>(null);
   const incomes = s.categories.filter((c) => c.kind === 'income');
   const receivables = data.receivables.filter((r) => r.expectedPeriod === period);
   const done = new Set(data.checklistDone.filter((c) => c.periodId === period).map((c) => c.key));
   const templates = data.checklistTemplates.filter((t) => checklistOccurs(t, period)).sort((a, b) => a.sortOrder - b.sortOrder);
 
-  // 給料日のやることが全部終わったか（収入・カード請求の入力、立替の回収、振り分けとチェックリストのチェック）
+  // 給料日のやることが全部終わったか（収入の入力、立替の回収、振り分けとチェックリストのチェック）
   const tasks = [
     ...incomes.map((c) => c.actual !== undefined),
-    ...s.cardBills.filter((b) => b.forecast > 0 || b.actual !== undefined).map((b) => b.actual !== undefined),
     ...receivables.map((r) => !!r.receivedAt),
     ...s.allocation.map((a) => done.has(`alloc:${a.account.id}`)),
     ...templates.map((t) => done.has(t.id)),
@@ -73,32 +67,7 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
         </Stack>
       </Step>
 
-      <Step no={2} title="カード請求額を入力">
-        {s.cardBills.length === 0 && <Empty>カードが登録されていません</Empty>}
-        <Stack spacing={2}>
-          {s.cardBills.map((b) => {
-            const st = BILL_STATUS[billStatus(b)];
-            return (
-              <Box key={b.card.id}>
-                <Row
-                  label={<>{b.card.name} <Chip label={st.label} color={st.color} size="small" variant="outlined" sx={{ ml: 0.5 }} /></>}
-                  sub={`${billDatesText(b) || '日付未設定'}・予測 ${yen(b.forecast)}`}>
-                  <MoneyField value={b.actual} placeholder={b.forecast} sx={{ flex: 1 }} ariaLabel={`${b.card.name} の請求額`}
-                    onChange={(v) => saveCardBill(period, b.card.id, { actual: v })} />
-                  <Button variant="outlined" onClick={() => setEditingBill(b)}>日付・内訳</Button>
-                </Row>
-                {b.diff !== undefined && b.diff !== 0 && (
-                  <Typography variant="caption" color={b.diff > 0 ? 'error' : 'success.main'}>
-                    予測との差 {signedYen(b.diff)}{b.diff > 0 ? '（予測より多い）' : '（予測より少ない）'}
-                  </Typography>
-                )}
-              </Box>
-            );
-          })}
-        </Stack>
-      </Step>
-
-      <Step no={3} title="立替・経費精算の回収">
+      <Step no={2} title="立替・経費精算の回収">
         {receivables.length === 0 && <Empty>この月に回収予定のものはありません</Empty>}
         {receivables.map((r) => (
           <CheckRow key={r.id} checked={!!r.receivedAt} label={r.title} amount={r.amount}
@@ -107,8 +76,13 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
         <Link href="#receivables" variant="body2" underline="hover">立替を追加・一覧</Link>
       </Step>
 
-      <Step no={4} title="振り分け（各口座へ送金）">
+      <Step no={3} title="振り分け（各口座へ送金）">
         {s.allocation.length === 0 && <Empty>口座払いの項目がありません</Empty>}
+        {s.unconfirmedCardBills > 0 && (
+          <Typography variant="caption" color="text.secondary">
+            未入力のカード請求（{s.unconfirmedCardBills}件）は予測額で計算しています。確定したら<Link href="#plan" underline="hover">計画</Link>で入力してください
+          </Typography>
+        )}
         {s.allocation.map((a) => {
           const key = `alloc:${a.account.id}`;
           return (
@@ -134,7 +108,7 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
         })}
       </Step>
 
-      <Step no={5} title="チェックリスト">
+      <Step no={4} title="チェックリスト">
         {templates.length === 0 && <Empty>やることはありません。毎月のものはメニューの「給料日のチェックリスト」で登録できます</Empty>}
         {templates.map((t) => (
           <Stack key={t.id} direction="row" alignItems="center">
@@ -152,9 +126,6 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
         <AddOnce period={period} order={data.checklistTemplates} />
       </Step>
 
-      {editingBill && (
-        <CardBillDialog periodId={period} bill={editingBill} startDay={startDay} onClose={() => setEditingBill(null)} />
-      )}
     </>
   );
 }

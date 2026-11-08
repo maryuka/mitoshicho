@@ -117,7 +117,7 @@ export async function loadSampleData(): Promise<void> {
   ];
 
   const checklistTemplates: ChecklistTemplate[] = [
-    { id: 'chk-1', label: 'カードの請求額を確認して入力', sortOrder: 0 },
+    { id: 'chk-1', label: '引落口座の残高を確認', sortOrder: 0 },
     { id: 'chk-2', label: '立替・経費精算の入金を確認', sortOrder: 1 },
     { id: 'chk-3', label: 'バックアップを保存', sortOrder: 2 },
   ];

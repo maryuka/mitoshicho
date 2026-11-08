@@ -42,7 +42,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
   // 定期項目がまだないあいだは、バッファの代わりに「はじめの準備」を出す
   const setup = data.items.length === 0;
   const message = setup ? 'まずは準備から始めよう！' : minus ? `今月 ${yen(-s.buffer)} 足りない！`
-    : mode === 'payday' ? '給料日だね！ 入金と請求をチェックしよう'
+    : mode === 'payday' ? '給料日だね！ 入金と振り分けをチェックしよう'
     : period === current ? '今月もお金はちゃんと回りそう！' : 'この月もお金は回りそう！';
 
   return (
@@ -98,7 +98,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
 
       {!setup && suggestPayday && (
         <Alert severity="info" onClick={() => setMode('payday')} sx={{ cursor: 'pointer' }}>
-          給料日です。「給料日」に切り替えて、入金・請求・振り分けを確認しましょう
+          給料日です。「給料日」に切り替えて、入金・振り分けを確認しましょう
         </Alert>
       )}
 
