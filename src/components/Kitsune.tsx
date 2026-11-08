@@ -58,7 +58,7 @@ export function KitsuneLoading() {
       </Box>
       <Typography variant="subtitle1" fontWeight={900}>読み込み中…</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
-        給料日には、入金とカード請求を<br />まとめて確認できるよ。
+        給料日には、入金と振り分けを<br />まとめて確認できるよ。
       </Typography>
     </Box>
   );
