@@ -80,7 +80,7 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
         {s.allocation.length === 0 && <Empty>口座払いの項目がありません</Empty>}
         {s.unconfirmedCardBills > 0 && (
           <Typography variant="caption" color="text.secondary">
-            未入力のカード請求（{s.unconfirmedCardBills}件）は予測額で計算しています。確定したら<Link href="#plan" underline="hover">計画</Link>で入力してください
+            未入力のカード請求（{s.unconfirmedCardBills}件）は予測額で計算しています。確定したら<Link href="#budget" underline="hover">ふりかえり</Link>で入力してください
           </Typography>
         )}
         {s.allocation.map((a) => {
