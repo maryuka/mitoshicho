@@ -130,7 +130,7 @@ function CardBills({ bills, period, data }: { bills: CardBillRow[]; period: stri
       <CardContent sx={{ pb: '8px !important' }}>
         <Typography variant="subtitle1" fontWeight={700}>カード請求</Typography>
         <Typography variant="caption" color="text.secondary" display="block">
-          この月に引き落とされる分。請求額が確定したら入力してください（空欄のあいだは予測で計算します）。
+          この月に引き落とされる分。請求額が確定したら入力してください（空欄のあいだは予測で計算します）。支出の実績には含まれません。
         </Typography>
         {bills.map((b, i) => {
           const st = BILL_STATUS[billStatus(b)];
