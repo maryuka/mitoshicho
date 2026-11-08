@@ -59,7 +59,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
               ))}
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              項目の金額を変えると、この月だけの予算になります（空欄ならいつもの金額）。この月だけの項目も足せます。カードの請求額はいちばん下で入力します。
+              項目の金額を変えると、この月だけの予算になります（空欄ならいつもの金額）。この月だけの項目も足せます。
             </Typography>
           </CardContent>
         </Card>
@@ -83,7 +83,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
             <BudgetBar value={spent} max={budget} />
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
               {enteredAll === 0
-                ? `月末に家計簿アプリでこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。`
+                ? `月末に家計簿アプリでこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。カードの請求額はいちばん下で入力します。`
                 : `${enteredAll} / ${s.categories.length} カテゴリ入力済み`}
             </Typography>
           </CardContent>
@@ -117,7 +117,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
         );
       })}
 
-      {mode === 'budget' && s.cardBills.length > 0 && <CardBills bills={s.cardBills} period={period} data={data} />}
+      {mode === 'actual' && s.cardBills.length > 0 && <CardBills bills={s.cardBills} period={period} data={data} />}
     </Stack>
   );
 }
