@@ -1,9 +1,9 @@
 const fmt = new Intl.NumberFormat('ja-JP');
 
-// マイナスは「−¥1,000」と書く（「¥-1,000」にしない）
-export const yen = (n: number) => (n < 0 ? `−¥${fmt.format(-n)}` : `¥${fmt.format(n)}`);
+// マイナスは「-¥1,000」と書く（「¥-1,000」にしない）。U+2212 の「−」は和文フォントで全角幅になるので半角の「-」を使う
+export const yen = (n: number) => (n < 0 ? `-¥${fmt.format(-n)}` : `¥${fmt.format(n)}`);
 export const num = (n: number) => fmt.format(n);
-export const signedYen = (n: number) => (n > 0 ? `+${yen(n)}` : n < 0 ? `−${yen(-n)}` : yen(0));
+export const signedYen = (n: number) => (n > 0 ? `+${yen(n)}` : n < 0 ? `-${yen(-n)}` : yen(0));
 
 /**
  * 金額入力をパースする。「12000+30000+44000」のような足し算・引き算も可。
