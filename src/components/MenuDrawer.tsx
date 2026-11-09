@@ -59,7 +59,7 @@ const toneColor = (t: Theme, tone: MenuEntry['tone']) =>
 export function MenuButton({ onClick }: { onClick: () => void }) {
   // ホームの色付きの帯（data-hero）の上では、白の半透明にする
   return (
-    <IconButton aria-label="メニュー" onClick={onClick}
+    <IconButton aria-label="メニュー" data-tour="menu" onClick={onClick}
       sx={(t) => ({ width: 44, height: 44, flexShrink: 0, color: 'primary.main', bgcolor: alpha(t.palette.primary.main, 0.12),
         '&:hover': { bgcolor: alpha(t.palette.primary.main, 0.2) },
         '[data-hero] &': { color: 'inherit', bgcolor: alpha('#ffffff', 0.22), '&:hover': { bgcolor: alpha('#ffffff', 0.3) } } })}>

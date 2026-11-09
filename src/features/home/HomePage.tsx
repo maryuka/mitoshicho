@@ -75,7 +75,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
           </ToggleButtonGroup>}
         </Box>
 
-        {setup ? <Box sx={{ position: 'relative', zIndex: 1, mt: -4 }}><SetupGuide data={data} /></Box> : <Card sx={{ position: 'relative', zIndex: 1, mt: -4 }}>
+        {setup ? <Box data-tour="setup" sx={{ position: 'relative', zIndex: 1, mt: -4 }}><SetupGuide data={data} /></Box> : <Card sx={{ position: 'relative', zIndex: 1, mt: -4 }}>
           <CardContent>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography variant="body2" color="text.secondary">今月のバッファ</Typography>

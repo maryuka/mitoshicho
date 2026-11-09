@@ -16,6 +16,7 @@ import { SettingsPage, type SettingsPageId } from './features/settings/SettingsP
 import { ConfirmHost } from './components/ConfirmDialog';
 import { MENU_LABEL, MenuButton, MenuDrawer } from './components/MenuDrawer';
 import { KitsuneLoading, KitsuneSays } from './components/Kitsune';
+import { Tour } from './features/welcome/Tour';
 import { Walkthrough } from './features/welcome/Walkthrough';
 
 // 画面は #home 形式のハッシュで切り替える（静的ホスティングと埋め込みの両方で動く）
@@ -107,11 +108,12 @@ export function App() {
             '& .MuiBottomNavigationAction-label': { mt: 0.25, fontWeight: 700 },
           }}>
           {MAIN_TABS.map((t) => (
-            <BottomNavigationAction key={t.id} value={t.id} label={t.label} icon={<span className="nav-icon">{t.icon}</span>} />
+            <BottomNavigationAction key={t.id} data-tour={`tab-${t.id}`} value={t.id} label={t.label} icon={<span className="nav-icon">{t.icon}</span>} />
           ))}
         </BottomNavigation>
       </Paper>}
 
+      {data.settings.tourPending && !isEmpty && route === 'home' && <Tour settings={data.settings} />}
       <MenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} onSelect={(r) => { setMenuOpen(false); go(r); }} />
       <ConfirmHost />
     </Box>
