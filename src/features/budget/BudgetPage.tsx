@@ -74,6 +74,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
                   {yen(spent)} <Typography component="span" color="text.secondary">/ {yen(budget)}</Typography>
                 </Typography>
               </Box>
+              {enteredAll === 0 && <Box component="img" src={KITSUNE.looking} alt="" sx={{ width: 40, flexShrink: 0 }} />}
               {entered.length > 0 && (
                 <Box textAlign="right">
                   <Typography variant="caption" color="text.secondary">予算との差</Typography>
@@ -82,18 +83,11 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
               )}
             </Stack>
             <BudgetBar value={spent} max={budget} />
-            {enteredAll === 0 ? (
-              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 1.5 }}>
-                <Box component="img" src={KITSUNE.looking} alt="" sx={{ width: 64, flexShrink: 0 }} />
-                <Typography variant="caption" color="text.secondary">
-                  月末に家計簿アプリでこの月（{periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。カードの請求額はいちばん下で入力します。
-                </Typography>
-              </Stack>
-            ) : (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                {enteredAll} / {s.categories.length} カテゴリ入力済み
-              </Typography>
-            )}
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              {enteredAll === 0
+                ? `月末に家計簿アプリでこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。カードの請求額はいちばん下で入力します。`
+                : `${enteredAll} / ${s.categories.length} カテゴリ入力済み`}
+            </Typography>
           </CardContent>
         </Card>
       )}
