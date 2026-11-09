@@ -16,6 +16,7 @@ import { signedYen, yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
 import { PeriodNav } from '../../components/PeriodNav';
 import { BudgetBar } from '../../components/BudgetBar';
+import { KITSUNE } from '../../components/Kitsune';
 
 const SECTIONS: { kind: CategoryKind; label: string }[] = [
   { kind: 'expense', label: '支出' },
@@ -81,11 +82,18 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
               )}
             </Stack>
             <BudgetBar value={spent} max={budget} />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              {enteredAll === 0
-                ? `月末に家計簿アプリでこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。カードの請求額はいちばん下で入力します。`
-                : `${enteredAll} / ${s.categories.length} カテゴリ入力済み`}
-            </Typography>
+            {enteredAll === 0 ? (
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 1.5 }}>
+                <Box component="img" src={KITSUNE.looking} alt="" sx={{ width: 64, flexShrink: 0 }} />
+                <Typography variant="caption" color="text.secondary">
+                  月末に家計簿アプリでこの月（{periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。カードの請求額はいちばん下で入力します。
+                </Typography>
+              </Stack>
+            ) : (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                {enteredAll} / {s.categories.length} カテゴリ入力済み
+              </Typography>
+            )}
           </CardContent>
         </Card>
       )}

@@ -2,12 +2,13 @@ import { Box, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 import counting from '../assets/kitsune/counting.webp';
 import happy from '../assets/kitsune/happy.webp';
+import looking from '../assets/kitsune/looking.webp';
 import money from '../assets/kitsune/money.webp';
 import reading from '../assets/kitsune/reading.webp';
 import worried from '../assets/kitsune/worried.webp';
 
 /** 狐のイラスト */
-export const KITSUNE = { happy, worried, counting, reading, money };
+export const KITSUNE = { happy, worried, counting, reading, money, looking };
 
 /** 下向きのしっぽが付いた吹き出し（ホームの上部用） */
 export function Bubble({ children }: { children: ReactNode }) {
