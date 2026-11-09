@@ -1,15 +1,30 @@
 // 試用のためのサンプルデータ（金額・名前は架空）
 import { addPeriods, parsePeriod, periodOf, periodRule } from '../domain/period';
-import type { Account, CardBill, Category, ChecklistTemplate, Entry, Item, Receivable, Recurrence, CategoryActual } from '../domain/types';
+import type { Account, AppData, CardBill, Category, ChecklistTemplate, Entry, Item, Receivable, Recurrence, CategoryActual, Settings } from '../domain/types';
 import { DEFAULT_SETTINGS } from '../domain/types';
 import { db } from './db';
 import { clearAll } from './backup';
 
 export async function loadSampleData(): Promise<void> {
   // ウォークスルーで選んだ給料日は残す
-  const prev = await db.settings.get('app');
-  const settings = { ...DEFAULT_SETTINGS, periodStartDay: prev?.periodStartDay ?? DEFAULT_SETTINGS.periodStartDay, holidayShift: prev?.holidayShift, startedAt: prev?.startedAt ?? new Date().toISOString() };
+  const d = buildSampleData(await db.settings.get('app'));
   await clearAll();
+  await db.transaction('rw', [db.settings, db.accounts, db.categories, db.items, db.entries, db.categoryActuals, db.cardBills, db.receivables, db.checklistTemplates], async () => {
+    await db.settings.put(d.settings);
+    await db.accounts.bulkAdd(d.accounts);
+    await db.categories.bulkAdd(d.categories);
+    await db.items.bulkAdd(d.items);
+    await db.entries.bulkAdd(d.entries);
+    await db.categoryActuals.bulkAdd(d.categoryActuals);
+    await db.cardBills.bulkAdd(d.cardBills);
+    await db.receivables.bulkAdd(d.receivables);
+    await db.checklistTemplates.bulkAdd(d.checklistTemplates);
+  });
+}
+
+/** サンプルデータを組み立てる（保存はしない）。給料日の設定は prev から引き継ぐ */
+export function buildSampleData(prev?: Settings): AppData {
+  const settings: Settings = { ...DEFAULT_SETTINGS, periodStartDay: prev?.periodStartDay ?? DEFAULT_SETTINGS.periodStartDay, holidayShift: prev?.holidayShift, startedAt: prev?.startedAt ?? new Date().toISOString() };
   const now = periodOf(new Date(), periodRule(settings));
   const start = addPeriods(now, -3);
 
@@ -122,15 +137,5 @@ export async function loadSampleData(): Promise<void> {
     { id: 'chk-3', label: 'バックアップを保存', sortOrder: 2 },
   ];
 
-  await db.transaction('rw', [db.settings, db.accounts, db.categories, db.items, db.entries, db.categoryActuals, db.cardBills, db.receivables, db.checklistTemplates], async () => {
-    await db.settings.put(settings);
-    await db.accounts.bulkAdd(accounts);
-    await db.categories.bulkAdd(categories);
-    await db.items.bulkAdd(items);
-    await db.entries.bulkAdd(entries);
-    await db.categoryActuals.bulkAdd(categoryActuals);
-    await db.cardBills.bulkAdd(cardBills);
-    await db.receivables.bulkAdd(receivables);
-    await db.checklistTemplates.bulkAdd(checklistTemplates);
-  });
+  return { settings, accounts, categories, items, entries, categoryActuals, cardBills, receivables, checklistTemplates, checklistDone: [] };
 }

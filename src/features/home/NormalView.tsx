@@ -46,7 +46,7 @@ export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget
   return (
     <>
       {(hasTodo || upcoming.length > 0) && (
-        <Card>
+        <Card data-tour="todo">
           <CardHeader title="やること" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} sx={{ pb: 0 }} />
           <List>
             {todos.map((t) => (

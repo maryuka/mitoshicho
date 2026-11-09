@@ -14,7 +14,7 @@ export function PeriodNav({ value, onChange, startDay, current, leading, onHero 
   return (
     <Stack direction="row" alignItems="center" spacing={1}>
       {leading}
-      <Stack data-tour="period" direction="row" alignItems="center" justifyContent="space-between" sx={{ flex: 1, minWidth: 0 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ flex: 1, minWidth: 0 }}>
       <IconButton color={ic} onClick={() => onChange(addPeriods(value, -1))} aria-label="前の月"><ChevronLeftIcon /></IconButton>
       <Stack direction="row" alignItems="center" spacing={1}>
         <Typography variant="subtitle1" fontWeight={900} noWrap>{periodLabel(value, startDay)}</Typography>

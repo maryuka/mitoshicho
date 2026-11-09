@@ -6,9 +6,11 @@ import {
   BottomNavigation, BottomNavigationAction, Box, Container,
   IconButton, Paper, Stack, Typography,
 } from '@mui/material';
-import { useEffect, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
 import { useAppData } from './db/useAppData';
-import { periodOf, periodRule } from './domain/period';
+import { addPeriods, periodOf, periodRule } from './domain/period';
+import { buildSampleData } from './db/sample';
+import { db } from './db/db';
 import { HomePage } from './features/home/HomePage';
 import { BudgetPage } from './features/budget/BudgetPage';
 import { ReceivablesPage } from './features/receivables/ReceivablesPage';
@@ -16,7 +18,7 @@ import { SettingsPage, type SettingsPageId } from './features/settings/SettingsP
 import { ConfirmHost } from './components/ConfirmDialog';
 import { MENU_LABEL, MenuButton, MenuDrawer } from './components/MenuDrawer';
 import { KitsuneLoading, KitsuneSays } from './components/Kitsune';
-import { Tour } from './features/welcome/Tour';
+import { TOUR_STEPS, Tour } from './features/welcome/Tour';
 import { Walkthrough } from './features/welcome/Walkthrough';
 
 // 画面は #home 形式のハッシュで切り替える（静的ホスティングと埋め込みの両方で動く）
@@ -52,25 +54,43 @@ const go = (r: string) => { location.hash = `#${r}`; };
 
 export function App() {
   const data = useAppData();
-  const [route, setRoute] = useState<string>(routeFromHash);
-  const [lastMain, setLastMain] = useState<MainRoute>(isMain(route) ? route : 'home');
+  const [hashRoute, setRoute] = useState<string>(routeFromHash);
+  const [lastMain, setLastMain] = useState<MainRoute>(isMain(hashRoute) ? hashRoute : 'home');
   const [period, setPeriod] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [tourIndex, setTourIndex] = useState(0);
+  const nextTour = useCallback(() => setTourIndex((i) => Math.min(i + 1, TOUR_STEPS.length - 1)), []);
+  // 画面の案内のあいだは、保存せずに組み立てたサンプルデータを見せる
+  const touring = !!data?.settings.tourPending && !!data.settings.startedAt;
+  const startDay = data?.settings.periodStartDay;
+  const holidayShift = data?.settings.holidayShift;
+  const sample = useMemo(
+    () => (touring ? buildSampleData({ id: 'app', periodStartDay: startDay ?? 15, holidayShift }) : null),
+    [touring, startDay, holidayShift],
+  );
 
   useEffect(() => {
     const onHash = () => { setRoute(routeFromHash()); window.scrollTo(0, 0); };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-  useEffect(() => { if (isMain(route)) setLastMain(route); }, [route]);
+  useEffect(() => { if (isMain(hashRoute)) setLastMain(hashRoute); }, [hashRoute]);
 
   if (!data) {
     return <KitsuneLoading />;
   }
 
   const current = periodOf(new Date(), periodRule(data.settings));
-  const p = period ?? current;
   const isEmpty = !data.settings.startedAt && data.items.length === 0 && data.accounts.length === 0;
+  const tour = sample && !isEmpty ? TOUR_STEPS[tourIndex] : null;
+  const view = tour && sample ? sample : data;
+  const route = tour ? tour.route : hashRoute;
+  const p = tour ? addPeriods(current, tour.offset ?? 0) : period ?? current;
+  const finishTour = () => {
+    const { tourPending: _done, ...rest } = data.settings;
+    void db.settings.put(rest);
+    window.scrollTo(0, 0);
+  };
   const isSub = SUB_ROUTES.includes(route);
   // 下のメニューを出さないのは、データが空のあいだ（ウォークスルーなど）と、左のメニューから開いたページ（「‹ 戻る」で戻る）
   const noNav = isEmpty || isSub;
@@ -88,14 +108,14 @@ export function App() {
             <SubHeader title={MENU_LABEL[route]} onBack={() => go(lastMain)} />
             {TIPS[route] && <KitsuneSays>{TIPS[route]}</KitsuneSays>}
             {route === 'receivables'
-              ? <ReceivablesPage data={data} current={current} />
-              : <SettingsPage page={route.replace('prefs-', '') as SettingsPageId} data={data} current={current} />}
+              ? <ReceivablesPage data={view} current={current} />
+              : <SettingsPage page={route.replace('prefs-', '') as SettingsPageId} data={view} current={current} />}
           </Stack>
         ) : isEmpty ? (
           <Walkthrough settings={data.settings} />
         ) : route === 'budget' || route === 'plan'
-          ? <BudgetPage key={route} mode={route === 'plan' ? 'budget' : 'actual'} data={data} period={p} setPeriod={setPeriod} current={current} menu={menu} />
-          : <HomePage data={data} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} menu={menu} />}
+          ? <BudgetPage key={route} mode={route === 'plan' ? 'budget' : 'actual'} data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
+          : <HomePage forceMode={tour?.mode} data={view} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} menu={menu} />}
       </Container>
 
       {!noNav && <Paper elevation={3} sx={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 10, pb: 'env(safe-area-inset-bottom, 0px)' }}>
@@ -108,12 +128,12 @@ export function App() {
             '& .MuiBottomNavigationAction-label': { mt: 0.25, fontWeight: 700 },
           }}>
           {MAIN_TABS.map((t) => (
-            <BottomNavigationAction key={t.id} data-tour={`tab-${t.id}`} value={t.id} label={t.label} icon={<span className="nav-icon">{t.icon}</span>} />
+            <BottomNavigationAction key={t.id} value={t.id} label={t.label} icon={<span className="nav-icon">{t.icon}</span>} />
           ))}
         </BottomNavigation>
       </Paper>}
 
-      {data.settings.tourPending && !isEmpty && route === 'home' && <Tour settings={data.settings} />}
+      {tour && <Tour index={tourIndex} onNext={nextTour} onFinish={finishTour} />}
       <MenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} onSelect={(r) => { setMenuOpen(false); go(r); }} />
       <ConfirmHost />
     </Box>

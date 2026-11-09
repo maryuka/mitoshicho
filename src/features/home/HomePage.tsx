@@ -14,16 +14,20 @@ import { SetupGuide } from './SetupGuide';
 import { PaydayPanel } from './PaydayPanel';
 import { BREAKDOWN_LABEL, BreakdownDialog, type BreakdownKind } from './Breakdown';
 
-type Mode = 'normal' | 'payday';
+export type HomeMode = 'normal' | 'payday';
+type Mode = HomeMode;
 const MODE_KEY = 'mitoshicho:mode';
 const readMode = (): Mode => { try { return localStorage.getItem(MODE_KEY) === 'payday' ? 'payday' : 'normal'; } catch { return 'normal'; } };
 const writeMode = (m: Mode) => { try { localStorage.setItem(MODE_KEY, m); } catch { /* 保存できなくても動く */ } };
 
-export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu }: {
+export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu, forceMode }: {
   data: AppData; period: string; setPeriod: (p: string) => void; current: string; onOpenBudget: (p: string) => void; menu?: ReactNode;
+  /** 画面の案内で、表示を「ふだん」「給料日」に固定する（保存はしない） */
+  forceMode?: Mode;
 }) {
   const startDay = periodRule(data.settings);
-  const [mode, setModeState] = useState<Mode>(readMode);
+  const [savedMode, setModeState] = useState<Mode>(readMode);
+  const mode = forceMode ?? savedMode;
   const setMode = (m: Mode | null) => { if (m) { setModeState(m); writeMode(m); } };
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
   const [editing, setEditing] = useState<CardTodo | null>(null);
@@ -75,7 +79,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu 
           </ToggleButtonGroup>}
         </Box>
 
-        {setup ? <Box data-tour="setup" sx={{ position: 'relative', zIndex: 1, mt: -4 }}><SetupGuide data={data} /></Box> : <Card sx={{ position: 'relative', zIndex: 1, mt: -4 }}>
+        {setup ? <Box sx={{ position: 'relative', zIndex: 1, mt: -4 }}><SetupGuide data={data} /></Box> : <Card data-tour="buffer" sx={{ position: 'relative', zIndex: 1, mt: -4 }}>
           <CardContent>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography variant="body2" color="text.secondary">今月のバッファ</Typography>
