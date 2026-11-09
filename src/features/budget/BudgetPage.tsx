@@ -16,7 +16,6 @@ import { signedYen, yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
 import { PeriodNav } from '../../components/PeriodNav';
 import { BudgetBar } from '../../components/BudgetBar';
-import { KITSUNE } from '../../components/Kitsune';
 
 const SECTIONS: { kind: CategoryKind; label: string }[] = [
   { kind: 'expense', label: '支出' },
@@ -74,7 +73,6 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
                   {yen(spent)} <Typography component="span" color="text.secondary">/ {yen(budget)}</Typography>
                 </Typography>
               </Box>
-              {enteredAll === 0 && <Box component="img" src={KITSUNE.looking} alt="" sx={{ width: 40, flexShrink: 0 }} />}
               {entered.length > 0 && (
                 <Box textAlign="right">
                   <Typography variant="caption" color="text.secondary">予算との差</Typography>
