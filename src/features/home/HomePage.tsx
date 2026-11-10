@@ -6,7 +6,7 @@ import { outlook, summarize, type CardTodo } from '../../domain/cashflow';
 import { driftHints, missingActuals, monthDrifts } from '../../domain/review';
 import { BigExpensesCard } from './Outlook';
 import { CycleCard, HintsCard, ReviewCard } from './Cycle';
-import { addPeriods, periodLabel, periodStart, periodRule } from '../../domain/period';
+import { addPeriods, periodEnd, periodLabel, periodStart, periodRule } from '../../domain/period';
 import type { AppData } from '../../domain/types';
 import { yen } from '../../lib/money';
 import { PeriodNav } from '../../components/PeriodNav';
@@ -66,11 +66,17 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpe
     : '先月はだいたい計画どおり！';
   const foxImage = setup ? KITSUNE.counting : mode === 'normal' && !reviewed ? KITSUNE.looking : ok ? KITSUNE.happy : KITSUNE.worried;
   const prevLabel = periodLabel(prev, startDay);
-  const steps = [
-    { title: '先月をふりかえる', sub: !reviewed ? `${prevLabel}・家計簿アプリの合計を入れる` : missing > 0 ? `${prevLabel}・未入力 ${missing} カテゴリ` : `${prevLabel}・入力済み`,
-      done: reviewed && missing === 0, onClick: () => onOpenBudget(prev) },
-    { title: '今月の計画に活かす', sub: 'ずれをふまえて、今月の予算を見直す', done: false, onClick: () => onOpenPlan(current) },
-  ];
+  // サイクルの今の段階: 先月のふりかえりがまだなら「ふりかえる」、月のはじめ1週間は「計画する」、それ以外は「使う」
+  const daysLeft = Math.max(0, Math.ceil((periodEnd(current, startDay).getTime() - Date.now()) / 86400000));
+  const cycle = !reviewed || missing > 0
+    ? { stage: 'review' as const, title: '先月をふりかえろう',
+      sub: reviewed ? `${prevLabel}・あと ${missing} カテゴリ` : `${prevLabel}の合計を入れて、計画とくらべよう`,
+      action: '先月をふりかえる', onAction: () => onOpenBudget(prev) }
+    : daysIntoPeriod < 7
+      ? { stage: 'plan' as const, title: '今月の計画を立てよう', sub: '先月のずれをふまえて、今月の予算を見直そう',
+        action: '今月の計画を開く', onAction: () => onOpenPlan(current) }
+      : { stage: 'use' as const, title: '計画どおりに使っていこう', sub: `ふりかえりまで、あと${daysLeft}日`,
+        action: '今月の計画を見る', onAction: () => onOpenPlan(current) };
 
   // 給料日: 振り分けたあとに口座に残るお金と、その内訳
   const monthCard = (
@@ -126,7 +132,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpe
         </Box>
 
         {setup ? <Box sx={{ position: 'relative', zIndex: 1, mt: -4 }}><SetupGuide data={data} /></Box>
-          : mode === 'normal' ? <CycleCard steps={steps} />
+          : mode === 'normal' ? <CycleCard {...cycle} />
           : null}
         {!setup && mode === 'payday' && monthCard}
       </Box>
