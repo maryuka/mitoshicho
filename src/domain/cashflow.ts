@@ -365,18 +365,37 @@ export function bigExpenses(data: AppData, pid: string, idx = buildIndex(data)):
   return out;
 }
 
-export interface OutlookMonth {
+export interface PlanBalance {
+  /** 収入の計画 */
+  income: number;
+  /** 使う予定（支出・返済）の計画 */
+  spend: number;
+  /** 積み立て（貯金・投資）の計画 */
+  saving: number;
+  /** 行き先が決まっていないお金。0 が理想。プラスは行き先未定、マイナスは計画が収入を超えている */
+  unassigned: number;
+}
+
+/** 予算の上での、その月の収入と行き先の釣り合い（カードの引落の時期は考えない） */
+export function planBalance(data: AppData, pid: string, idx = buildIndex(data)): PlanBalance {
+  const cats = categoryRows(data, pid, itemRows(data, pid, idx), idx);
+  const total = (f: (k: CategoryKind) => boolean) => cats.filter((c) => f(c.kind)).reduce((a, c) => a + c.planned, 0);
+  const income = total((k) => k === 'income');
+  const spend = total((k) => k === 'expense' || k === 'debt');
+  const saving = total((k) => k === 'saving');
+  return { income, spend, saving, unassigned: income - spend - saving };
+}
+
+export interface OutlookMonth extends PlanBalance {
   periodId: string;
-  /** その月の余り（収入 − 口座から出るお金 − カードの引落 + 立替の回収） */
-  buffer: number;
   big: BigExpense[];
 }
 
-/** current から months か月分の見通し */
+/** current から months か月分の計画の見通し */
 export function outlook(data: AppData, current: string, months = 12): OutlookMonth[] {
   const idx = buildIndex(data);
   return Array.from({ length: months }, (_, i) => {
     const pid = addPeriods(current, i);
-    return { periodId: pid, buffer: summarize(data, pid, current).buffer, big: bigExpenses(data, pid, idx) };
+    return { periodId: pid, ...planBalance(data, pid, idx), big: bigExpenses(data, pid, idx) };
   });
 }

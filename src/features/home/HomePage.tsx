@@ -2,8 +2,8 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Alert, Box, ButtonBase, Card, Chip, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useMemo, useState, type ReactNode } from 'react';
-import { outlook, summarize, type CardTodo } from '../../domain/cashflow';
-import { BigExpensesCard, OutlookCard } from './Outlook';
+import { bigExpenses, outlook, planBalance, summarize, type CardTodo } from '../../domain/cashflow';
+import { BigExpensesCard, OutlookCard, PlanMonthCard } from './Outlook';
 import { periodLabel, periodStart, periodRule } from '../../domain/period';
 import type { AppData } from '../../domain/types';
 import { yen } from '../../lib/money';
@@ -48,24 +48,30 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpe
   const setup = data.items.length === 0;
   // ふだんは、この先1年の見通しを主役にする
   const months = useMemo(() => (setup ? [] : outlook(data, current)), [setup, data, current]);
-  const short = months.find((m) => m.buffer < 0);
-  const ok = mode === 'payday' ? !minus : !short;
+  const over = months.find((m) => m.unassigned < 0);
+  const saving = months.reduce((a, m) => a + m.saving, 0);
+  const ok = mode === 'payday' ? !minus : !over;
   const message = setup ? 'まずは準備から始めよう！'
     : mode === 'payday' ? (minus ? `今月 ${yen(-s.buffer)} 足りない！` : '給料日だね！ 入金と振り分けをチェックしよう')
-    : short ? `${periodStart(short.periodId, startDay).getMonth() + 1}月に ${yen(-short.buffer)} 足りなくなりそう`
-    : 'この先1年、お金は回りそう！';
+    : over ? `${periodStart(over.periodId, startDay).getMonth() + 1}月の計画が ${yen(-over.unassigned)} オーバーしてるよ`
+    : `この1年で ${yen(saving)} 積み立てる計画だよ`;
+  // 選んでいる月の計画（見通しの範囲の外なら、その月だけ計算する）
+  const selected = useMemo(
+    () => months.find((m) => m.periodId === period) ?? (setup ? null : { periodId: period, ...planBalance(data, period), big: bigExpenses(data, period) }),
+    [months, period, setup, data],
+  );
 
-  // 選んでいる月の余りと内訳。給料日は帯に重ねて主役に、ふだんは見通しの下に出す
+  // 給料日: 振り分けたあとに口座に残るお金と、その内訳
   const monthCard = (
-    <Card data-tour="buffer" sx={mode === 'payday' ? { position: 'relative', zIndex: 1, mt: -4 } : undefined}>
+    <Card data-tour="buffer" sx={{ position: 'relative', zIndex: 1, mt: -4 }}>
       <CardContent>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="text.secondary">{period === current ? '今月' : periodLabel(period, startDay)}の余り</Typography>
+          <Typography variant="body2" color="text.secondary">振り分けたあとに残るお金{period === current ? '' : `（${periodLabel(period, startDay)}）`}</Typography>
           <Chip size="small" label={minus ? 'マイナス' : 'OK'}
             sx={{ fontWeight: 900, ...(!minus ? { bgcolor: 'soft', color: 'success.main' } : { bgcolor: 'error.main', color: '#ffffff' }) }} />
         </Stack>
         <Typography variant="h3" component="p" fontWeight={900} color={minus ? 'error.main' : 'text.primary'} sx={{ my: 0.5 }}>{yen(s.buffer)}</Typography>
-        {mode === 'normal' && (
+        {(
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, mt: 2, pt: 2, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
             <Figure kind="income" value={totals.income} onOpen={setBreakdown} />
             <Figure kind="direct" value={totals.direct} minus onOpen={setBreakdown} />
@@ -114,7 +120,9 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpe
         {!setup && mode === 'payday' && monthCard}
       </Box>
 
-      {!setup && mode === 'normal' && monthCard}
+      {!setup && mode === 'normal' && selected && (
+        <PlanMonthCard month={selected} label={period === current ? '今月' : periodLabel(period, startDay)} onOpenPlan={() => onOpenPlan(period)} />
+      )}
       {!setup && mode === 'normal' && <BigExpensesCard months={months} startDay={startDay} onOpen={onOpenPlan} />}
 
       {!setup && suggestPayday && (

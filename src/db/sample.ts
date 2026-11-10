@@ -88,6 +88,8 @@ export function buildSampleData(prev?: Settings): AppData {
     it('奨学金返済', 'c-debt', 13000, 'acc-pay', 27),
     it('iDeCo', 'c-save', 10000, 'acc-pay', 26),
     it('生活防衛費', 'c-save', 30000, 'acc-save', 15),
+    it('つみたて投資', 'c-save', 30000, 'acc-pay', 27),
+    it('特別費の積み立て', 'c-save', 16400, 'acc-save', 15),
     it('帰省の交通費', 'c-enjoy', 40000, 'card-a', undefined, { recurrence: { type: 'once', periodId: addPeriods(now, 3) } }),
     it('冷蔵庫の買い替え', 'c-util', 40000, 'acc-life', undefined, { recurrence: { type: 'once', periodId: addPeriods(now, 6) } }),
   ];
@@ -117,8 +119,18 @@ export function buildSampleData(prev?: Settings): AppData {
     });
   }
 
+  // 大きい出費の月は、積み立てを減らして ±0 にしておく（item-21: つみたて投資、item-22: 特別費の積み立て）
+  const entry = (n: number, itemId: string, planned: number, memo?: string): Entry =>
+    ({ id: `${addPeriods(now, n)}:${itemId}`, periodId: addPeriods(now, n), itemId, planned, memo });
   const entries: Entry[] = [
-    { id: `${addPeriods(now, 1)}:item-6`, periodId: addPeriods(now, 1), itemId: 'item-6', planned: 80000, memo: '旅行' },
+    entry(1, 'item-6', 60000, '旅行'),
+    entry(1, 'item-22', 0, '旅行の月'),
+    entry(1, 'item-21', 16400, '旅行の月'),
+    entry(2, 'item-22', 3500, '年払いの月'),
+    entry(3, 'item-22', 0, '帰省の月'),
+    entry(3, 'item-21', 6400, '帰省の月'),
+    entry(6, 'item-22', 0, '冷蔵庫の買い替え'),
+    entry(6, 'item-21', 6400, '冷蔵庫の買い替え'),
   ];
 
   const cardBills: CardBill[] = [];
