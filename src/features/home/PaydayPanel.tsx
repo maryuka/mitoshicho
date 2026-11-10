@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { checklistOccurs, summarize } from '../../domain/cashflow';
+import { paydayProgress } from '../../domain/payday';
 import type { AppData, ChecklistTemplate } from '../../domain/types';
 import { setCategoryActual, toggleCheck } from '../../db/ops';
 import { db, newId } from '../../db/db';
@@ -23,13 +24,8 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
   const templates = data.checklistTemplates.filter((t) => checklistOccurs(t, period)).sort((a, b) => a.sortOrder - b.sortOrder);
 
   // 給料日のやることが全部終わったか（収入の入力、立替の回収、振り分けとチェックリストのチェック）
-  const tasks = [
-    ...incomes.map((c) => c.actual !== undefined),
-    ...receivables.map((r) => !!r.receivedAt),
-    ...s.allocation.map((a) => done.has(`alloc:${a.account.id}`)),
-    ...templates.map((t) => done.has(t.id)),
-  ];
-  const allDone = tasks.length > 0 && tasks.every(Boolean);
+  const progress = paydayProgress(data, period, current);
+  const allDone = progress.total > 0 && progress.done === progress.total;
   // 終わっていない状態から全部終わった瞬間だけクラッカーを鳴らす（開いたときに終わっていたら鳴らさない）
   const [fire, setFire] = useState(0);
   const wasDone = useRef(allDone);

@@ -1,13 +1,10 @@
 import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { KITSUNE } from '../../components/Kitsune';
-import type { HomeMode } from '../home/HomePage';
 
 export interface TourStep {
   /** 見せる画面 */
-  route: 'home' | 'plan' | 'budget';
-  /** ホームの表示（ふだん／給料日） */
-  mode?: HomeMode;
+  route: 'home' | 'plan' | 'budget' | 'payday';
   /** 今月から何か月ずらして見せるか */
   offset?: number;
   /** 照らす場所（data-tour 属性）。なければ画面全体を暗くして真ん中に出す */
@@ -17,25 +14,21 @@ export interface TourStep {
   text: string;
 }
 
-/** 画面の案内。サンプルデータで、使いこなしたときの画面を順に見せる */
+/** 画面の案内。サンプルデータで、理想の使い方を順に見せる */
 export const TOUR_STEPS: TourStep[] = [
-  { route: 'home', mode: 'normal', target: 'cycle',
+  { route: 'home', target: 'cycle',
     text: 'サンプルデータで、ホームを見てみよう。計画する → 使う → ふりかえる のサイクルで、今どこにいて何をするかがここに出るよ。' },
-  { route: 'home', mode: 'normal', target: 'review',
-    text: '先月、計画とずれが大きかったところだけが出るよ。「納得」「想定外」「なんとなく」と、ひとことメモを付けておこう。' },
-  { route: 'home', mode: 'normal', target: 'hints', optional: true,
-    text: '同じずれが続いていたら、ヒントを出すよ。節約しなきゃ、じゃなくて、計画のほうを良くしていこう。' },
-  { route: 'home', mode: 'normal', target: 'big',
-    text: '旅行・帰省・家電の買い替え・年払いなどの大きい出費も、先の予定として並ぶよ。先が見えるから、今を気持ちよく使えるね。' },
-  { route: 'home', mode: 'normal', target: 'todo', optional: true,
-    text: 'カードの請求額が確定したら「やること」で知らせるよ。金額を入れると、見通しが正確になるよ。' },
-  { route: 'home', mode: 'payday', target: 'payday',
-    text: '給料日は「給料日」に切り替えて、入金の確認・立替の回収・口座への振り分けを順にチェックしていくよ。' },
+  { route: 'home', target: 'notices', optional: true,
+    text: 'カードの請求額が確定したときなどは、お知らせに出るよ。' },
+  { route: 'home', target: 'big',
+    text: '旅行・帰省・年払いなどの大きい出費は、先の予定として見えるよ。先が見えるから、今を気持ちよく使えるね。' },
+  { route: 'payday', target: 'payday',
+    text: '給料日には、入金の確認・立替の回収・口座への振り分けを順にチェックしていくよ。メニューからも開けるよ。' },
   { route: 'plan', offset: 1, target: 'summary',
     text: '「計画」では月ごとの予算を立てるよ。旅行がある月だけ趣味・娯楽を増やす、みたいにその月だけ変えられるよ。' },
   { route: 'budget', offset: -1, target: 'summary',
-    text: '月末は「ふりかえり」。家計簿アプリのカテゴリ別の合計を入れて、予算とくらべるよ。' },
-  { route: 'home', mode: 'normal',
+    text: '月末は「ふりかえり」。家計簿アプリのカテゴリ別の合計を入れて、計画とのずれと、その理由を考えるよ。' },
+  { route: 'home',
     text: 'こんなふうに使えたら理想！ さっそく、はじめの準備から入れていこう。' },
 ];
 
