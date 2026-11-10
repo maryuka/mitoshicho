@@ -14,6 +14,7 @@ import { db } from './db/db';
 import { HomePage } from './features/home/HomePage';
 import { PaydayPage } from './features/home/PaydayPage';
 import { BudgetPage } from './features/budget/BudgetPage';
+import { ReviewPage } from './features/review/ReviewPage';
 import { ReceivablesPage } from './features/receivables/ReceivablesPage';
 import { SettingsPage, type SettingsPageId } from './features/settings/SettingsPage';
 import { ConfirmHost } from './components/ConfirmDialog';
@@ -117,8 +118,10 @@ export function App() {
           </Stack>
         ) : isEmpty ? (
           <Walkthrough settings={data.settings} />
-        ) : route === 'budget' || route === 'plan'
-          ? <BudgetPage key={route} mode={route === 'plan' ? 'budget' : 'actual'} data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
+        ) : route === 'budget'
+          ? <ReviewPage data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
+          : route === 'plan'
+          ? <BudgetPage mode="budget" data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
           : <HomePage data={view} current={current} onOpenBudget={openBudget} onOpenPlan={openPlan} onOpenPayday={() => go('payday')} menu={menu} />}
       </Container>
 

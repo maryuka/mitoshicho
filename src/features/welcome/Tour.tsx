@@ -26,8 +26,8 @@ export const TOUR_STEPS: TourStep[] = [
     text: '給料日には、入金の確認・立替の回収・口座への振り分けを順にチェックしていくよ。メニューからも開けるよ。' },
   { route: 'plan', offset: 1, target: 'summary',
     text: '「計画」では月ごとの予算を立てるよ。旅行がある月だけ趣味・娯楽を増やす、みたいにその月だけ変えられるよ。' },
-  { route: 'budget', offset: -1, target: 'summary',
-    text: '月末は「ふりかえり」。家計簿アプリのカテゴリ別の合計を入れて、計画とのずれと、その理由を考えるよ。' },
+  { route: 'budget', offset: -1, target: 'review-steps',
+    text: '月末は「ふりかえり」。家計簿アプリの合計を入れて、計画とずれたところの理由を考えるよ。理由は付けたいものだけでOK。' },
   { route: 'home',
     text: 'こんなふうに使えたら理想！ さっそく、はじめの準備から入れていこう。' },
 ];

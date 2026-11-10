@@ -48,10 +48,13 @@ describe('review', () => {
   });
 
   it('入力して、目立つオーバーに種類を付けたら、ふりかえり完了', () => {
-    expect(reviewStatus(data([]), '2026-05')).toEqual({ started: false, missing: 3, untagged: 0, done: false });
+    expect(reviewStatus(data([]), '2026-05')).toEqual({ started: false, missing: 3, untagged: 0, closed: false, done: false });
     const entered = data([act('2026-05', '食費', 24900), act('2026-05', '趣味', 30000), act('2026-05', '日用品', 3000)]);
-    expect(reviewStatus(entered, '2026-05')).toEqual({ started: true, missing: 0, untagged: 1, done: false });
+    expect(reviewStatus(entered, '2026-05')).toEqual({ started: true, missing: 0, untagged: 1, closed: false, done: false });
     const tagged = data([act('2026-05', '食費', 24900, { driftKind: 'ok' }), act('2026-05', '趣味', 30000), act('2026-05', '日用品', 3000)]);
     expect(reviewStatus(tagged, '2026-05').done).toBe(true);
+    // 理由を付けなくても、完了を押せば完了
+    entered.checklistDone.push({ id: '2026-05:review', periodId: '2026-05', key: 'review', doneAt: '2026-06-01' });
+    expect(reviewStatus(entered, '2026-05')).toMatchObject({ closed: true, done: true });
   });
 });

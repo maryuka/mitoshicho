@@ -88,14 +88,20 @@ export interface ReviewStatus {
   missing: number;
   /** 種類が付いていない、目立つオーバーの数 */
   untagged: number;
-  /** 実績が全部入り、目立つオーバーに全部種類が付いた */
+  /** 「ふりかえり完了」を押した */
+  closed: boolean;
+  /** 完了を押したか、実績が全部入って目立つオーバーに全部種類が付いた */
   done: boolean;
 }
 
-/** その月のふりかえりの進み具合。入力して、ずれの理由を考えたら完了 */
+/** 「ふりかえり完了」を記録するキー（給料日のチェックと同じ表に、月ごとに入れる） */
+export const REVIEW_DONE_KEY = 'review';
+
+/** その月のふりかえりの進み具合。入力して、ずれの理由を考えたら（または完了を押したら）完了 */
 export function reviewStatus(data: AppData, pid: string): ReviewStatus {
   const started = data.categoryActuals.some((a) => a.periodId === pid);
   const missing = missingActuals(data, pid);
   const untagged = monthDrifts(data, pid).filter((d) => d.diff > 0 && !d.kind).length;
-  return { started, missing, untagged, done: started && missing === 0 && untagged === 0 };
+  const closed = data.checklistDone.some((c) => c.periodId === pid && c.key === REVIEW_DONE_KEY);
+  return { started, missing, untagged, closed, done: closed || (started && missing === 0 && untagged === 0) };
 }

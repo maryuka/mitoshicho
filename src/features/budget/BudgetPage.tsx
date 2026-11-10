@@ -123,7 +123,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
 }
 
 /** カード請求: この月に引き落とされる分。確定した日に請求額を入れる（空欄のあいだは予測で計算） */
-function CardBills({ bills, period, data }: { bills: CardBillRow[]; period: string; data: AppData }) {
+export function CardBills({ bills, period, data }: { bills: CardBillRow[]; period: string; data: AppData }) {
   const [editing, setEditing] = useState<CardBillRow | null>(null);
   return (
     <Card>
@@ -170,7 +170,7 @@ function CardBills({ bills, period, data }: { bills: CardBillRow[]; period: stri
 }
 
 /** 実績: カテゴリごとに家計簿アプリの合計を入れる */
-function ActualRow({ row, period }: { row: CategoryRow; period: string }) {
+export function ActualRow({ row, period, plain }: { row: CategoryRow; period: string; /** 予算との差を出さない（ふりかえりでは、ずれは別に見る） */ plain?: boolean }) {
   const income = row.kind === 'income';
   const actual = row.actual;
   const over = actual !== undefined && !income && actual > row.planned;
@@ -194,7 +194,7 @@ function ActualRow({ row, period }: { row: CategoryRow; period: string }) {
           onChange={(v) => setCategoryActual(period, row.category.id, v)} />
       </Stack>
 
-      {actual !== undefined ? (
+      {actual !== undefined && !plain ? (
         <Stack spacing={0.5} sx={{ mt: 1 }}>
           {!income && <BudgetBar value={actual} max={row.planned} />}
           <Typography variant="caption" color={over ? 'error' : 'text.secondary'}>
