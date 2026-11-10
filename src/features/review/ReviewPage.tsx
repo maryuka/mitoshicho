@@ -14,9 +14,9 @@ import { PeriodNav } from '../../components/PeriodNav';
 import { Confetti } from '../../components/Confetti';
 import { KITSUNE } from '../../components/Kitsune';
 import { ActualRow, CardBills } from '../budget/parts';
-import { DriftGroup, DriftSettingsDialog, HintsCard } from './Drift';
+import { DriftInline, DriftSettingsDialog, HintsCard } from './Drift';
 
-/** ふりかえり: ①実績を入れる → ②ずれを考える → ③改善のヒント → 完了 */
+/** ふりかえり: 実績を入れて、ずれを考える → 改善のヒント → 完了 */
 export function ReviewPage({ data, period, setPeriod, current, menu }: {
   data: AppData; period: string; setPeriod: (p: string) => void; current: string; menu?: ReactNode;
 }) {
@@ -28,8 +28,7 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
   const expense = s.categories.filter((c) => c.kind === 'expense');
   const others = s.categories.filter((c) => c.kind !== 'expense');
   const entered = expense.filter((c) => c.actual !== undefined).length;
-  const over = drifts.filter((d) => d.diff > 0);
-  const under = drifts.filter((d) => d.diff < 0);
+  const driftOf = new Map(drifts.map((d) => [d.category.id, d]));
   const allEntered = status.missing === 0 && status.started;
   const future = period > current;
   const t = driftThreshold(data);
@@ -74,15 +73,23 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
         </Card>
       )}
 
-      {/* ① 実績を入れる */}
-      <Section no={1} title="実績を入れる" done={allEntered}
-        sub={`家計簿アプリのカテゴリ別の合計を入れよう。予算どおりなら「＝予算」でOK（${entered} / ${expense.length}）`}>
-        {expense.map((c, i) => (
-          <Fragment key={c.category.id}>
-            {i > 0 && <Divider />}
-            <ActualRow row={c} period={period} plain />
-          </Fragment>
-        ))}
+      {/* 実績を入れて、ずれを考える */}
+      <Section title="実績を入れて、ずれを考える" done={allEntered && status.untagged === 0}
+        sub={`家計簿アプリのカテゴリ別の合計を入れよう（${entered} / ${expense.length}）。計画の${t.percent}％か${yen(t.yen)}の、大きい方をこえてずれたら、理由とひとことメモを残そう`}
+        action={<IconButton size="small" aria-label="表示するずれの設定" onClick={() => setSettingDrift(true)} sx={{ color: 'text.secondary' }}><TuneIcon fontSize="small" /></IconButton>}>
+        {expense.map((c, i) => {
+          const d = driftOf.get(c.category.id);
+          return (
+            <Fragment key={c.category.id}>
+              {i > 0 && <Divider />}
+              <ActualRow row={c} period={period} plain />
+              {d && <DriftInline drift={d} />}
+            </Fragment>
+          );
+        })}
+        {allEntered && drifts.length === 0 && (
+          <Typography variant="body2" sx={{ mt: 1 }}>だいたい計画どおりだったよ。いい感じ！</Typography>
+        )}
         {others.length > 0 && (
           <Accordion disableGutters elevation={0} sx={{ bgcolor: 'transparent', '&::before': { display: 'none' }, mt: 1 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0 }}>
@@ -100,25 +107,9 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
         )}
       </Section>
 
-      {/* ② ずれを考える */}
-      <Section no={2} title="計画とのずれを考える" done={allEntered && status.untagged === 0}
-        sub={`計画の${t.percent}％か${yen(t.yen)}の、大きい方をこえたずれだけ。理由を付けたいものに付けて、ひとことメモを残そう`}
-        action={<IconButton size="small" aria-label="表示するずれの設定" onClick={() => setSettingDrift(true)} sx={{ color: 'text.secondary' }}><TuneIcon fontSize="small" /></IconButton>}>
-        {!status.started ? (
-          <Typography variant="body2" color="text.secondary">実績を入れると、ここに出るよ。</Typography>
-        ) : drifts.length === 0 ? (
-          <Typography variant="body2">だいたい計画どおりだったよ。いい感じ！</Typography>
-        ) : (
-          <Stack spacing={2.5}>
-            {over.length > 0 && <DriftGroup title={`計画より多かった（${over.length}）`} drifts={over} />}
-            {under.length > 0 && <DriftGroup title={`計画より少なく済んだ（${under.length}）`} drifts={under} />}
-          </Stack>
-        )}
-      </Section>
-
       {settingDrift && <DriftSettingsDialog settings={data.settings} onClose={() => setSettingDrift(false)} />}
 
-      {/* ③ 改善のヒント */}
+      {/* 改善のヒント */}
       {hints.length > 0 && <HintsCard hints={hints} />}
 
       {!status.done && !future && (
@@ -140,15 +131,14 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
   );
 }
 
-function Section({ no, title, sub, done, action, children }: {
-  no: number; title: string; sub: string; done: boolean; action?: ReactNode; children: ReactNode;
+function Section({ title, sub, done, action, children }: {
+  title: string; sub: string; done: boolean; action?: ReactNode; children: ReactNode;
 }) {
   return (
     <Card>
       <CardContent sx={{ pb: '12px !important' }}>
         <Stack direction="row" spacing={1.25} alignItems="center">
-          <Avatar sx={{ width: 26, height: 26, fontSize: 14, fontWeight: 900,
-            bgcolor: done ? 'success.main' : 'primary.main', color: 'background.paper' }}>{done ? '✓' : no}</Avatar>
+          {done && <Avatar sx={{ width: 26, height: 26, fontSize: 14, fontWeight: 900, bgcolor: 'success.main', color: 'background.paper' }}>✓</Avatar>}
           <Typography variant="subtitle1" fontWeight={900} sx={{ flex: 1 }}>{title}</Typography>
           {action}
         </Stack>

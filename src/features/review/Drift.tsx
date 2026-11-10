@@ -12,32 +12,19 @@ import { DEFAULT_SETTINGS, type DriftKind, type DriftThreshold, type Settings } 
 import { MoneyField } from '../../components/MoneyField';
 import { yen } from '../../lib/money';
 
-/** ずれの一覧（見出しつき）。メモはダイアログで書く */
-export function DriftGroup({ title, drifts }: { title: string; drifts: Drift[] }) {
-  const [editing, setEditing] = useState<Drift | null>(null);
-  return (
-    <Box>
-      <Typography variant="caption" color="text.secondary" fontWeight={700}>{title}</Typography>
-      <Stack spacing={2} sx={{ mt: 1 }}>
-        {drifts.map((d) => <DriftRow key={d.category.id} drift={d} onMemo={() => setEditing(d)} />)}
-      </Stack>
-      {editing && <MemoDialog drift={editing} onClose={() => setEditing(null)} />}
-    </Box>
-  );
-}
-
 const KINDS: DriftKind[] = ['ok', 'unexpected', 'casual'];
 
-export function DriftRow({ drift: d, onMemo }: { drift: Drift; onMemo: () => void }) {
+/** 実績の行の下に出す、ずれと理由・メモ。オーバーには種類を付けられる */
+export function DriftInline({ drift: d }: { drift: Drift }) {
+  const [editing, setEditing] = useState(false);
   const set = (k: DriftKind) => patchCategoryActual(d.periodId, d.category.id, { driftKind: d.kind === k ? null : k });
+  const over = d.diff > 0;
   return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
-        <Typography fontWeight={700} noWrap sx={{ minWidth: 0 }}>{d.category.name}</Typography>
-        <Typography fontWeight={900} sx={{ flexShrink: 0 }}>{d.diff > 0 ? '+' : '-'}{yen(Math.abs(d.diff))}</Typography>
-      </Stack>
-      <Typography variant="caption" color="text.secondary">計画 {yen(d.planned)} → 実績 {yen(d.actual)}</Typography>
-      {d.diff > 0 && (
+    <Box sx={{ mt: 0.25, mb: 0.5, pl: 1.25, borderLeft: 3, borderColor: over ? 'primary.main' : 'divider' }}>
+      <Typography variant="body2" fontWeight={700}>
+        計画より{over ? `${yen(d.diff)} 多かった` : `${yen(-d.diff)} 少なく済んだ`}
+      </Typography>
+      {over && (
         <Stack direction="row" spacing={0.75} sx={{ mt: 0.75 }} role="group" aria-label={`${d.category.name}のずれの種類`}>
           {KINDS.map((k) => (
             <Chip key={k} label={DRIFT_LABEL[k]} size="small" onClick={() => set(k)} aria-pressed={d.kind === k}
@@ -45,10 +32,11 @@ export function DriftRow({ drift: d, onMemo }: { drift: Drift; onMemo: () => voi
           ))}
         </Stack>
       )}
-      <Link component="button" type="button" variant="body2" underline="hover" onClick={onMemo}
+      <Link component="button" type="button" variant="body2" underline="hover" onClick={() => setEditing(true)}
         sx={{ mt: 0.75, display: 'inline-flex', alignItems: 'center', gap: 0.5, color: d.memo ? 'text.primary' : 'primary.main', textAlign: 'left' }}>
         <EditNoteIcon sx={{ fontSize: 18, color: 'text.secondary' }} />{d.memo ? `「${d.memo}」` : 'ひとことメモ'}
       </Link>
+      {editing && <MemoDialog drift={d} onClose={() => setEditing(false)} />}
     </Box>
   );
 }
