@@ -77,32 +77,22 @@ export function HintsCard({ hints }: { hints: DriftHint[] }) {
   );
 }
 
-/** どのくらいのずれから出すかの設定 */
-export function DriftSettingsDialog({ settings, onClose }: { settings: Settings; onClose: () => void }) {
-  const [minYen, setMinYen] = useState<number | undefined>(settings.driftMinYen ?? DEFAULT_DRIFT_MIN_YEN);
-  const save = async () => {
-    await db.settings.put({ ...DEFAULT_SETTINGS, ...settings, driftMinYen: minYen ?? 0 });
-    onClose();
-  };
+/** どのくらいのずれから出すかの設定（設定の「ふりかえり」ページ）。変えたらすぐ保存する */
+export function DriftFields({ settings }: { settings: Settings }) {
+  const minYen = settings.driftMinYen ?? DEFAULT_DRIFT_MIN_YEN;
+  const update = (v: number) => db.settings.put({ ...DEFAULT_SETTINGS, ...settings, driftMinYen: v });
   return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle>表示するずれ</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
-          計画とこの金額以上ずれたものだけを出すよ。
-        </Typography>
-        <Stack direction="row" spacing={0.75} sx={{ mt: 1.5, flexWrap: 'wrap', rowGap: 0.75 }} role="group" aria-label="よく使う設定">
-          {DRIFT_PRESETS.map((x) => (
-            <Chip key={x.label} label={`${x.label}（${yen(x.yen)}）`} onClick={() => setMinYen(x.yen)} aria-pressed={minYen === x.yen}
-              color={minYen === x.yen ? 'primary' : 'default'} variant={minYen === x.yen ? 'filled' : 'outlined'} sx={{ fontWeight: 700 }} />
-          ))}
-        </Stack>
-        <MoneyField label="この金額以上ずれたら出す" value={minYen} onChange={setMinYen} fullWidth sx={{ mt: 2.5 }} />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="inherit">キャンセル</Button>
-        <Button onClick={save} variant="contained">保存</Button>
-      </DialogActions>
-    </Dialog>
+    <Box>
+      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
+        ふりかえりで、計画とこの金額以上ずれたカテゴリだけに、理由とメモの欄を出します。
+      </Typography>
+      <Stack direction="row" spacing={0.75} sx={{ mt: 1.5, flexWrap: 'wrap', rowGap: 0.75 }} role="group" aria-label="よく使う設定">
+        {DRIFT_PRESETS.map((x) => (
+          <Chip key={x.label} label={`${x.label}（${yen(x.yen)}）`} onClick={() => update(x.yen)} aria-pressed={minYen === x.yen}
+            color={minYen === x.yen ? 'primary' : 'default'} variant={minYen === x.yen ? 'filled' : 'outlined'} sx={{ fontWeight: 700 }} />
+        ))}
+      </Stack>
+      <MoneyField id="set-drift-min" label="この金額以上ずれたら出す" value={minYen} onChange={(v) => update(v ?? 0)} fullWidth sx={{ mt: 2.5 }} />
+    </Box>
   );
 }

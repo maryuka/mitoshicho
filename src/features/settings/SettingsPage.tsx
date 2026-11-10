@@ -15,6 +15,7 @@ import { yen } from '../../lib/money';
 import { AccountDialog, CategoryDialog, ChecklistDialog, ItemDialog, KIND_LABEL } from './dialogs';
 import { DataSection } from './DataSection';
 import { PaydayFields } from './PaydayFields';
+import { DriftFields } from '../review/Drift';
 import { AddFab } from '../../components/AddFab';
 import { PageNote } from '../../components/PageNote';
 import { useThemePref } from '../../theme';
@@ -37,7 +38,7 @@ function nextChange(i: Item, current: string) {
   return i.amountChanges?.find((c) => comparePeriods(c.from, current) > 0);
 }
 
-export type SettingsPageId = 'basic' | 'appearance' | 'accounts' | 'categories' | 'items' | 'checklist' | 'import' | 'backup';
+export type SettingsPageId = 'basic' | 'appearance' | 'accounts' | 'categories' | 'items' | 'checklist' | 'review' | 'import' | 'backup';
 
 /** メニューから開く設定の各ページ。1ページに1つの項目だけを出す */
 export function SettingsPage({ page, data, current }: { page: SettingsPageId; data: AppData; current: string }) {
@@ -63,6 +64,10 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
     <Stack spacing={2}>
       {page === 'basic' && <Section>
         <CardContent><PaydayFields settings={s} /></CardContent>
+      </Section>}
+
+      {page === 'review' && <Section>
+        <CardContent><DriftFields settings={s} /></CardContent>
       </Section>}
 
       {page === 'appearance' && <Section>

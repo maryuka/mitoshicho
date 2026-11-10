@@ -3,6 +3,7 @@ import CategoryIcon from '@mui/icons-material/Category';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import CloseIcon from '@mui/icons-material/Close';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
 import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
@@ -38,6 +39,7 @@ export const MENU: { title: string; entries: MenuEntry[] }[] = [
       { route: 'prefs-categories', label: 'カテゴリ', icon: <CategoryIcon />, tone: 'success' },
       { route: 'prefs-items', label: '定期項目', icon: <EventRepeatIcon />, tone: 'primary' },
       { route: 'prefs-checklist', label: '給料日のチェックリスト', icon: <ChecklistIcon />, tone: 'success' },
+      { route: 'prefs-review', label: 'ふりかえり', icon: <FactCheckOutlinedIcon />, tone: 'warning' },
       { route: 'prefs-appearance', label: '見た目の設定', icon: <PaletteOutlinedIcon />, tone: 'info' },
     ],
   },

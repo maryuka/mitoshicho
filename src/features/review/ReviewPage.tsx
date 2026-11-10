@@ -14,7 +14,7 @@ import { PeriodNav } from '../../components/PeriodNav';
 import { Confetti } from '../../components/Confetti';
 import { KITSUNE } from '../../components/Kitsune';
 import { ActualRow, CardBills } from '../budget/parts';
-import { DriftInline, DriftSettingsDialog, HintsCard } from './Drift';
+import { DriftInline, HintsCard } from './Drift';
 
 /** ふりかえり: 実績を入れて、ずれを考える → 改善のヒント → 完了 */
 export function ReviewPage({ data, period, setPeriod, current, menu }: {
@@ -32,7 +32,6 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
   const allEntered = status.missing === 0 && status.started;
   const future = period > current;
   const minYen = driftMinYen(data);
-  const [settingDrift, setSettingDrift] = useState(false);
 
   // 完了した瞬間だけクラッカーを鳴らす
   const [fire, setFire] = useState(0);
@@ -76,7 +75,7 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
       {/* 実績を入れて、ずれを考える */}
       <Section title="実績を入れて、ずれを考える" done={allEntered && status.untagged === 0}
         sub={`家計簿アプリのカテゴリ別の合計を入れよう（${entered} / ${expense.length}）。計画と${yen(minYen)}以上ずれたら、理由とひとことメモを残そう`}
-        action={<IconButton size="small" aria-label="表示するずれの設定" onClick={() => setSettingDrift(true)} sx={{ color: 'text.secondary' }}><TuneIcon fontSize="small" /></IconButton>}>
+        action={<IconButton size="small" aria-label="表示するずれの設定" href="#prefs-review" sx={{ color: 'text.secondary' }}><TuneIcon fontSize="small" /></IconButton>}>
         {expense.map((c, i) => {
           const d = driftOf.get(c.category.id);
           return (
@@ -106,8 +105,6 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
           </Accordion>
         )}
       </Section>
-
-      {settingDrift && <DriftSettingsDialog settings={data.settings} onClose={() => setSettingDrift(false)} />}
 
       {/* 改善のヒント */}
       {hints.length > 0 && <HintsCard hints={hints} />}
