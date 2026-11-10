@@ -4,6 +4,7 @@
 給料日区切りの月ごとに、大きい出費まで先の予定を見通し、月末に家計簿アプリの集計で計画とのずれをふりかえる家計アプリ。
 静的ファイルとして配布でき、データはブラウザの IndexedDB にだけ保存されます。
 
+コンセプト: [docs/concept.md](docs/concept.md)
 設計: [docs/design.md](docs/design.md)
 
 ## 開発
