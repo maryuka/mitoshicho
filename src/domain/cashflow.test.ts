@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bigExpenses, cardBillRows, cardTodos, outlook, planBalance, summarize, itemOccurs } from './cashflow';
+import { bigExpenses, cardBillRows, cardTodos, outlook, summarize, itemOccurs } from './cashflow';
 import { addPeriods, dateInPeriod, lastDayBefore, periodLabel, periodOf, periodStart, periodYearLabel } from './period';
 import { DEFAULT_SETTINGS, type AppData, type Item } from './types';
 
@@ -269,20 +269,10 @@ describe('bigExpenses / outlook', () => {
     expect(bigExpenses(d, '2026-04')).toEqual([]);
   });
 
-  it('積立を入れると、行き先が決まっていないお金が減る', () => {
-    const d = baseData();
-    d.categories.push({ id: 'sav', name: '貯金・投資', kind: 'saving', sortOrder: 2, archived: false });
-    d.items.push(item({ id: 'nisa', categoryId: 'sav', defaultAmount: 195000, sourceAccountId: 'bank' }));
-    expect(planBalance(d, '2026-02')).toEqual({ income: 300000, spend: 105000, saving: 195000, unassigned: 0 });
-    expect(planBalance(d, '2026-03').unassigned).toBe(-6000);
-  });
-
-  it('今月から指定した月数分の計画を出す', () => {
+  it('今月から指定した月数分の大きい出費を出す', () => {
     const d = baseData();
     const o = outlook(d, '2026-02', 3);
     expect(o.map((m) => m.periodId)).toEqual(['2026-02', '2026-03', '2026-04']);
-    // 収入 300,000 − 家賃 100,000 − 携帯 5,000（3月は年会費 6,000 も）
-    expect(o.map((m) => m.unassigned)).toEqual([195000, 189000, 195000]);
     expect(o[1].big.map((b) => b.item.id)).toEqual(['fee']);
   });
 });

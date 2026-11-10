@@ -2,9 +2,11 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Alert, Box, ButtonBase, Card, Chip, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useMemo, useState, type ReactNode } from 'react';
-import { bigExpenses, outlook, planBalance, summarize, type CardTodo } from '../../domain/cashflow';
-import { BigExpensesCard, OutlookCard, PlanMonthCard } from './Outlook';
-import { periodLabel, periodStart, periodRule } from '../../domain/period';
+import { outlook, summarize, type CardTodo } from '../../domain/cashflow';
+import { driftHints, missingActuals, monthDrifts } from '../../domain/review';
+import { BigExpensesCard } from './Outlook';
+import { CycleCard, HintsCard, ReviewCard } from './Cycle';
+import { addPeriods, periodLabel, periodStart, periodRule } from '../../domain/period';
 import type { AppData } from '../../domain/types';
 import { yen } from '../../lib/money';
 import { PeriodNav } from '../../components/PeriodNav';
@@ -48,18 +50,27 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpe
   const setup = data.items.length === 0;
   // ふだんは、この先1年の見通しを主役にする
   const months = useMemo(() => (setup ? [] : outlook(data, current)), [setup, data, current]);
-  const over = months.find((m) => m.unassigned < 0);
-  const saving = months.reduce((a, m) => a + m.saving, 0);
-  const ok = mode === 'payday' ? !minus : !over;
+  // ふだんは、計画 → ふりかえり → 改善のサイクルを主役にする
+  const prev = addPeriods(current, -1);
+  const drifts = useMemo(() => (setup ? [] : monthDrifts(data, prev)), [setup, data, prev]);
+  const missing = useMemo(() => (setup ? 0 : missingActuals(data, prev)), [setup, data, prev]);
+  const hints = useMemo(() => (setup ? [] : driftHints(data, current)), [setup, data, current]);
+  const reviewed = data.categoryActuals.some((a) => a.periodId === prev);
+  const casualOver = drifts.find((d) => d.diff > 0 && d.kind === 'casual');
+  const ok = mode === 'payday' ? !minus : true;
   const message = setup ? 'まずは準備から始めよう！'
     : mode === 'payday' ? (minus ? `今月 ${yen(-s.buffer)} 足りない！` : '給料日だね！ 入金と振り分けをチェックしよう')
-    : over ? `${periodStart(over.periodId, startDay).getMonth() + 1}月の計画が ${yen(-over.unassigned)} オーバーしてるよ`
-    : `この1年で ${yen(saving)} 積み立てる計画だよ`;
-  // 選んでいる月の計画（見通しの範囲の外なら、その月だけ計算する）
-  const selected = useMemo(
-    () => months.find((m) => m.periodId === period) ?? (setup ? null : { periodId: period, ...planBalance(data, period), big: bigExpenses(data, period) }),
-    [months, period, setup, data],
-  );
+    : !reviewed ? '先月のふりかえりをしよう！'
+    : casualOver ? `先月は${casualOver.category.name}が少し多め。今月は意識してみよう`
+    : drifts.length > 0 ? '先月のずれを、今月の計画に活かそう'
+    : '先月はだいたい計画どおり！';
+  const foxImage = setup ? KITSUNE.counting : mode === 'normal' && !reviewed ? KITSUNE.looking : ok ? KITSUNE.happy : KITSUNE.worried;
+  const prevLabel = periodLabel(prev, startDay);
+  const steps = [
+    { title: '先月をふりかえる', sub: !reviewed ? `${prevLabel}・家計簿アプリの合計を入れる` : missing > 0 ? `${prevLabel}・未入力 ${missing} カテゴリ` : `${prevLabel}・入力済み`,
+      done: reviewed && missing === 0, onClick: () => onOpenBudget(prev) },
+    { title: '今月の計画に活かす', sub: 'ずれをふまえて、今月の予算を見直す', done: false, onClick: () => onOpenPlan(current) },
+  ];
 
   // 給料日: 振り分けたあとに口座に残るお金と、その内訳
   const monthCard = (
@@ -100,7 +111,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpe
         }}>
           <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} leading={menu} onHero />
           <Box sx={{ mt: 1.5 }}><Bubble>{message}</Bubble></Box>
-          <Box component="img" src={setup ? KITSUNE.counting : ok ? KITSUNE.happy : KITSUNE.worried} alt={setup ? '準備する狐' : ok ? '喜ぶ狐' : '困っている狐'}
+          <Box component="img" src={foxImage} alt=""
             // 絵によって縦横比が違うので、高さをそろえて帯の高さが変わらないようにする
             sx={{ display: 'block', height: 112, width: 'auto', maxWidth: '60%', objectFit: 'contain', mx: 'auto', mt: 1.5, mb: 1.5 }} />
           {!setup && <ToggleButtonGroup value={mode} exclusive onChange={(_, m) => setMode(m)} size="small"
@@ -115,14 +126,13 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpe
         </Box>
 
         {setup ? <Box sx={{ position: 'relative', zIndex: 1, mt: -4 }}><SetupGuide data={data} /></Box>
-          : mode === 'normal' ? <OutlookCard months={months} selected={period} onSelect={setPeriod} startDay={startDay} />
+          : mode === 'normal' ? <CycleCard steps={steps} />
           : null}
         {!setup && mode === 'payday' && monthCard}
       </Box>
 
-      {!setup && mode === 'normal' && selected && (
-        <PlanMonthCard month={selected} label={period === current ? '今月' : periodLabel(period, startDay)} onOpenPlan={() => onOpenPlan(period)} />
-      )}
+      {!setup && mode === 'normal' && <ReviewCard label="先月" drifts={drifts} reviewed={reviewed} onOpen={() => onOpenBudget(prev)} />}
+      {!setup && mode === 'normal' && hints.length > 0 && <HintsCard hints={hints} />}
       {!setup && mode === 'normal' && <BigExpensesCard months={months} startDay={startDay} onOpen={onOpenPlan} />}
 
       {!setup && suggestPayday && (
@@ -133,7 +143,7 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpe
 
       {setup ? null : mode === 'payday'
         ? <PaydayPanel data={data} period={period} current={current} />
-        : <NormalView data={data} current={current} summary={s} onCardTodo={setEditing} onOpenBudget={onOpenBudget} />}
+        : <NormalView data={data} current={current} summary={s} onCardTodo={setEditing} />}
 
       {breakdown && (
         <BreakdownDialog kind={breakdown} summary={s} data={data} total={totals[breakdown]} onClose={() => setBreakdown(null)} />

@@ -19,10 +19,12 @@ export interface TourStep {
 
 /** 画面の案内。サンプルデータで、使いこなしたときの画面を順に見せる */
 export const TOUR_STEPS: TourStep[] = [
-  { route: 'home', mode: 'normal', target: 'outlook',
-    text: '使いこなすと、ホームはこんなふうになるよ。この先1年、毎月いくら積み立てるかと、収入の行き先が全部決まって±0になっているかが見えるよ。' },
-  { route: 'home', mode: 'normal', target: 'month',
-    text: '理想は、計画どおりに積み立てて、決めたお金を使いきって±0で終わること。行き先が決まっていないお金や、計画オーバーの月はここで分かるよ。' },
+  { route: 'home', mode: 'normal', target: 'cycle',
+    text: '使いこなすと、ホームはこんなふうになるよ。計画して、月末にふりかえって、次の計画に活かす。今やることがここに出るよ。' },
+  { route: 'home', mode: 'normal', target: 'review',
+    text: '先月、計画とずれが大きかったところだけが出るよ。「納得」「想定外」「なんとなく」と、ひとことメモを付けておこう。' },
+  { route: 'home', mode: 'normal', target: 'hints', optional: true,
+    text: '同じずれが続いていたら、ヒントを出すよ。節約しなきゃ、じゃなくて、計画のほうを良くしていこう。' },
   { route: 'home', mode: 'normal', target: 'big',
     text: '旅行・帰省・家電の買い替え・年払いなどの大きい出費も、先の予定として並ぶよ。先が見えるから、今を気持ちよく使えるね。' },
   { route: 'home', mode: 'normal', target: 'todo', optional: true,
