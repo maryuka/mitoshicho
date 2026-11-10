@@ -13,7 +13,7 @@ import { buildSampleData } from './db/sample';
 import { db } from './db/db';
 import { HomePage } from './features/home/HomePage';
 import { PaydayPage } from './features/home/PaydayPage';
-import { BudgetPage } from './features/budget/BudgetPage';
+import { PlanPage } from './features/plan/PlanPage';
 import { ReviewPage } from './features/review/ReviewPage';
 import { ReceivablesPage } from './features/receivables/ReceivablesPage';
 import { SettingsPage, type SettingsPageId } from './features/settings/SettingsPage';
@@ -121,7 +121,7 @@ export function App() {
         ) : route === 'budget'
           ? <ReviewPage data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
           : route === 'plan'
-          ? <BudgetPage mode="budget" data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
+          ? <PlanPage data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
           : <HomePage data={view} current={current} onOpenBudget={openBudget} onOpenPlan={openPlan} onOpenPayday={() => go('payday')} menu={menu} />}
       </Container>
 

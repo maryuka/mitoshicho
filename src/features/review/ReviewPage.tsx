@@ -12,7 +12,7 @@ import { yen } from '../../lib/money';
 import { PeriodNav } from '../../components/PeriodNav';
 import { Confetti } from '../../components/Confetti';
 import { KITSUNE } from '../../components/Kitsune';
-import { ActualRow, CardBills } from '../budget/BudgetPage';
+import { ActualRow, CardBills } from '../budget/parts';
 import { DriftGroup, HintsCard } from './Drift';
 
 /** ふりかえり: ①実績を入れる → ②ずれを考える → ③改善のヒント → 完了 */
