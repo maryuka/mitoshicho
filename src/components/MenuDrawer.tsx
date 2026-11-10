@@ -5,6 +5,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import MenuIcon from '@mui/icons-material/Menu';
 import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import TableViewIcon from '@mui/icons-material/TableView';
@@ -25,6 +26,7 @@ export const MENU: { title: string; entries: MenuEntry[] }[] = [
   {
     title: 'お金のこと',
     entries: [
+      { route: 'payday', label: '給料日のチェック', icon: <PaymentsOutlinedIcon />, tone: 'primary' },
       { route: 'receivables', label: '立替・経費精算', icon: <ReceiptLongIcon />, tone: 'warning' },
     ],
   },

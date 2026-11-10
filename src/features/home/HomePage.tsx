@@ -1,107 +1,75 @@
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { Alert, Box, ButtonBase, Card, Chip, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import SaveAltIcon from '@mui/icons-material/SaveAlt';
+import { Box, Card, CardHeader, List, ListItemButton, ListItemIcon, ListItemText, Stack } from '@mui/material';
 import { useMemo, useState, type ReactNode } from 'react';
-import { outlook, summarize, type CardTodo } from '../../domain/cashflow';
-import { driftHints, missingActuals, monthDrifts } from '../../domain/review';
-import { BigExpensesCard } from './Outlook';
-import { CycleCard, HintsCard, ReviewCard } from './Cycle';
-import { addPeriods, periodLabel, periodStart, periodRule } from '../../domain/period';
+import { cardTodos, outlook, type CardTodo } from '../../domain/cashflow';
+import { paydayProgress } from '../../domain/payday';
+import { monthDrifts, reviewStatus } from '../../domain/review';
+import { addPeriods, periodEnd, periodLabel, periodStart, periodRule } from '../../domain/period';
 import type { AppData } from '../../domain/types';
+import { billDatesText } from '../../lib/cardBill';
 import { yen } from '../../lib/money';
-import { PeriodNav } from '../../components/PeriodNav';
 import { CardBillDialog } from '../../components/CardBillDialog';
 import { Bubble, KITSUNE } from '../../components/Kitsune';
-import { NormalView } from './NormalView';
+import { BigExpensesCard } from './Outlook';
+import { CycleCard, type CycleStage } from './Cycle';
 import { SetupGuide } from './SetupGuide';
-import { PaydayPanel } from './PaydayPanel';
-import { BREAKDOWN_LABEL, BreakdownDialog, type BreakdownKind } from './Breakdown';
 
-export type HomeMode = 'normal' | 'payday';
-type Mode = HomeMode;
-const MODE_KEY = 'mitoshicho:mode';
-const readMode = (): Mode => { try { return localStorage.getItem(MODE_KEY) === 'payday' ? 'payday' : 'normal'; } catch { return 'normal'; } };
-const writeMode = (m: Mode) => { try { localStorage.setItem(MODE_KEY, m); } catch { /* 保存できなくても動く */ } };
+interface Cycle { stage: CycleStage; title: string; sub: string; action: string; onAction: () => void; message: string; fox: string }
 
-export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpenPlan, menu, forceMode }: {
-  data: AppData; period: string; setPeriod: (p: string) => void; current: string; onOpenBudget: (p: string) => void;
-  onOpenPlan: (p: string) => void; menu?: ReactNode;
-  /** 画面の案内で、表示を「ふだん」「給料日」に固定する（保存はしない） */
-  forceMode?: Mode;
+/** ホーム: 今やることが分かる画面。サイクルの今の段階と、やることを1つだけ出す */
+export function HomePage({ data, current, onOpenBudget, onOpenPlan, onOpenPayday, menu }: {
+  data: AppData; current: string; onOpenBudget: (p: string) => void; onOpenPlan: (p: string) => void; onOpenPayday: () => void;
+  menu?: ReactNode;
 }) {
   const startDay = periodRule(data.settings);
-  const [savedMode, setModeState] = useState<Mode>(readMode);
-  const mode = forceMode ?? savedMode;
-  const setMode = (m: Mode | null) => { if (m) { setModeState(m); writeMode(m); } };
-  const s = useMemo(() => summarize(data, period, current), [data, period, current]);
   const [editing, setEditing] = useState<CardTodo | null>(null);
-  const [breakdown, setBreakdown] = useState<BreakdownKind | null>(null);
-  const totals: Record<BreakdownKind, number> = {
-    income: s.incomeTotal, direct: s.directOutTotal - s.savingDirectTotal, card: s.cardBillTotal,
-    saving: s.savingDirectTotal, receivable: s.receivableTotal,
-  };
-
-  // 月の初日から5日間は「給料日」への切り替えをすすめる
-  const daysIntoPeriod = Math.floor((Date.now() - periodStart(current, startDay).getTime()) / 86400000);
-  const suggestPayday = mode === 'normal' && period === current && daysIntoPeriod < 5;
-  // バッファが 0 円以上なら OK、マイナスなら足りない
-  const minus = s.buffer < 0;
-  // 定期項目がまだないあいだは、見通しの代わりに「はじめの準備」を出す
+  // 定期項目がまだないあいだは「はじめの準備」を出す
   const setup = data.items.length === 0;
-  // ふだんは、この先1年の見通しを主役にする
-  const months = useMemo(() => (setup ? [] : outlook(data, current)), [setup, data, current]);
-  // ふだんは、計画 → ふりかえり → 改善のサイクルを主役にする
   const prev = addPeriods(current, -1);
-  const drifts = useMemo(() => (setup ? [] : monthDrifts(data, prev)), [setup, data, prev]);
-  const missing = useMemo(() => (setup ? 0 : missingActuals(data, prev)), [setup, data, prev]);
-  const hints = useMemo(() => (setup ? [] : driftHints(data, current)), [setup, data, current]);
-  const reviewed = data.categoryActuals.some((a) => a.periodId === prev);
-  const casualOver = drifts.find((d) => d.diff > 0 && d.kind === 'casual');
-  const ok = mode === 'payday' ? !minus : true;
-  const message = setup ? 'まずは準備から始めよう！'
-    : mode === 'payday' ? (minus ? `今月 ${yen(-s.buffer)} 足りない！` : '給料日だね！ 入金と振り分けをチェックしよう')
-    : !reviewed ? '先月のふりかえりをしよう！'
-    : casualOver ? `先月は${casualOver.category.name}が少し多め。今月は意識してみよう`
-    : drifts.length > 0 ? '先月のずれを、今月の計画に活かそう'
-    : '先月はだいたい計画どおり！';
-  const foxImage = setup ? KITSUNE.counting : mode === 'normal' && !reviewed ? KITSUNE.looking : ok ? KITSUNE.happy : KITSUNE.worried;
+  const review = useMemo(() => reviewStatus(data, prev), [data, prev]);
+  const payday = useMemo(() => paydayProgress(data, current), [data, current]);
+  const casualOver = useMemo(() => monthDrifts(data, prev).find((d) => d.diff > 0 && d.kind === 'casual'), [data, prev]);
+  const months = useMemo(() => (setup ? [] : outlook(data, current)), [setup, data, current]);
+  const daysIn = Math.floor((Date.now() - periodStart(current, startDay).getTime()) / 86400000);
+  const daysLeft = Math.max(0, Math.ceil((periodEnd(current, startDay).getTime() - Date.now()) / 86400000));
   const prevLabel = periodLabel(prev, startDay);
-  const steps = [
-    { title: '先月をふりかえる', sub: !reviewed ? `${prevLabel}・家計簿アプリの合計を入れる` : missing > 0 ? `${prevLabel}・未入力 ${missing} カテゴリ` : `${prevLabel}・入力済み`,
-      done: reviewed && missing === 0, onClick: () => onOpenBudget(prev) },
-    { title: '今月の計画に活かす', sub: 'ずれをふまえて、今月の予算を見直す', done: false, onClick: () => onOpenPlan(current) },
-  ];
 
-  // 給料日: 振り分けたあとに口座に残るお金と、その内訳
-  const monthCard = (
-    <Card data-tour="buffer" sx={{ position: 'relative', zIndex: 1, mt: -4 }}>
-      <CardContent>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="text.secondary">振り分けたあとに残るお金{period === current ? '' : `（${periodLabel(period, startDay)}）`}</Typography>
-          <Chip size="small" label={minus ? 'マイナス' : 'OK'}
-            sx={{ fontWeight: 900, ...(!minus ? { bgcolor: 'soft', color: 'success.main' } : { bgcolor: 'error.main', color: '#ffffff' }) }} />
-        </Stack>
-        <Typography variant="h3" component="p" fontWeight={900} color={minus ? 'error.main' : 'text.primary'} sx={{ my: 0.5 }}>{yen(s.buffer)}</Typography>
-        {(
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, mt: 2, pt: 2, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
-            <Figure kind="income" value={totals.income} onOpen={setBreakdown} />
-            <Figure kind="direct" value={totals.direct} minus onOpen={setBreakdown} />
-            <Figure kind="card" value={totals.card} minus onOpen={setBreakdown} />
-            {totals.saving > 0 && <Figure kind="saving" value={totals.saving} onOpen={setBreakdown} />}
-            {totals.receivable > 0 && <Figure kind="receivable" value={totals.receivable} onOpen={setBreakdown} />}
-          </Box>
-        )}
-      </CardContent>
-    </Card>
-  );
+  // サイクルの今の段階。先月のふりかえり → 給料日のチェック（月のはじめ5日）→ 今月の計画（月のはじめ1週間）→ 使う
+  const cycle: Cycle = !review.done
+    ? {
+      stage: 'review', title: '先月をふりかえろう', action: '先月をふりかえる', onAction: () => onOpenBudget(prev), fox: KITSUNE.looking,
+      sub: !review.started ? `${prevLabel}の合計を入れて、計画とくらべよう`
+        : review.missing > 0 ? `${prevLabel}・あと ${review.missing} カテゴリ入れよう`
+        : `ずれが大きかった ${review.untagged} つに、理由を付けよう`,
+      message: !review.started || review.missing > 0 ? '先月のふりかえりをしよう！' : 'ずれの理由を考えてみよう',
+    }
+    : daysIn < 5 && payday.total > 0 && payday.done < payday.total
+      ? {
+        stage: 'plan', title: '給料日のチェックをしよう', sub: `入金と振り分け・あと ${payday.total - payday.done} 件`,
+        action: '給料日のチェック', onAction: onOpenPayday, fox: KITSUNE.money, message: '給料日だね！ 入金と振り分けをチェックしよう',
+      }
+      : daysIn < 7
+        ? {
+          stage: 'plan', title: '今月の計画を立てよう', sub: '先月のずれをふまえて、今月の予算を見直そう',
+          action: '今月の計画を開く', onAction: () => onOpenPlan(current), fox: KITSUNE.counting,
+          message: casualOver ? `先月は${casualOver.category.name}が少し多め。今月の計画に活かそう` : '今月の計画を立てよう！',
+        }
+        : {
+          stage: 'use', title: '計画どおりに使っていこう', sub: `ふりかえりまで、あと${daysLeft}日`,
+          action: '今月の計画を見る', onAction: () => onOpenPlan(current), fox: KITSUNE.happy,
+          message: casualOver ? `先月は${casualOver.category.name}が少し多め。今月は意識してみよう` : '今月も計画どおりにいこう！',
+        };
 
   return (
     <Stack spacing={2}>
       <Box>
-        {/* 上部のオレンジの帯。コンテナの余白を打ち消して画面の端まで広げる */}
+        {/* 上部の色付きの帯。コンテナの余白を打ち消して画面の端まで広げる */}
         <Box data-hero sx={{
           bgcolor: 'hero.main', color: 'hero.contrastText', textAlign: 'center', position: 'relative', overflow: 'hidden',
-          mt: 'calc(-12px - env(safe-area-inset-top, 0px))', pt: 'calc(12px + env(safe-area-inset-top, 0px))', pb: 7,
+          mt: 'calc(-12px - env(safe-area-inset-top, 0px))', pt: 'calc(12px + env(safe-area-inset-top, 0px))', pb: 6,
           ml: 'calc(-1 * max(16px, env(safe-area-inset-left, 0px)))', pl: 'max(16px, env(safe-area-inset-left, 0px))',
           mr: 'calc(-1 * max(16px, env(safe-area-inset-right, 0px)))', pr: 'max(16px, env(safe-area-inset-right, 0px))',
           '&::after': {
@@ -109,45 +77,21 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpe
             bgcolor: 'background.default', borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
           },
         }}>
-          <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} leading={menu} onHero />
-          <Box sx={{ mt: 1.5 }}><Bubble>{message}</Bubble></Box>
-          <Box component="img" src={foxImage} alt=""
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>{menu}</Box>
+          <Box sx={{ mt: 0.5 }}><Bubble>{setup ? 'まずは準備から始めよう！' : cycle.message}</Bubble></Box>
+          <Box component="img" src={setup ? KITSUNE.counting : cycle.fox} alt=""
             // 絵によって縦横比が違うので、高さをそろえて帯の高さが変わらないようにする
-            sx={{ display: 'block', height: 112, width: 'auto', maxWidth: '60%', objectFit: 'contain', mx: 'auto', mt: 1.5, mb: 1.5 }} />
-          {!setup && <ToggleButtonGroup value={mode} exclusive onChange={(_, m) => setMode(m)} size="small"
-            sx={{ position: 'relative', zIndex: 1, '& .MuiToggleButton-root': {
-              color: 'inherit', borderColor: alpha('#ffffff', 0.7), borderWidth: 2, px: 2.5, fontWeight: 700,
-              '&:first-of-type': { borderRadius: '999px 0 0 999px' }, '&:last-of-type': { borderRadius: '0 999px 999px 0' },
-              '&.Mui-selected': { bgcolor: 'background.paper', color: 'primary.main', '&:hover': { bgcolor: 'background.paper' } },
-            } }}>
-            <ToggleButton value="normal">ふだん</ToggleButton>
-            <ToggleButton value="payday">給料日</ToggleButton>
-          </ToggleButtonGroup>}
+            sx={{ display: 'block', height: 112, width: 'auto', maxWidth: '60%', objectFit: 'contain', mx: 'auto', mt: 1.5, mb: 1 }} />
         </Box>
 
-        {setup ? <Box sx={{ position: 'relative', zIndex: 1, mt: -4 }}><SetupGuide data={data} /></Box>
-          : mode === 'normal' ? <CycleCard steps={steps} />
-          : null}
-        {!setup && mode === 'payday' && monthCard}
+        <Box sx={{ position: 'relative', zIndex: 1, mt: -4 }}>
+          {setup ? <SetupGuide data={data} /> : <CycleCard {...cycle} />}
+        </Box>
       </Box>
 
-      {!setup && mode === 'normal' && <ReviewCard label="先月" drifts={drifts} reviewed={reviewed} onOpen={() => onOpenBudget(prev)} />}
-      {!setup && mode === 'normal' && hints.length > 0 && <HintsCard hints={hints} />}
-      {!setup && mode === 'normal' && <BigExpensesCard months={months} startDay={startDay} onOpen={onOpenPlan} />}
+      {!setup && <Notices data={data} current={current} onCardTodo={setEditing} />}
+      {!setup && <BigExpensesCard months={months} startDay={startDay} onOpen={onOpenPlan} limit={3} />}
 
-      {!setup && suggestPayday && (
-        <Alert severity="info" onClick={() => setMode('payday')} sx={{ cursor: 'pointer' }}>
-          給料日です。「給料日」に切り替えて、入金・振り分けを確認しましょう
-        </Alert>
-      )}
-
-      {setup ? null : mode === 'payday'
-        ? <PaydayPanel data={data} period={period} current={current} />
-        : <NormalView data={data} current={current} summary={s} onCardTodo={setEditing} />}
-
-      {breakdown && (
-        <BreakdownDialog kind={breakdown} summary={s} data={data} total={totals[breakdown]} onClose={() => setBreakdown(null)} />
-      )}
       {editing && (
         <CardBillDialog periodId={editing.periodId} bill={editing.bill} startDay={startDay} onClose={() => setEditing(null)} />
       )}
@@ -155,15 +99,45 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpe
   );
 }
 
-/** 内訳を開ける数字 */
-function Figure({ kind, value, minus, onOpen }: { kind: BreakdownKind; value: number; minus?: boolean; onOpen: (k: BreakdownKind) => void }) {
+/** お知らせ: カードの請求額の確定、回収予定を過ぎた立替、バックアップ。あるときだけ出す */
+function Notices({ data, current, onCardTodo }: { data: AppData; current: string; onCardTodo: (t: CardTodo) => void }) {
+  const todos = useMemo(() => cardTodos(data, new Date(), current), [data, current]);
+  const pending = data.receivables.filter((r) => !r.receivedAt && r.expectedPeriod <= current);
+  const backupDays = data.settings.lastBackupAt
+    ? Math.floor((Date.now() - new Date(data.settings.lastBackupAt).getTime()) / 86400000) : undefined;
+  const needBackup = backupDays === undefined || backupDays >= 30;
+  if (todos.length === 0 && pending.length === 0 && !needBackup) return null;
+
   return (
-    <ButtonBase onClick={() => onOpen(kind)} focusRipple aria-label={`${BREAKDOWN_LABEL[kind]}の内訳`}
-      sx={{ display: 'block', textAlign: 'left', borderRadius: 2, mx: -1, px: 1, py: 0.5 }}>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', letterSpacing: 0 }}>
-        {BREAKDOWN_LABEL[kind]}<ChevronRightIcon sx={{ fontSize: 14 }} />
-      </Typography>
-      <Typography variant="subtitle1" fontWeight={700} color={minus ? 'error.main' : 'text.primary'} sx={{ whiteSpace: 'nowrap' }}>{yen(value)}</Typography>
-    </ButtonBase>
+    <Card data-tour="notices">
+      <CardHeader title="お知らせ" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} sx={{ pb: 0 }} />
+      <List dense>
+        {todos.map((t) => (
+          <Notice key={`${t.periodId}:${t.bill.card.id}`} icon={<CreditCardIcon color={t.overdue ? 'error' : 'warning'} />}
+            primary={`${t.bill.card.name} の請求額が確定。金額を入れよう`}
+            secondary={`${billDatesText(t.bill)}・予測 ${yen(t.bill.forecast)}`} onClick={() => onCardTodo(t)} />
+        ))}
+        {pending.length > 0 && (
+          <Notice icon={<ReceiptLongIcon color="warning" />} primary="回収予定を過ぎた立替・精算があるよ"
+            secondary={`${yen(pending.reduce((a, r) => a + r.amount, 0))}（${pending.length}件）`} href="#receivables" />
+        )}
+        {needBackup && (
+          <Notice icon={<SaveAltIcon color="action" />} primary="バックアップを保存しよう"
+            secondary={backupDays === undefined ? 'まだ保存していないよ' : `前回から ${backupDays} 日`} href="#prefs-backup" />
+        )}
+      </List>
+    </Card>
+  );
+}
+
+function Notice({ icon, primary, secondary, onClick, href }: {
+  icon: ReactNode; primary: string; secondary: string; onClick?: () => void; href?: string;
+}) {
+  return (
+    <ListItemButton onClick={onClick} {...(href ? { component: 'a', href } : {})}>
+      <ListItemIcon sx={{ minWidth: 40 }}>{icon}</ListItemIcon>
+      <ListItemText primary={primary} secondary={secondary} primaryTypographyProps={{ fontWeight: 700, variant: 'body2' }} />
+      <ChevronRightIcon color="action" />
+    </ListItemButton>
   );
 }

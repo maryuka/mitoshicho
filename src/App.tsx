@@ -12,7 +12,9 @@ import { addPeriods, periodOf, periodRule } from './domain/period';
 import { buildSampleData } from './db/sample';
 import { db } from './db/db';
 import { HomePage } from './features/home/HomePage';
-import { BudgetPage } from './features/budget/BudgetPage';
+import { PaydayPage } from './features/home/PaydayPage';
+import { PlanPage } from './features/plan/PlanPage';
+import { ReviewPage } from './features/review/ReviewPage';
 import { ReceivablesPage } from './features/receivables/ReceivablesPage';
 import { SettingsPage, type SettingsPageId } from './features/settings/SettingsPage';
 import { ConfirmHost } from './components/ConfirmDialog';
@@ -35,6 +37,7 @@ const SUB_ROUTES = Object.keys(MENU_LABEL);
 
 /** メニューから開くページの先頭で、狐が言うひとこと */
 const TIPS: Record<string, string> = {
+  payday: '給料日には、入金と口座への振り分けをここでチェックしよう！',
   receivables: '立て替えたお金は、戻ってくる月を入れておくと見通しに入るよ！',
   'prefs-basic': '月の区切りは給料日。土日祝のときのずらし方も選べるよ！',
   'prefs-accounts': '請求確定日を入れておくと、確定したときに「やること」で知らせるよ！',
@@ -108,15 +111,18 @@ export function App() {
           <Stack spacing={2}>
             <SubHeader title={MENU_LABEL[route]} onBack={() => go(lastMain)} />
             {TIPS[route] && <KitsuneSays>{TIPS[route]}</KitsuneSays>}
-            {route === 'receivables'
+            {route === 'payday' ? <PaydayPage data={view} current={current} />
+              : route === 'receivables'
               ? <ReceivablesPage data={view} current={current} />
               : <SettingsPage page={route.replace('prefs-', '') as SettingsPageId} data={view} current={current} />}
           </Stack>
         ) : isEmpty ? (
           <Walkthrough settings={data.settings} />
-        ) : route === 'budget' || route === 'plan'
-          ? <BudgetPage key={route} mode={route === 'plan' ? 'budget' : 'actual'} data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
-          : <HomePage forceMode={tour?.mode} data={view} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} onOpenPlan={openPlan} menu={menu} />}
+        ) : route === 'budget'
+          ? <ReviewPage data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
+          : route === 'plan'
+          ? <PlanPage data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
+          : <HomePage data={view} current={current} onOpenBudget={openBudget} onOpenPlan={openPlan} onOpenPayday={() => go('payday')} menu={menu} />}
       </Container>
 
       {!noNav && <Paper elevation={3} sx={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 10, pb: 'env(safe-area-inset-bottom, 0px)' }}>

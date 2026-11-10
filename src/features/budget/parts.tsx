@@ -3,127 +3,22 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import {
   Box, Button, Card, CardContent, Chip, Divider, IconButton, Link, Stack, TextField, Typography,
 } from '@mui/material';
-import { Fragment, useMemo, useState, type ReactNode } from 'react';
-import { amountFor, summarize, type CardBillRow, type CategoryRow, type ItemRow } from '../../domain/cashflow';
+import { Fragment, useState } from 'react';
+import { amountFor, type CardBillRow, type CategoryRow, type ItemRow } from '../../domain/cashflow';
 import { OnceItemDialog } from '../settings/dialogs';
-import { periodLabel, periodRule } from '../../domain/period';
-import type { AppData, CategoryKind } from '../../domain/types';
+import { periodRule } from '../../domain/period';
+import type { AppData } from '../../domain/types';
 import { patchEntry, saveCardBill, setCategoryActual } from '../../db/ops';
 import { BILL_STATUS, billDatesText, billStatus } from '../../lib/cardBill';
 import { CardBillDialog } from '../../components/CardBillDialog';
 import { db, newId } from '../../db/db';
 import { signedYen, yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
-import { PeriodNav } from '../../components/PeriodNav';
 import { BudgetBar } from '../../components/BudgetBar';
 
-const SECTIONS: { kind: CategoryKind; label: string }[] = [
-  { kind: 'expense', label: '支出' },
-  { kind: 'debt', label: '返済' },
-  { kind: 'saving', label: '貯金・投資' },
-  { kind: 'income', label: '収入' },
-];
-
-/** ふりかえり（月ごとの予算と実績）。実績は家計簿アプリで集計したカテゴリ合計を入れて振り返る */
-export type Mode = 'budget' | 'actual';
-
-/** 下のメニューの「計画」（mode=budget）と「ふりかえり」（mode=actual）の画面 */
-export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
-  mode: Mode; data: AppData; period: string; setPeriod: (p: string) => void; current: string; menu?: ReactNode;
-}) {
-  const startDay = periodRule(data.settings);
-  const s = useMemo(() => summarize(data, period, current), [data, period, current]);
-
-  const expense = s.categories.filter((c) => c.kind === 'expense');
-  const budget = expense.reduce((a, c) => a + c.planned, 0);
-  const entered = expense.filter((c) => c.actual !== undefined);
-  const spent = entered.reduce((a, c) => a + (c.actual ?? 0), 0);
-  const diff = spent - entered.reduce((a, c) => a + c.planned, 0);
-  const enteredAll = s.categories.filter((c) => c.actual !== undefined).length;
-  const totalOf = (kind: CategoryKind) => s.categories.filter((c) => c.kind === kind).reduce((a, c) => a + c.planned, 0);
-
-  return (
-    <Stack spacing={2}>
-      <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} leading={menu} />
-
-      {mode === 'budget' ? (
-        <Card data-tour="summary">
-          <CardContent>
-            <Typography variant="caption" color="text.secondary">この月の予算（支出）</Typography>
-            <Typography variant="h5" fontWeight={700}>{yen(budget)}</Typography>
-            <Stack direction="row" spacing={2} sx={{ mt: 1 }} useFlexGap flexWrap="wrap">
-              {(['debt', 'saving', 'income'] as CategoryKind[]).map((k) => totalOf(k) > 0 && (
-                <Typography key={k} variant="caption" color="text.secondary">
-                  {SECTIONS.find((x) => x.kind === k)!.label} {yen(totalOf(k))}
-                </Typography>
-              ))}
-            </Stack>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              項目の金額を変えると、この月だけの予算になります（空欄ならいつもの金額）。この月だけの項目も足せます。
-            </Typography>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card data-tour="summary">
-          <CardContent>
-            <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={2} sx={{ mb: 1.5 }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary">支出の実績 / 予算</Typography>
-                <Typography variant="h5" fontWeight={700}>
-                  {yen(spent)} <Typography component="span" color="text.secondary">/ {yen(budget)}</Typography>
-                </Typography>
-              </Box>
-              {entered.length > 0 && (
-                <Box textAlign="right">
-                  <Typography variant="caption" color="text.secondary">予算との差</Typography>
-                  <Typography variant="h6" fontWeight={700} color={diff > 0 ? 'error' : 'success.main'}>{signedYen(diff)}</Typography>
-                </Box>
-              )}
-            </Stack>
-            <BudgetBar value={spent} max={budget} />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              {enteredAll === 0
-                ? `月末に家計簿アプリでこの月（${periodLabel(period, startDay)}）のカテゴリ別合計を見て、入力してください。予算どおりのものは「＝予算」で入れられます。カードの請求額はいちばん下で入力します。`
-                : `${enteredAll} / ${s.categories.length} カテゴリ入力済み`}
-            </Typography>
-          </CardContent>
-        </Card>
-      )}
-
-      {SECTIONS.map(({ kind, label }) => {
-        const cats = s.categories.filter((c) => c.kind === kind);
-        if (cats.length === 0) return null;
-        return (
-          <Card key={kind}>
-            <CardContent sx={{ pb: '8px !important' }}>
-              <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                <Typography variant="subtitle1" fontWeight={700}>{label}</Typography>
-                {mode === 'actual' && (
-                  <Typography variant="caption" color="text.secondary" sx={{ width: 132, textAlign: 'center' }}>
-                    {kind === 'income' ? '入金額' : '実績'}
-                  </Typography>
-                )}
-              </Stack>
-              {cats.map((c, i) => (
-                <Fragment key={c.category.id}>
-                  {i > 0 && <Divider />}
-                  {mode === 'actual'
-                    ? <ActualRow row={c} period={period} />
-                    : <BudgetRow row={c} period={period} data={data} />}
-                </Fragment>
-              ))}
-            </CardContent>
-          </Card>
-        );
-      })}
-
-      {mode === 'actual' && s.cardBills.length > 0 && <CardBills bills={s.cardBills} period={period} data={data} />}
-    </Stack>
-  );
-}
-
+// 計画とふりかえりの画面で使う部品
 /** カード請求: この月に引き落とされる分。確定した日に請求額を入れる（空欄のあいだは予測で計算） */
-function CardBills({ bills, period, data }: { bills: CardBillRow[]; period: string; data: AppData }) {
+export function CardBills({ bills, period, data }: { bills: CardBillRow[]; period: string; data: AppData }) {
   const [editing, setEditing] = useState<CardBillRow | null>(null);
   return (
     <Card>
@@ -170,7 +65,7 @@ function CardBills({ bills, period, data }: { bills: CardBillRow[]; period: stri
 }
 
 /** 実績: カテゴリごとに家計簿アプリの合計を入れる */
-function ActualRow({ row, period }: { row: CategoryRow; period: string }) {
+export function ActualRow({ row, period, plain }: { row: CategoryRow; period: string; /** 予算との差を出さない（ふりかえりでは、ずれは別に見る） */ plain?: boolean }) {
   const income = row.kind === 'income';
   const actual = row.actual;
   const over = actual !== undefined && !income && actual > row.planned;
@@ -194,7 +89,7 @@ function ActualRow({ row, period }: { row: CategoryRow; period: string }) {
           onChange={(v) => setCategoryActual(period, row.category.id, v)} />
       </Stack>
 
-      {actual !== undefined ? (
+      {actual !== undefined && !plain ? (
         <Stack spacing={0.5} sx={{ mt: 1 }}>
           {!income && <BudgetBar value={actual} max={row.planned} />}
           <Typography variant="caption" color={over ? 'error' : 'text.secondary'}>
@@ -209,15 +104,11 @@ function ActualRow({ row, period }: { row: CategoryRow; period: string }) {
 }
 
 /** 予算: カテゴリの中の項目ごとに、この月の予算を見る・変える */
-function BudgetRow({ row, period, data }: { row: CategoryRow; period: string; data: AppData }) {
+export function CategoryItems({ row, period, data }: { row: CategoryRow; period: string; data: AppData }) {
   const [editing, setEditing] = useState<ItemRow | null>(null);
   return (
-    <Box sx={{ py: 1.25 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="baseline">
-        <Typography noWrap sx={{ minWidth: 0 }}>{row.category.name}</Typography>
-        <Typography fontWeight={700} sx={{ flexShrink: 0 }}>{yen(row.planned)}</Typography>
-      </Stack>
-      <Stack spacing={1} sx={{ mt: 1, ml: 1, pl: 1.5, borderLeft: 2, borderColor: 'divider' }}>
+    <Box>
+      <Stack spacing={1} sx={{ ml: 0.5, pl: 1.5, borderLeft: 2, borderColor: 'divider' }}>
         {row.items.length === 0 && <Typography variant="caption" color="text.secondary">この月の項目はありません</Typography>}
         {row.items.map((r) => (
           <Stack key={r.item.id} direction="row" alignItems="center" spacing={1}>
