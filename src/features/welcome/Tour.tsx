@@ -20,7 +20,7 @@ export interface TourStep {
 /** 画面の案内。サンプルデータで、使いこなしたときの画面を順に見せる */
 export const TOUR_STEPS: TourStep[] = [
   { route: 'home', mode: 'normal', target: 'cycle',
-    text: '使いこなすと、ホームはこんなふうになるよ。計画して、月末にふりかえって、次の計画に活かす。今やることがここに出るよ。' },
+    text: 'サンプルデータで、ホームを見てみよう。計画して、月末にふりかえって、次の計画に活かす。その流れで今やることがここに出るよ。' },
   { route: 'home', mode: 'normal', target: 'review',
     text: '先月、計画とずれが大きかったところだけが出るよ。「納得」「想定外」「なんとなく」と、ひとことメモを付けておこう。' },
   { route: 'home', mode: 'normal', target: 'hints', optional: true,
