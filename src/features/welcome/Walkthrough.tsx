@@ -9,9 +9,10 @@ interface Step { image: string; title: string; body: ReactNode; setup?: boolean 
 
 const STEPS: Step[] = [
   {
-    image: KITSUNE.happy, title: 'みとおし帳へようこそ！',
+    image: KITSUNE.happy, title: '家計の見通し帳へようこそ！',
     body: <>
-      給料日ごとに「今月お金が回るか」を<br />見通すための家計アプリだよ。
+      <Box component="span" sx={{ display: 'block', fontWeight: 900, color: 'primary.main', mb: 0.5 }}>先が見えるから、今を気持ちよく使える</Box>
+      大きい出費まで先の予定を見通して、<br />計画とのずれをふりかえる家計アプリだよ。
       <Box component="ul" sx={{ textAlign: 'left', display: 'inline-block', m: 0, mt: 1.5, pl: 2.5 }}>
         <li>月ごとに予算を立てる</li>
         <li>給料日に入金と振り分けをチェック</li>

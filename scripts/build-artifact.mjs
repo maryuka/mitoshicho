@@ -8,7 +8,7 @@ const css = files.filter((f) => f.endsWith('.css')).map((f) => readFileSync(join
 const js = files.filter((f) => f.endsWith('.js')).map((f) => readFileSync(join(assets, f), 'utf8')).join('\n');
 const safeJs = js.replace(/<\/script/gi, '<\\/script');
 
-const html = `<title>みとおし帳</title>
+const html = `<title>家計の見通し帳</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
