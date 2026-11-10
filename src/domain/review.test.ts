@@ -22,6 +22,18 @@ describe('review', () => {
     expect(isNotable(20000, 2000)).toBe(true);
     expect(isNotable(3000, 900)).toBe(false);
     expect(isNotable(3000, -1000)).toBe(true);
+    expect(isNotable(20000, 0, { percent: 0, yen: 0 })).toBe(false);
+  });
+
+  it('ずれの大きさは設定で変えられる', () => {
+    expect(isNotable(20000, 1500, { percent: 5, yen: 500 })).toBe(true);
+    expect(isNotable(20000, 3500, { percent: 20, yen: 3000 })).toBe(false);
+    const d = data([act('2026-05', '食費', 21500), act('2026-05', '趣味', 41000)]);
+    expect(monthDrifts(d, '2026-05').map((x) => x.category.id)).toEqual(['趣味']);
+    d.settings = { ...d.settings, driftThreshold: { percent: 5, yen: 500 } };
+    expect(monthDrifts(d, '2026-05').map((x) => x.category.id)).toEqual(['趣味', '食費']);
+    d.settings = { ...d.settings, driftThreshold: { percent: 50, yen: 1000 } };
+    expect(monthDrifts(d, '2026-05')).toEqual([]);
   });
 
   it('その月の目立つずれを、大きい順に出す', () => {

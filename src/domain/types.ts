@@ -13,7 +13,11 @@ export interface Settings {
   startedAt?: string;
   /** ウォークスルーのあと、ホームで画面の案内をまだ見ていない */
   tourPending?: boolean;
+  /** ふりかえりで出すずれの大きさ。計画の percent ％か yen 円の、大きい方をこえたものだけ出す（なければ 10％・1,000円） */
+  driftThreshold?: DriftThreshold;
 }
+
+export interface DriftThreshold { percent: number; yen: number }
 
 export type AccountKind = 'bank' | 'card';
 

@@ -1,7 +1,7 @@
 // ふりかえり: 計画とのずれと、続いているずれ（改善のヒント）。純粋関数
 import { buildIndex, categoryRows, itemRows } from './cashflow';
 import { addPeriods } from './period';
-import type { AppData, Category, DriftKind } from './types';
+import type { AppData, Category, DriftKind, DriftThreshold } from './types';
 
 export const DRIFT_LABEL: Record<DriftKind, string> = { ok: '納得', unexpected: '想定外', casual: 'なんとなく' };
 
@@ -16,21 +16,35 @@ export interface Drift {
   memo?: string;
 }
 
-/** 細かいずれは出さない。計画の1割か 1,000円の、大きい方をこえたものだけ */
-export function isNotable(planned: number, diff: number): boolean {
-  return Math.abs(diff) >= Math.max(1000, Math.round(planned * 0.1));
+export const DEFAULT_DRIFT_THRESHOLD: DriftThreshold = { percent: 10, yen: 1000 };
+
+/** 設定画面の選択肢 */
+export const DRIFT_PRESETS: { label: string; value: DriftThreshold }[] = [
+  { label: '細かめ', value: { percent: 5, yen: 500 } },
+  { label: 'ふつう', value: DEFAULT_DRIFT_THRESHOLD },
+  { label: '大きいものだけ', value: { percent: 20, yen: 3000 } },
+];
+
+export function driftThreshold(data: AppData): DriftThreshold {
+  return data.settings.driftThreshold ?? DEFAULT_DRIFT_THRESHOLD;
+}
+
+/** 細かいずれは出さない。計画の percent ％か yen 円の、大きい方をこえたものだけ（既定 10％・1,000円） */
+export function isNotable(planned: number, diff: number, t: DriftThreshold = DEFAULT_DRIFT_THRESHOLD): boolean {
+  return diff !== 0 && Math.abs(diff) >= Math.max(t.yen, Math.round(planned * t.percent / 100));
 }
 
 /** その月の、支出カテゴリの目立つずれ（大きい順）。実績が入っていないカテゴリは出さない */
 export function monthDrifts(data: AppData, pid: string): Drift[] {
   const idx = buildIndex(data);
+  const t = driftThreshold(data);
   return categoryRows(data, pid, itemRows(data, pid, idx), idx)
     .filter((c) => c.kind === 'expense' && c.actual !== undefined)
     .map((c) => {
       const rec = idx.actuals.get(`${pid}:${c.category.id}`);
       return { periodId: pid, category: c.category, planned: c.planned, actual: c.actual!, diff: c.actual! - c.planned, kind: rec?.driftKind, memo: rec?.memo };
     })
-    .filter((d) => isNotable(d.planned, d.diff))
+    .filter((d) => isNotable(d.planned, d.diff, t))
     .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
 }
 

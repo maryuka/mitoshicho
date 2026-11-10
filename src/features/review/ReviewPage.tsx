@@ -1,11 +1,12 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import TuneIcon from '@mui/icons-material/Tune';
 import {
-  Accordion, AccordionDetails, AccordionSummary, Avatar, Box, Button, Card, CardContent, Divider, Stack, Typography,
+  Accordion, AccordionDetails, AccordionSummary, Avatar, Box, Button, Card, CardContent, Divider, IconButton, Stack, Typography,
 } from '@mui/material';
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { summarize } from '../../domain/cashflow';
 import { addPeriods, periodLabel, periodRule } from '../../domain/period';
-import { driftHints, monthDrifts, REVIEW_DONE_KEY, reviewStatus } from '../../domain/review';
+import { driftHints, driftThreshold, monthDrifts, REVIEW_DONE_KEY, reviewStatus } from '../../domain/review';
 import type { AppData } from '../../domain/types';
 import { toggleCheck } from '../../db/ops';
 import { yen } from '../../lib/money';
@@ -13,7 +14,7 @@ import { PeriodNav } from '../../components/PeriodNav';
 import { Confetti } from '../../components/Confetti';
 import { KITSUNE } from '../../components/Kitsune';
 import { ActualRow, CardBills } from '../budget/parts';
-import { DriftGroup, HintsCard } from './Drift';
+import { DriftGroup, DriftSettingsDialog, HintsCard } from './Drift';
 
 /** ふりかえり: ①実績を入れる → ②ずれを考える → ③改善のヒント → 完了 */
 export function ReviewPage({ data, period, setPeriod, current, menu }: {
@@ -31,6 +32,8 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
   const under = drifts.filter((d) => d.diff < 0);
   const allEntered = status.missing === 0 && status.started;
   const future = period > current;
+  const t = driftThreshold(data);
+  const [settingDrift, setSettingDrift] = useState(false);
 
   // 完了した瞬間だけクラッカーを鳴らす
   const [fire, setFire] = useState(0);
@@ -99,7 +102,8 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
 
       {/* ② ずれを考える */}
       <Section no={2} title="計画とのずれを考える" done={allEntered && status.untagged === 0}
-        sub="ずれが大きかったところだけ。理由を付けたいものに付けて、ひとことメモを残そう">
+        sub={`計画の${t.percent}％か${yen(t.yen)}の、大きい方をこえたずれだけ。理由を付けたいものに付けて、ひとことメモを残そう`}
+        action={<IconButton size="small" aria-label="表示するずれの設定" onClick={() => setSettingDrift(true)} sx={{ color: 'text.secondary' }}><TuneIcon fontSize="small" /></IconButton>}>
         {!status.started ? (
           <Typography variant="body2" color="text.secondary">実績を入れると、ここに出るよ。</Typography>
         ) : drifts.length === 0 ? (
@@ -111,6 +115,8 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
           </Stack>
         )}
       </Section>
+
+      {settingDrift && <DriftSettingsDialog settings={data.settings} onClose={() => setSettingDrift(false)} />}
 
       {/* ③ 改善のヒント */}
       {hints.length > 0 && <HintsCard hints={hints} />}
@@ -134,14 +140,17 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
   );
 }
 
-function Section({ no, title, sub, done, children }: { no: number; title: string; sub: string; done: boolean; children: ReactNode }) {
+function Section({ no, title, sub, done, action, children }: {
+  no: number; title: string; sub: string; done: boolean; action?: ReactNode; children: ReactNode;
+}) {
   return (
     <Card>
       <CardContent sx={{ pb: '12px !important' }}>
         <Stack direction="row" spacing={1.25} alignItems="center">
           <Avatar sx={{ width: 26, height: 26, fontSize: 14, fontWeight: 900,
             bgcolor: done ? 'success.main' : 'primary.main', color: 'background.paper' }}>{done ? '✓' : no}</Avatar>
-          <Typography variant="subtitle1" fontWeight={900}>{title}</Typography>
+          <Typography variant="subtitle1" fontWeight={900} sx={{ flex: 1 }}>{title}</Typography>
+          {action}
         </Stack>
         <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.75, mb: 1, lineHeight: 1.7 }}>{sub}</Typography>
         {children}
