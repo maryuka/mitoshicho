@@ -18,13 +18,6 @@ export interface Drift {
 
 export const DEFAULT_DRIFT_MIN_YEN = 5000;
 
-/** 設定画面の選択肢 */
-export const DRIFT_PRESETS: { label: string; yen: number }[] = [
-  { label: '細かめ', yen: 1000 },
-  { label: 'ふつう', yen: DEFAULT_DRIFT_MIN_YEN },
-  { label: '大きいものだけ', yen: 10000 },
-];
-
 export function driftMinYen(data: AppData): number {
   return data.settings.driftMinYen ?? DEFAULT_DRIFT_MIN_YEN;
 }

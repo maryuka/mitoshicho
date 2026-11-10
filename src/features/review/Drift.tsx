@@ -7,7 +7,7 @@ import {
 import { useState } from 'react';
 import { patchCategoryActual } from '../../db/ops';
 import { db } from '../../db/db';
-import { DEFAULT_DRIFT_MIN_YEN, DRIFT_LABEL, DRIFT_PRESETS, type Drift, type DriftHint } from '../../domain/review';
+import { DEFAULT_DRIFT_MIN_YEN, DRIFT_LABEL, type Drift, type DriftHint } from '../../domain/review';
 import { DEFAULT_SETTINGS, type DriftKind, type Settings } from '../../domain/types';
 import { MoneyField } from '../../components/MoneyField';
 import { yen } from '../../lib/money';
@@ -86,13 +86,7 @@ export function DriftFields({ settings }: { settings: Settings }) {
       <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
         ふりかえりで、計画とこの金額以上ずれたカテゴリだけに、理由とメモの欄を出します。
       </Typography>
-      <Stack direction="row" spacing={0.75} sx={{ mt: 1.5, flexWrap: 'wrap', rowGap: 0.75 }} role="group" aria-label="よく使う設定">
-        {DRIFT_PRESETS.map((x) => (
-          <Chip key={x.label} label={`${x.label}（${yen(x.yen)}）`} onClick={() => update(x.yen)} aria-pressed={minYen === x.yen}
-            color={minYen === x.yen ? 'primary' : 'default'} variant={minYen === x.yen ? 'filled' : 'outlined'} sx={{ fontWeight: 700 }} />
-        ))}
-      </Stack>
-      <MoneyField id="set-drift-min" label="この金額以上ずれたら出す" value={minYen} onChange={(v) => update(v ?? 0)} fullWidth sx={{ mt: 2.5 }} />
+      <MoneyField id="set-drift-min" label="この金額以上ずれたら出す" value={minYen} onChange={(v) => update(v ?? 0)} fullWidth sx={{ mt: 2 }} />
     </Box>
   );
 }
