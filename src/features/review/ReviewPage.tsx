@@ -6,7 +6,7 @@ import {
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { summarize } from '../../domain/cashflow';
 import { addPeriods, periodLabel, periodRule } from '../../domain/period';
-import { driftHints, driftThreshold, monthDrifts, REVIEW_DONE_KEY, reviewStatus } from '../../domain/review';
+import { driftHints, driftMinYen, monthDrifts, REVIEW_DONE_KEY, reviewStatus } from '../../domain/review';
 import type { AppData } from '../../domain/types';
 import { toggleCheck } from '../../db/ops';
 import { yen } from '../../lib/money';
@@ -31,7 +31,7 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
   const driftOf = new Map(drifts.map((d) => [d.category.id, d]));
   const allEntered = status.missing === 0 && status.started;
   const future = period > current;
-  const t = driftThreshold(data);
+  const minYen = driftMinYen(data);
   const [settingDrift, setSettingDrift] = useState(false);
 
   // 完了した瞬間だけクラッカーを鳴らす
@@ -75,7 +75,7 @@ export function ReviewPage({ data, period, setPeriod, current, menu }: {
 
       {/* 実績を入れて、ずれを考える */}
       <Section title="実績を入れて、ずれを考える" done={allEntered && status.untagged === 0}
-        sub={`家計簿アプリのカテゴリ別の合計を入れよう（${entered} / ${expense.length}）。計画の${t.percent}％か${yen(t.yen)}の、大きい方をこえてずれたら、理由とひとことメモを残そう`}
+        sub={`家計簿アプリのカテゴリ別の合計を入れよう（${entered} / ${expense.length}）。計画と${yen(minYen)}以上ずれたら、理由とひとことメモを残そう`}
         action={<IconButton size="small" aria-label="表示するずれの設定" onClick={() => setSettingDrift(true)} sx={{ color: 'text.secondary' }}><TuneIcon fontSize="small" /></IconButton>}>
         {expense.map((c, i) => {
           const d = driftOf.get(c.category.id);

@@ -17,22 +17,21 @@ const act = (pid: string, categoryId: string, amount: number, extra: Partial<Cat
   ({ id: `${pid}:${categoryId}`, periodId: pid, categoryId, amount, ...extra });
 
 describe('review', () => {
-  it('細かいずれは出さない（計画の1割か1,000円の大きい方）', () => {
-    expect(isNotable(20000, 1999)).toBe(false);
-    expect(isNotable(20000, 2000)).toBe(true);
-    expect(isNotable(3000, 900)).toBe(false);
-    expect(isNotable(3000, -1000)).toBe(true);
-    expect(isNotable(20000, 0, { percent: 0, yen: 0 })).toBe(false);
+  it('細かいずれは出さない（既定は1,000円以上）', () => {
+    expect(isNotable(999)).toBe(false);
+    expect(isNotable(1000)).toBe(true);
+    expect(isNotable(-1000)).toBe(true);
+    expect(isNotable(0, 0)).toBe(false);
   });
 
   it('ずれの大きさは設定で変えられる', () => {
-    expect(isNotable(20000, 1500, { percent: 5, yen: 500 })).toBe(true);
-    expect(isNotable(20000, 3500, { percent: 20, yen: 3000 })).toBe(false);
-    const d = data([act('2026-05', '食費', 21500), act('2026-05', '趣味', 41000)]);
+    expect(isNotable(600, 500)).toBe(true);
+    expect(isNotable(2500, 3000)).toBe(false);
+    const d = data([act('2026-05', '食費', 20600), act('2026-05', '趣味', 41000)]);
     expect(monthDrifts(d, '2026-05').map((x) => x.category.id)).toEqual(['趣味']);
-    d.settings = { ...d.settings, driftThreshold: { percent: 5, yen: 500 } };
+    d.settings = { ...d.settings, driftMinYen: 500 };
     expect(monthDrifts(d, '2026-05').map((x) => x.category.id)).toEqual(['趣味', '食費']);
-    d.settings = { ...d.settings, driftThreshold: { percent: 50, yen: 1000 } };
+    d.settings = { ...d.settings, driftMinYen: 20000 };
     expect(monthDrifts(d, '2026-05')).toEqual([]);
   });
 
