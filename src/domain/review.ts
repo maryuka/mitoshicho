@@ -16,20 +16,20 @@ export interface Drift {
   memo?: string;
 }
 
-export const DEFAULT_DRIFT_MIN_YEN = 1000;
+export const DEFAULT_DRIFT_MIN_YEN = 5000;
 
 /** 設定画面の選択肢 */
 export const DRIFT_PRESETS: { label: string; yen: number }[] = [
-  { label: '細かめ', yen: 500 },
+  { label: '細かめ', yen: 1000 },
   { label: 'ふつう', yen: DEFAULT_DRIFT_MIN_YEN },
-  { label: '大きいものだけ', yen: 3000 },
+  { label: '大きいものだけ', yen: 10000 },
 ];
 
 export function driftMinYen(data: AppData): number {
   return data.settings.driftMinYen ?? DEFAULT_DRIFT_MIN_YEN;
 }
 
-/** 細かいずれは出さない。minYen 円以上ずれたものだけ（既定 1,000円） */
+/** 細かいずれは出さない。minYen 円以上ずれたものだけ（既定 5,000円） */
 export function isNotable(diff: number, minYen = DEFAULT_DRIFT_MIN_YEN): boolean {
   return diff !== 0 && Math.abs(diff) >= minYen;
 }

@@ -7,7 +7,8 @@ function data(actuals: CategoryActual[]): AppData {
   const item = (id: string, categoryId: string, defaultAmount: number) =>
     ({ id, name: id, categoryId, defaultAmount, recurrence: { type: 'monthly' as const }, startPeriod: '2026-01', sortOrder: 0, archived: false });
   return {
-    settings: DEFAULT_SETTINGS, accounts: [],
+    // 細かいずれも見たいので 1,000円にしておく（既定は 5,000円）
+    settings: { ...DEFAULT_SETTINGS, driftMinYen: 1000 }, accounts: [],
     categories: [cat('給与', 'income'), cat('食費', 'expense'), cat('趣味', 'expense'), cat('日用品', 'expense')],
     items: [item('a', '給与', 300000), item('b', '食費', 20000), item('c', '趣味', 30000), item('d', '日用品', 3000)],
     entries: [], categoryActuals: actuals, cardBills: [], receivables: [], checklistTemplates: [], checklistDone: [],
@@ -17,10 +18,10 @@ const act = (pid: string, categoryId: string, amount: number, extra: Partial<Cat
   ({ id: `${pid}:${categoryId}`, periodId: pid, categoryId, amount, ...extra });
 
 describe('review', () => {
-  it('細かいずれは出さない（既定は1,000円以上）', () => {
-    expect(isNotable(999)).toBe(false);
-    expect(isNotable(1000)).toBe(true);
-    expect(isNotable(-1000)).toBe(true);
+  it('細かいずれは出さない（既定は5,000円以上）', () => {
+    expect(isNotable(4999)).toBe(false);
+    expect(isNotable(5000)).toBe(true);
+    expect(isNotable(-5000)).toBe(true);
     expect(isNotable(0, 0)).toBe(false);
   });
 
@@ -33,6 +34,9 @@ describe('review', () => {
     expect(monthDrifts(d, '2026-05').map((x) => x.category.id)).toEqual(['趣味', '食費']);
     d.settings = { ...d.settings, driftMinYen: 20000 };
     expect(monthDrifts(d, '2026-05')).toEqual([]);
+    // 設定がなければ 5,000円
+    d.settings = { ...d.settings, driftMinYen: undefined };
+    expect(monthDrifts(d, '2026-05').map((x) => x.category.id)).toEqual(['趣味']);
   });
 
   it('その月の目立つずれを、大きい順に出す', () => {

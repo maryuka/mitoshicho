@@ -13,7 +13,7 @@ export interface Settings {
   startedAt?: string;
   /** ウォークスルーのあと、ホームで画面の案内をまだ見ていない */
   tourPending?: boolean;
-  /** ふりかえりで出すずれの大きさ。この金額以上ずれたものだけ出す（なければ 1,000円） */
+  /** ふりかえりで出すずれの大きさ。この金額以上ずれたものだけ出す（なければ 5,000円） */
   driftMinYen?: number;
 }
 
