@@ -78,7 +78,10 @@ export function MenuDrawer({ open, onClose, onSelect }: {
       <Box sx={{ pt: 'calc(16px + env(safe-area-inset-top, 0px))', pb: 'calc(24px + env(safe-area-inset-bottom, 0px))',
         pl: 'max(16px, env(safe-area-inset-left, 0px))', pr: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-          <Typography variant="h6" fontWeight={700} color="primary">みとおし帳</Typography>
+          <Box>
+            <Typography variant="h6" fontWeight={700} color="primary" sx={{ lineHeight: 1.3 }}>家計の見通し帳</Typography>
+            <Typography variant="caption" color="text.secondary">先が見えるから、今を気持ちよく使える</Typography>
+          </Box>
           <IconButton aria-label="メニューを閉じる" onClick={onClose}><CloseIcon /></IconButton>
         </Stack>
         <Stack spacing={3}>

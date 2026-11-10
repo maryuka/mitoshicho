@@ -40,7 +40,7 @@ npm run build:artifact
 cp artifact/mitoshicho.html <scratchpad>/mitoshicho-walkthrough.html
 ```
 
-- 試用版は https://claude.ai/artifact/Y62abpUC1fKm2Y8RvzVpcK （タイトル「みとおし帳」）。
+- 試用版は https://claude.ai/artifact/Y62abpUC1fKm2Y8RvzVpcK （タイトル「家計の見通し帳」）。
   別の会話からは Artifact の `read` で読んでから、`url` を指定して同じ URL に公開し直す
 - Artifact はブラウザごとにデータが別。最初はデータが空なのでウォークスルーから始まる。
   ダウンロード（バックアップ保存）は Artifact では動かない旨の警告が出るが、いつものこと
