@@ -12,12 +12,7 @@ const STEPS: Step[] = [
     image: KITSUNE.happy, title: '家計の見通し帳へようこそ！',
     body: <>
       <Box component="span" sx={{ display: 'block', fontWeight: 900, color: 'primary.main', mb: 0.5 }}>先が見えるから、今を気持ちよく使える</Box>
-      大きい出費まで先の予定を見通して、<br />計画とのずれをふりかえる家計アプリだよ。
-      <Box component="ul" sx={{ textAlign: 'left', display: 'inline-block', m: 0, mt: 1.5, pl: 2.5 }}>
-        <li>月ごとに予算を立てる</li>
-        <li>給料日に入金と振り分けをチェック</li>
-        <li>月末に家計簿アプリの合計で振り返る</li>
-      </Box>
+      ざっくり計画して、ふりかえって、<br />使い方を良くしていく家計アプリだよ。
     </>,
   },
   {
@@ -26,7 +21,7 @@ const STEPS: Step[] = [
   },
   {
     image: KITSUNE.money, title: 'さっそく始めよう',
-    body: <>データはこの端末の中だけに保存されるよ。<br />スプレッドシートの取り込みやサンプルデータ、<br />バックアップからの復元は<br />メニューの「データ」からできるよ。</>,
+    body: <>サンプルデータで、使い方を案内するよ。<br />データはこの端末の中だけに保存されるよ。</>,
   },
 ];
 
