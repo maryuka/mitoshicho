@@ -1,5 +1,6 @@
 import { categoryActualId, entryId } from '../domain/cashflow';
 import { db } from './db';
+import type { DriftKind } from '../domain/types';
 
 /** Entry（期ごとの予算上書き）を部分更新する。空になれば削除 */
 export async function patchEntry(
@@ -17,8 +18,21 @@ export async function patchEntry(
 /** カテゴリの実績合計を入れる。undefined なら消す */
 export async function setCategoryActual(periodId: string, categoryId: string, amount: number | undefined): Promise<void> {
   const id = categoryActualId(periodId, categoryId);
-  if (amount === undefined) await db.categoryActuals.delete(id);
-  else await db.categoryActuals.put({ id, periodId, categoryId, amount });
+  if (amount === undefined) { await db.categoryActuals.delete(id); return; }
+  // ずれの種類やメモは残す
+  const prev = await db.categoryActuals.get(id);
+  await db.categoryActuals.put({ ...prev, id, periodId, categoryId, amount });
+}
+
+/** 実績に付けた、ずれの種類・メモを書き換える（実績が入っている月だけ） */
+export async function patchCategoryActual(periodId: string, categoryId: string, patch: { driftKind?: DriftKind | null; memo?: string }): Promise<void> {
+  const id = categoryActualId(periodId, categoryId);
+  const prev = await db.categoryActuals.get(id);
+  if (!prev) return;
+  const next = { ...prev };
+  if ('driftKind' in patch) { if (patch.driftKind) next.driftKind = patch.driftKind; else delete next.driftKind; }
+  if ('memo' in patch) { if (patch.memo?.trim()) next.memo = patch.memo.trim(); else delete next.memo; }
+  await db.categoryActuals.put(next);
 }
 
 export interface CardBillPatch {

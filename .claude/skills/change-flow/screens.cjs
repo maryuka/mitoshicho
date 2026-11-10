@@ -22,7 +22,10 @@ const base = process.env.BASE_URL || 'http://localhost:4173/';
       await skip.click();
       await page.waitForTimeout(400);
       await page.getByRole('button', { name: '始める' }).click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(600);
+      // 始めたあとの画面の案内は飛ばす
+      const skipTour = page.getByRole('dialog').getByRole('button', { name: 'スキップ' });
+      if (await skipTour.count()) { await skipTour.click(); await page.waitForTimeout(400); }
       await page.goto(`${base}#prefs-backup`);
       await page.waitForTimeout(400);
       await page.getByRole('button', { name: 'サンプルデータを読み込む' }).click();

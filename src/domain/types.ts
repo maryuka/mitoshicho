@@ -93,7 +93,12 @@ export interface CategoryActual {
   categoryId: string;
   amount: number;
   memo?: string;
+  /** 計画とのずれの種類（ふりかえりで付ける） */
+  driftKind?: DriftKind;
 }
+
+/** ずれの種類。ok: 納得 / unexpected: 想定外 / casual: なんとなく */
+export type DriftKind = 'ok' | 'unexpected' | 'casual';
 
 export interface CardBill {
   id: string; // `${periodId}:${cardId}`

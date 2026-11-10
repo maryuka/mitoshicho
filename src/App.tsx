@@ -95,6 +95,7 @@ export function App() {
   // 下のメニューを出さないのは、データが空のあいだ（ウォークスルーなど）と、左のメニューから開いたページ（「‹ 戻る」で戻る）
   const noNav = isEmpty || isSub;
   const openBudget = (pid: string) => { setPeriod(pid); go('budget'); };
+  const openPlan = (pid: string) => { setPeriod(pid); go('plan'); };
   const menu = <MenuButton onClick={() => setMenuOpen(true)} />;
 
   return (
@@ -115,7 +116,7 @@ export function App() {
           <Walkthrough settings={data.settings} />
         ) : route === 'budget' || route === 'plan'
           ? <BudgetPage key={route} mode={route === 'plan' ? 'budget' : 'actual'} data={view} period={p} setPeriod={setPeriod} current={current} menu={menu} />
-          : <HomePage forceMode={tour?.mode} data={view} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} menu={menu} />}
+          : <HomePage forceMode={tour?.mode} data={view} period={p} setPeriod={setPeriod} current={current} onOpenBudget={openBudget} onOpenPlan={openPlan} menu={menu} />}
       </Container>
 
       {!noNav && <Paper elevation={3} sx={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 10, pb: 'env(safe-area-inset-bottom, 0px)' }}>

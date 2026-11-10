@@ -1,6 +1,6 @@
 // 試用のためのサンプルデータ（金額・名前は架空）
 import { addPeriods, parsePeriod, periodOf, periodRule } from '../domain/period';
-import type { Account, AppData, CardBill, Category, ChecklistTemplate, Entry, Item, Receivable, Recurrence, CategoryActual, Settings } from '../domain/types';
+import type { Account, AppData, CardBill, Category, ChecklistTemplate, Entry, Item, Receivable, Recurrence, CategoryActual, DriftKind, Settings } from '../domain/types';
 import { DEFAULT_SETTINGS } from '../domain/types';
 import { db } from './db';
 import { clearAll } from './backup';
@@ -88,6 +88,10 @@ export function buildSampleData(prev?: Settings): AppData {
     it('奨学金返済', 'c-debt', 13000, 'acc-pay', 27),
     it('iDeCo', 'c-save', 10000, 'acc-pay', 26),
     it('生活防衛費', 'c-save', 30000, 'acc-save', 15),
+    it('つみたて投資', 'c-save', 30000, 'acc-pay', 27),
+    it('特別費の積み立て', 'c-save', 16400, 'acc-save', 15),
+    it('帰省の交通費', 'c-enjoy', 40000, 'card-a', undefined, { recurrence: { type: 'once', periodId: addPeriods(now, 3) } }),
+    it('冷蔵庫の買い替え', 'c-util', 40000, 'acc-life', undefined, { recurrence: { type: 'once', periodId: addPeriods(now, 6) } }),
   ];
 
   // 実績（家計簿アプリで集計したカテゴリ合計を振り返りで入れた想定）。前期は一部未入力にしておく
@@ -99,7 +103,7 @@ export function buildSampleData(prev?: Settings): AppData {
     ['c-salary', [280000, 280000, 280000]],
     ['c-fixed', [85000, 85000, 85000]],
     ['c-util', [9200, 9800, 11400]],
-    ['c-food', [21800, 18200, 24900]],
+    ['c-food', [22500, 18200, 24900]],
     ['c-enjoy', [36000, 27500, 41000]],
     ['c-friends', [6000, 11500, 9000]],
     ['c-beauty', [3000, 3000, 3000]],
@@ -114,9 +118,30 @@ export function buildSampleData(prev?: Settings): AppData {
       act(pid, cat, v);
     });
   }
+  // ふりかえりで付けた、ずれの種類と一言メモ
+  const tag = (n: number, cat: string, driftKind: DriftKind, memo?: string) => {
+    const a = categoryActuals.find((x) => x.id === `${addPeriods(now, n)}:${cat}`);
+    if (a) Object.assign(a, { driftKind }, memo ? { memo } : {});
+  };
+  tag(-1, 'c-enjoy', 'ok', 'ライブ遠征');
+  tag(-1, 'c-food', 'casual');
+  tag(-1, 'c-friends', 'unexpected', '友だちの誕生日');
+  tag(-2, 'c-friends', 'unexpected', '結婚式のご祝儀');
+  tag(-3, 'c-enjoy', 'ok', '旅行の準備');
+  tag(-3, 'c-food', 'casual', 'コンビニが多かった');
 
+  // 大きい出費の月は、積み立てを減らしておく（item-21: つみたて投資、item-22: 特別費の積み立て）
+  const entry = (n: number, itemId: string, planned: number, memo?: string): Entry =>
+    ({ id: `${addPeriods(now, n)}:${itemId}`, periodId: addPeriods(now, n), itemId, planned, memo });
   const entries: Entry[] = [
-    { id: `${addPeriods(now, 1)}:item-6`, periodId: addPeriods(now, 1), itemId: 'item-6', planned: 80000, memo: '旅行' },
+    entry(1, 'item-6', 60000, '旅行'),
+    entry(1, 'item-22', 0, '旅行の月'),
+    entry(1, 'item-21', 16400, '旅行の月'),
+    entry(2, 'item-22', 3500, '年払いの月'),
+    entry(3, 'item-22', 0, '帰省の月'),
+    entry(3, 'item-21', 6400, '帰省の月'),
+    entry(6, 'item-22', 0, '冷蔵庫の買い替え'),
+    entry(6, 'item-21', 6400, '冷蔵庫の買い替え'),
   ];
 
   const cardBills: CardBill[] = [];

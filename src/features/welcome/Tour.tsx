@@ -19,8 +19,14 @@ export interface TourStep {
 
 /** 画面の案内。サンプルデータで、使いこなしたときの画面を順に見せる */
 export const TOUR_STEPS: TourStep[] = [
-  { route: 'home', mode: 'normal', target: 'buffer',
-    text: '使いこなすと、ホームはこんなふうになるよ。収入から支出とカードの請求を引いて、今月いくら残るかがいつでもわかるよ。' },
+  { route: 'home', mode: 'normal', target: 'cycle',
+    text: 'サンプルデータで、ホームを見てみよう。計画して、月末にふりかえって、次の計画に活かす。その流れで今やることがここに出るよ。' },
+  { route: 'home', mode: 'normal', target: 'review',
+    text: '先月、計画とずれが大きかったところだけが出るよ。「納得」「想定外」「なんとなく」と、ひとことメモを付けておこう。' },
+  { route: 'home', mode: 'normal', target: 'hints', optional: true,
+    text: '同じずれが続いていたら、ヒントを出すよ。節約しなきゃ、じゃなくて、計画のほうを良くしていこう。' },
+  { route: 'home', mode: 'normal', target: 'big',
+    text: '旅行・帰省・家電の買い替え・年払いなどの大きい出費も、先の予定として並ぶよ。先が見えるから、今を気持ちよく使えるね。' },
   { route: 'home', mode: 'normal', target: 'todo', optional: true,
     text: 'カードの請求額が確定したら「やること」で知らせるよ。金額を入れると、見通しが正確になるよ。' },
   { route: 'home', mode: 'payday', target: 'payday',

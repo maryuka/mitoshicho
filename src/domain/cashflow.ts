@@ -337,3 +337,44 @@ export function cardTodos(data: AppData, today: Date, currentPeriod: string): Ca
   }
   return todos;
 }
+
+/** 先の予定として目立たせる出費。年払い・数か月ごと・1回のみの項目と、いつもより多くしたその月だけの予算 */
+export interface BigExpense {
+  periodId: string;
+  item: Item;
+  category: Category;
+  amount: number;
+  /** その月だけの予算に付けたメモ（例: 旅行） */
+  memo?: string;
+  /** いつもの金額（その月だけ増やしたとき）。いつもは出ない月なら 0 */
+  usual?: number;
+  reason: 'yearly' | 'interval' | 'once' | 'override';
+}
+
+export function bigExpenses(data: AppData, pid: string, idx = buildIndex(data)): BigExpense[] {
+  const out: BigExpense[] = [];
+  for (const r of itemRows(data, pid, idx)) {
+    if (r.kind === 'income' || r.kind === 'saving' || !r.planned) continue;
+    const rec = r.item.recurrence;
+    const usual = itemOccurs(r.item, pid) ? amountFor(r.item, pid) : 0;
+    const base = { periodId: pid, item: r.item, category: r.category, amount: r.planned, memo: r.memo };
+    if (r.hasOverride && r.planned > usual) out.push({ ...base, usual, reason: 'override' });
+    else if (rec.type === 'yearly' || rec.type === 'once') out.push({ ...base, reason: rec.type });
+    else if (rec.type === 'interval' && rec.months >= 3) out.push({ ...base, reason: 'interval' });
+  }
+  return out;
+}
+
+export interface OutlookMonth {
+  periodId: string;
+  big: BigExpense[];
+}
+
+/** current から months か月分の、大きい出費の予定 */
+export function outlook(data: AppData, current: string, months = 12): OutlookMonth[] {
+  const idx = buildIndex(data);
+  return Array.from({ length: months }, (_, i) => {
+    const pid = addPeriods(current, i);
+    return { periodId: pid, big: bigExpenses(data, pid, idx) };
+  });
+}

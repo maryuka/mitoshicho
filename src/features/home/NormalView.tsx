@@ -1,23 +1,21 @@
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
-import EditNoteIcon from '@mui/icons-material/EditNote';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import {
   Box, Button, Card, CardContent, CardHeader, Chip, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography,
 } from '@mui/material';
 import { useMemo, type ReactNode } from 'react';
-import { cardBillRows, cardTodos, summarize, type CardTodo, type PeriodSummary } from '../../domain/cashflow';
-import { addPeriods, mdLabel, periodLabel, periodRule } from '../../domain/period';
+import { cardBillRows, cardTodos, type CardTodo, type PeriodSummary } from '../../domain/cashflow';
+import { addPeriods, mdLabel } from '../../domain/period';
 import type { AppData } from '../../domain/types';
 import { billDatesText } from '../../lib/cardBill';
 import { signedYen, yen } from '../../lib/money';
 
-export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget }: {
+export function NormalView({ data, current, summary: s, onCardTodo }: {
   data: AppData; current: string; summary: PeriodSummary;
-  onCardTodo: (t: CardTodo) => void; onOpenBudget: (periodId: string) => void;
+  onCardTodo: (t: CardTodo) => void;
 }) {
-  const startDay = periodRule(data.settings);
   const todos = useMemo(() => cardTodos(data, new Date(), current), [data, current]);
   const upcoming = useMemo(() => {
     const now = new Date();
@@ -27,18 +25,13 @@ export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget
       .sort((a, b) => a.confirmDate!.getTime() - b.confirmDate!.getTime());
   }, [data, current]);
 
-  // 先月の実績（家計簿アプリのカテゴリ合計）が未入力なら、やることに出す
-  const prev = addPeriods(current, -1);
-  const missing = useMemo(
-    () => summarize(data, prev, current).categories.filter((c) => c.kind === 'expense' && c.actual === undefined && c.planned > 0),
-    [data, prev, current],
-  );
+  // 先月の実績の入力は、ホームの「今やること」で扱う
   const pending = data.receivables.filter((r) => !r.receivedAt && r.expectedPeriod <= s.periodId);
   const openReceivables = data.receivables.filter((r) => !r.receivedAt);
   const backupDays = data.settings.lastBackupAt
     ? Math.floor((Date.now() - new Date(data.settings.lastBackupAt).getTime()) / 86400000) : undefined;
   const needBackup = data.items.length > 0 && (backupDays === undefined || backupDays >= 30);
-  const hasTodo = todos.length > 0 || missing.length > 0 || pending.length > 0 || needBackup;
+  const hasTodo = todos.length > 0 || pending.length > 0 || needBackup;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -55,10 +48,6 @@ export function NormalView({ data, current, summary: s, onCardTodo, onOpenBudget
                 secondary={`${billDatesText(t.bill)}・予測 ${yen(t.bill.forecast)}${t.overdue ? '・引落日を過ぎています' : ''}`}
                 onClick={() => onCardTodo(t)} />
             ))}
-            {missing.length > 0 && (
-              <Todo icon={<EditNoteIcon color="warning" />} primary="先月の実績を入力（カテゴリごとの合計）"
-                secondary={`${periodLabel(prev, startDay)}・未入力 ${missing.length} カテゴリ`} onClick={() => onOpenBudget(prev)} />
-            )}
             {pending.length > 0 && (
               <Todo icon={<ReceiptLongIcon color="warning" />}
                 primary={`回収予定を過ぎた立替・精算 ${yen(pending.reduce((a, r) => a + r.amount, 0))}（${pending.length}件）`}
