@@ -52,7 +52,7 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
           </CardContent>
         </Card>
       )}
-      <Step no={1} title="収入を確定">
+      <Step no={1} title="収入を確定" tour="payday">
         {incomes.length === 0 && <Empty>この月の収入項目がありません</Empty>}
         <Stack spacing={1.5}>
           {incomes.map((c) => (
@@ -130,9 +130,9 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
   );
 }
 
-function Step({ no, title, children }: { no: number; title: string; children: ReactNode }) {
+function Step({ no, title, children, tour }: { no: number; title: string; children: ReactNode; tour?: string }) {
   return (
-    <Card>
+    <Card data-tour={tour}>
       <CardHeader
         avatar={<Avatar sx={{ bgcolor: 'primary.main', width: 26, height: 26, fontSize: 14 }}>{no}</Avatar>}
         title={title} titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} sx={{ pb: 0 }} />

@@ -47,7 +47,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
       <PeriodNav value={period} onChange={setPeriod} startDay={startDay} current={current} leading={menu} />
 
       {mode === 'budget' ? (
-        <Card>
+        <Card data-tour="summary">
           <CardContent>
             <Typography variant="caption" color="text.secondary">この月の予算（支出）</Typography>
             <Typography variant="h5" fontWeight={700}>{yen(budget)}</Typography>
@@ -64,7 +64,7 @@ export function BudgetPage({ mode, data, period, setPeriod, current, menu }: {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card data-tour="summary">
           <CardContent>
             <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={2} sx={{ mb: 1.5 }}>
               <Box>

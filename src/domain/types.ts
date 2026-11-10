@@ -11,6 +11,8 @@ export interface Settings {
   lastBackupAt?: string;
   /** ウォークスルーで「始める」を押した日時。データが空でも、これがあればウォークスルーを出さない */
   startedAt?: string;
+  /** ウォークスルーのあと、ホームで画面の案内をまだ見ていない */
+  tourPending?: boolean;
 }
 
 export type AccountKind = 'bank' | 'card';

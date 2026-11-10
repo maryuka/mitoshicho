@@ -98,7 +98,7 @@ export function Walkthrough({ settings }: { settings: Settings }) {
         <Button variant="contained" size="large" fullWidth onClick={() => goTo(index + 1)}>次へ</Button>
       ) : (
         <Button variant="contained" size="large" fullWidth
-          onClick={() => db.settings.put({ ...DEFAULT_SETTINGS, ...settings, startedAt: new Date().toISOString() })}>始める</Button>
+          onClick={() => db.settings.put({ ...DEFAULT_SETTINGS, ...settings, startedAt: new Date().toISOString(), tourPending: true })}>始める</Button>
       )}
     </Box>
   );
