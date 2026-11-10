@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardBillRows, cardTodos, summarize, itemOccurs } from './cashflow';
+import { bigExpenses, cardBillRows, cardTodos, outlook, summarize, itemOccurs } from './cashflow';
 import { addPeriods, dateInPeriod, lastDayBefore, periodLabel, periodOf, periodStart, periodYearLabel } from './period';
 import { DEFAULT_SETTINGS, type AppData, type Item } from './types';
 
@@ -250,5 +250,30 @@ describe('periodYearLabel', () => {
     expect(periodYearLabel('2026-10', 15)).toBe('2026/10/15〜11/12'); // 11/15 は日曜なので次の期は 11/13 から
     expect(periodYearLabel('2026-12', 15)).toBe('2026/12/15〜2027/1/14');
     expect(periodYearLabel('2026-10', 1)).toBe('2026年10月');
+  });
+});
+
+describe('bigExpenses / outlook', () => {
+  it('年払いの項目と、いつもより多くしたその月だけの予算を拾う', () => {
+    const d = baseData();
+    d.entries.push({ id: '2026-04:rent', periodId: '2026-04', itemId: 'rent', planned: 150000 });
+    expect(bigExpenses(d, '2026-03').map((b) => [b.item.id, b.reason, b.amount])).toEqual([['fee', 'yearly', 6000]]);
+    const apr = bigExpenses(d, '2026-04');
+    expect(apr.map((b) => [b.item.id, b.reason, b.amount, b.usual])).toEqual([['rent', 'override', 150000, 100000]]);
+    expect(bigExpenses(d, '2026-05')).toEqual([]);
+  });
+
+  it('いつもより少なくした月は拾わない', () => {
+    const d = baseData();
+    d.entries.push({ id: '2026-04:rent', periodId: '2026-04', itemId: 'rent', planned: 50000 });
+    expect(bigExpenses(d, '2026-04')).toEqual([]);
+  });
+
+  it('今月から指定した月数分の余りを出す', () => {
+    const d = baseData();
+    const o = outlook(d, '2026-02', 3);
+    expect(o.map((m) => m.periodId)).toEqual(['2026-02', '2026-03', '2026-04']);
+    expect(o.map((m) => m.buffer)).toEqual([o.map((m) => summarize(d, m.periodId, '2026-02').buffer)].flat());
+    expect(o[1].big.map((b) => b.item.id)).toEqual(['fee']);
   });
 });

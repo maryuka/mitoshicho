@@ -88,6 +88,8 @@ export function buildSampleData(prev?: Settings): AppData {
     it('奨学金返済', 'c-debt', 13000, 'acc-pay', 27),
     it('iDeCo', 'c-save', 10000, 'acc-pay', 26),
     it('生活防衛費', 'c-save', 30000, 'acc-save', 15),
+    it('帰省の交通費', 'c-enjoy', 40000, 'card-a', undefined, { recurrence: { type: 'once', periodId: addPeriods(now, 3) } }),
+    it('冷蔵庫の買い替え', 'c-util', 40000, 'acc-life', undefined, { recurrence: { type: 'once', periodId: addPeriods(now, 6) } }),
   ];
 
   // 実績（家計簿アプリで集計したカテゴリ合計を振り返りで入れた想定）。前期は一部未入力にしておく

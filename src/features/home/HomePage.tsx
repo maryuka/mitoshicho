@@ -2,8 +2,9 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Alert, Box, ButtonBase, Card, Chip, CardContent, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useMemo, useState, type ReactNode } from 'react';
-import { summarize, type CardTodo } from '../../domain/cashflow';
-import { periodStart, periodRule } from '../../domain/period';
+import { outlook, summarize, type CardTodo } from '../../domain/cashflow';
+import { BigExpensesCard, OutlookCard } from './Outlook';
+import { periodLabel, periodStart, periodRule } from '../../domain/period';
 import type { AppData } from '../../domain/types';
 import { yen } from '../../lib/money';
 import { PeriodNav } from '../../components/PeriodNav';
@@ -20,8 +21,9 @@ const MODE_KEY = 'mitoshicho:mode';
 const readMode = (): Mode => { try { return localStorage.getItem(MODE_KEY) === 'payday' ? 'payday' : 'normal'; } catch { return 'normal'; } };
 const writeMode = (m: Mode) => { try { localStorage.setItem(MODE_KEY, m); } catch { /* 保存できなくても動く */ } };
 
-export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu, forceMode }: {
-  data: AppData; period: string; setPeriod: (p: string) => void; current: string; onOpenBudget: (p: string) => void; menu?: ReactNode;
+export function HomePage({ data, period, setPeriod, current, onOpenBudget, onOpenPlan, menu, forceMode }: {
+  data: AppData; period: string; setPeriod: (p: string) => void; current: string; onOpenBudget: (p: string) => void;
+  onOpenPlan: (p: string) => void; menu?: ReactNode;
   /** 画面の案内で、表示を「ふだん」「給料日」に固定する（保存はしない） */
   forceMode?: Mode;
 }) {
@@ -42,12 +44,39 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu,
   const suggestPayday = mode === 'normal' && period === current && daysIntoPeriod < 5;
   // バッファが 0 円以上なら OK、マイナスなら足りない
   const minus = s.buffer < 0;
-  const ok = !minus;
-  // 定期項目がまだないあいだは、バッファの代わりに「はじめの準備」を出す
+  // 定期項目がまだないあいだは、見通しの代わりに「はじめの準備」を出す
   const setup = data.items.length === 0;
-  const message = setup ? 'まずは準備から始めよう！' : minus ? `今月 ${yen(-s.buffer)} 足りない！`
-    : mode === 'payday' ? '給料日だね！ 入金と振り分けをチェックしよう'
-    : period === current ? '今月もお金はちゃんと回りそう！' : 'この月もお金は回りそう！';
+  // ふだんは、この先1年の見通しを主役にする
+  const months = useMemo(() => (setup ? [] : outlook(data, current)), [setup, data, current]);
+  const short = months.find((m) => m.buffer < 0);
+  const ok = mode === 'payday' ? !minus : !short;
+  const message = setup ? 'まずは準備から始めよう！'
+    : mode === 'payday' ? (minus ? `今月 ${yen(-s.buffer)} 足りない！` : '給料日だね！ 入金と振り分けをチェックしよう')
+    : short ? `${periodStart(short.periodId, startDay).getMonth() + 1}月に ${yen(-short.buffer)} 足りなくなりそう`
+    : 'この先1年、お金は回りそう！';
+
+  // 選んでいる月の余りと内訳。給料日は帯に重ねて主役に、ふだんは見通しの下に出す
+  const monthCard = (
+    <Card data-tour="buffer" sx={mode === 'payday' ? { position: 'relative', zIndex: 1, mt: -4 } : undefined}>
+      <CardContent>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="body2" color="text.secondary">{period === current ? '今月' : periodLabel(period, startDay)}の余り</Typography>
+          <Chip size="small" label={minus ? 'マイナス' : 'OK'}
+            sx={{ fontWeight: 900, ...(!minus ? { bgcolor: 'soft', color: 'success.main' } : { bgcolor: 'error.main', color: '#ffffff' }) }} />
+        </Stack>
+        <Typography variant="h3" component="p" fontWeight={900} color={minus ? 'error.main' : 'text.primary'} sx={{ my: 0.5 }}>{yen(s.buffer)}</Typography>
+        {mode === 'normal' && (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, mt: 2, pt: 2, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
+            <Figure kind="income" value={totals.income} onOpen={setBreakdown} />
+            <Figure kind="direct" value={totals.direct} minus onOpen={setBreakdown} />
+            <Figure kind="card" value={totals.card} minus onOpen={setBreakdown} />
+            {totals.saving > 0 && <Figure kind="saving" value={totals.saving} onOpen={setBreakdown} />}
+            {totals.receivable > 0 && <Figure kind="receivable" value={totals.receivable} onOpen={setBreakdown} />}
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <Stack spacing={2}>
@@ -79,26 +108,14 @@ export function HomePage({ data, period, setPeriod, current, onOpenBudget, menu,
           </ToggleButtonGroup>}
         </Box>
 
-        {setup ? <Box sx={{ position: 'relative', zIndex: 1, mt: -4 }}><SetupGuide data={data} /></Box> : <Card data-tour="buffer" sx={{ position: 'relative', zIndex: 1, mt: -4 }}>
-          <CardContent>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography variant="body2" color="text.secondary">今月のバッファ</Typography>
-              <Chip size="small" label={ok ? 'OK' : 'マイナス'}
-                sx={{ fontWeight: 900, ...(ok ? { bgcolor: 'soft', color: 'success.main' } : { bgcolor: 'error.main', color: '#ffffff' }) }} />
-            </Stack>
-            <Typography variant="h3" component="p" fontWeight={900} color={minus ? 'error.main' : 'text.primary'} sx={{ my: 0.5 }}>{yen(s.buffer)}</Typography>
-            {mode === 'normal' && (
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, mt: 2, pt: 2, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
-                <Figure kind="income" value={totals.income} onOpen={setBreakdown} />
-                <Figure kind="direct" value={totals.direct} minus onOpen={setBreakdown} />
-                <Figure kind="card" value={totals.card} minus onOpen={setBreakdown} />
-                {totals.saving > 0 && <Figure kind="saving" value={totals.saving} onOpen={setBreakdown} />}
-                {totals.receivable > 0 && <Figure kind="receivable" value={totals.receivable} onOpen={setBreakdown} />}
-              </Box>
-            )}
-          </CardContent>
-        </Card>}
+        {setup ? <Box sx={{ position: 'relative', zIndex: 1, mt: -4 }}><SetupGuide data={data} /></Box>
+          : mode === 'normal' ? <OutlookCard months={months} selected={period} onSelect={setPeriod} startDay={startDay} />
+          : null}
+        {!setup && mode === 'payday' && monthCard}
       </Box>
+
+      {!setup && mode === 'normal' && monthCard}
+      {!setup && mode === 'normal' && <BigExpensesCard months={months} startDay={startDay} onOpen={onOpenPlan} />}
 
       {!setup && suggestPayday && (
         <Alert severity="info" onClick={() => setMode('payday')} sx={{ cursor: 'pointer' }}>
