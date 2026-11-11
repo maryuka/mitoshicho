@@ -28,7 +28,7 @@ export interface MenuEntry {
 /** tiles: よく開くものは大きいタイル、たまに開くものは list（1行ずつ）で並べる */
 export const MENU: { title: string; style: 'tiles' | 'list'; entries: MenuEntry[] }[] = [
   {
-    title: 'お金のこと',
+    title: 'チェック',
     style: 'tiles',
     entries: [
       { route: 'payday', label: '給料日のチェック', icon: <PaymentsOutlinedIcon />, tone: 'primary' },
@@ -36,7 +36,7 @@ export const MENU: { title: string; style: 'tiles' | 'list'; entries: MenuEntry[
     ],
   },
   {
-    title: '家計の登録',
+    title: '登録',
     style: 'tiles',
     entries: [
       { route: 'prefs-items', label: '定期項目', icon: <EventRepeatIcon />, tone: 'primary' },

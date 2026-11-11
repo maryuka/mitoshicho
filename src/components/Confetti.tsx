@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useRef } from 'react';
 
 const COLORS = ['#f7a531', '#ffd23f', '#ea7d12', '#ff8a5b', '#6bcf77', '#7da4f5'];
@@ -58,8 +59,10 @@ export function Confetti({ fire }: { fire: number }) {
     return () => cancelAnimationFrame(raf);
   }, [fire]);
 
-  return (
+  // body の直下に出す。画面の Stack の中に置くと、見えないのに余白が1つ増える
+  return createPortal(
     <canvas ref={ref} aria-hidden
-      style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 2000 }} />
+      style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 2000 }} />,
+    document.body,
   );
 }
