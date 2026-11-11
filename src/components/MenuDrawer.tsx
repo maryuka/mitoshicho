@@ -83,7 +83,7 @@ export const MENU: MenuGroup[] = [
     title: 'アプリ全体',
     entries: [
       { route: 'prefs-basic', label: '月の区切り', icon: <TuneIcon />, tone: 'primary' },
-      { route: 'prefs-appearance', label: '見た目の設定', icon: <PaletteOutlinedIcon />, tone: 'info' },
+      { route: 'prefs-appearance', label: '画面の明るさ', icon: <PaletteOutlinedIcon />, tone: 'info' },
       { route: 'prefs-import', label: 'スプレッドシートから取り込む', icon: <TableViewIcon />, tone: 'info' },
       { route: 'prefs-backup', label: 'バックアップと復元', icon: <SaveAltIcon />, tone: 'grey' },
       { route: TOUR_ROUTE, label: 'はじめの案内をもう一度見る', icon: <TourOutlinedIcon />, tone: 'primary', action: true },
