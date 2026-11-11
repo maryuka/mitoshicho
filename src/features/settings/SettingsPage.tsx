@@ -220,7 +220,7 @@ function ChecklistSection({ data, current }: { data: AppData; current: string })
   const items = data.checklistTemplates.filter((t) => t.recurrence?.type !== 'once').sort((a, b) => a.sortOrder - b.sortOrder);
   return (
     <Section onAdd={() => setEditing('new')}
-      note="口座ごとの送金チェックは自動で出ます。それ以外のやることを登録します。今月だけのやることは、ホームの「給料日」から足せます。">
+      note="口座ごとの送金チェックは自動で出ます。それ以外のやることを登録します。今月だけのやることは、「給料日のチェック」から足せます。">
       <List dense>
         {items.length === 0 && <Empty>やることを登録してください</Empty>}
         {items.map((t) => (
