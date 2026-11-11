@@ -2,11 +2,11 @@ import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardContent, CardHeader, Chip, Dialog, DialogActions,
-  DialogContent, DialogTitle, List, ListItemButton, ListItemText, MenuItem, Stack, TextField, Typography,
+  DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useMemo, useState, type ReactNode } from 'react';
 import { bigExpenses, summarize, type BigExpense, type CategoryRow } from '../../domain/cashflow';
-import { addPeriods, periodLabel, periodRule } from '../../domain/period';
+import { addPeriods, periodLabel, periodRule, periodStart } from '../../domain/period';
 import { DRIFT_LABEL, monthDrifts, type Drift } from '../../domain/review';
 import type { AppData, CategoryKind } from '../../domain/types';
 import { db, newId } from '../../db/db';
@@ -16,6 +16,8 @@ import { PeriodNav } from '../../components/PeriodNav';
 import { KITSUNE } from '../../components/Kitsune';
 import { CategoryItems } from '../budget/parts';
 import { OnceItemDialog } from '../settings/dialogs';
+import { OutflowsCard } from '../home/Outlook';
+import { ScheduleList } from '../../components/ScheduleList';
 
 const REASON: Record<BigExpense['reason'], string> = { yearly: '年払い', interval: '数か月ごと', once: '1回だけ', override: 'いつもより多め' };
 
@@ -67,21 +69,17 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
       <Card data-tour="plan-big">
         <CardHeader title="この月の大きい出費" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }}
           subheader="旅行・家電・年払いなど。先に入れておくと安心" subheaderTypographyProps={{ variant: 'caption' }} sx={{ pb: 0 }} />
-        <List dense>
-          {big.length === 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 1 }}>この月はないよ。</Typography>
-          )}
-          {big.map((b) => (
-            <ListItemButton key={b.item.id} onClick={() => setEditing(b)} disabled={b.reason !== 'once'}
-              sx={{ '&.Mui-disabled': { opacity: 1 } }}>
-              <ListItemText primary={b.memo || b.item.name}
-                secondary={`${b.category.name}・${b.reason === 'override' ? `いつもは ${yen(b.usual ?? 0)}` : REASON[b.reason]}`}
-                primaryTypographyProps={{ fontWeight: 700 }} />
-              <Typography fontWeight={700}>{yen(b.amount)}</Typography>
-            </ListItemButton>
-          ))}
-        </List>
-        <Box sx={{ px: 2, pb: 2 }}>
+        {big.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 1 }}>この月はないよ。</Typography>
+        ) : (
+          <ScheduleList rows={big.map((b) => ({
+            key: b.item.id, date: b.date, label: `${periodStart(period, startDay).getMonth() + 1}月`,
+            title: b.memo || b.item.name, amount: b.amount,
+            sub: `${b.category.name}・${b.reason === 'override' ? `いつもは ${yen(b.usual ?? 0)}` : REASON[b.reason]}`,
+            onClick: b.reason === 'once' ? () => setEditing(b) : undefined,
+          }))} />
+        )}
+        <Box sx={{ px: 2, pt: 1, pb: 2 }}>
           <Button startIcon={<AddIcon />} variant="outlined" size="small" onClick={() => setAdding(true)}>大きい出費を追加</Button>
         </Box>
       </Card>
@@ -99,6 +97,8 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
           )}
         </CardContent>
       </Card>
+
+      <OutflowsCard summary={s} title="出金予定" />
 
       {adding && <AddBigExpenseDialog data={data} period={period} onClose={() => setAdding(false)} />}
       {editing && <OnceItemDialog value={editing.item} planned={editing.amount} data={data} onClose={() => setEditing(null)} />}
