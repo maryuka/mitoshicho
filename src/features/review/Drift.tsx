@@ -77,7 +77,7 @@ export function HintsCard({ hints }: { hints: DriftHint[] }) {
   );
 }
 
-/** どのくらいのずれから出すかの設定（設定の「ふりかえり」ページ）。変えたらすぐ保存する */
+/** どのくらいのずれから出すかの設定（メニューの「ふりかえりの設定」ページ）。変えたらすぐ保存する */
 export function DriftFields({ settings }: { settings: Settings }) {
   const minYen = settings.driftMinYen ?? DEFAULT_DRIFT_MIN_YEN;
   const update = (v: number) => db.settings.put({ ...DEFAULT_SETTINGS, ...settings, driftMinYen: v });
