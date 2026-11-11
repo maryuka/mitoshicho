@@ -162,6 +162,18 @@ describe('summarize', () => {
     expect(byId).toEqual({ bank: 100000, sub: 5000 });
   });
 
+  it('振り分け先が決まっていない分を、生活費としてまとめる（振り分けと合わせて出金の合計になる）', () => {
+    const d = baseData();
+    d.items.push(item({ id: 'food', categoryId: 'exp', defaultAmount: 30000 }));
+    d.categoryActuals.push(actual('2026-03', 'exp', 150000));
+    const s = summarize(d, '2026-03');
+    expect(s.unassigned.breakdown).toEqual([
+      { label: 'food', amount: 30000 }, { label: '生活（予算より多く使った分）', amount: 9000 },
+    ]);
+    const allocated = s.allocation.reduce((a, x) => a + x.amount, 0);
+    expect(allocated + s.unassigned.amount).toBe(s.cashOutTotal);
+  });
+
   it('タイムラインは日付順で、カード払い項目そのものは出さない', () => {
     const s = summarize(baseData(), '2026-03');
     expect(s.timeline.map((e) => e.label)).toEqual(['salary', 'カード 引落', 'rent']);

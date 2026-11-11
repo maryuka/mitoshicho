@@ -50,7 +50,7 @@ export function CardBillDialog({ periodId, bill, startDay, onClose }: {
               onChange={(e) => setConfirmDate(e.target.value)} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
           </Stack>
           <Typography variant="caption" color="text.secondary">
-            確定日になるとホームの「やること」に請求額の入力が出ます。ふりかえりの画面からも入力できます。毎月の既定の日付はカードの設定で変えられます。
+            確定日になるとホームの「お知らせ」に請求額の入力が出ます。ふりかえりの画面からも入力できます。毎月の既定の日付はカードの設定で変えられます。
           </Typography>
           {bill.forecastBreakdown.length > 0 && (
             <Accordion disableGutters variant="outlined">

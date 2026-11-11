@@ -3,7 +3,7 @@ import CreditCardIcon from '@mui/icons-material/CreditCard';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import TuneIcon from '@mui/icons-material/Tune';
-import { Box, Button, Card, CardHeader, List, ListItemButton, ListItemIcon, ListItemText, Stack } from '@mui/material';
+import { Box, Button, Card, CardHeader, List, ListItemButton, ListItemIcon, ListItemText, Stack, Typography } from '@mui/material';
 import { useMemo, useState, type ReactNode } from 'react';
 import { cardTodos, DEFAULT_BIG_MIN_YEN, homeBigExpenses, outlook, summarize, type CardTodo } from '../../domain/cashflow';
 import { paydayProgress } from '../../domain/payday';
@@ -83,7 +83,16 @@ export function HomePage({ data, current, onOpenBudget, onOpenPlan, onOpenPayday
             bgcolor: 'background.default', borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
           },
         }}>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>{menu}</Box>
+          {/* 左にメニュー、まん中に今月がいつからいつまでか（右は左右をそろえるための空き） */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {menu}
+            {!setup && (
+              <Typography fontWeight={900} sx={{ whiteSpace: 'nowrap' }}>
+                <Box component="span" sx={{ fontSize: 12, opacity: 0.85, mr: 0.75 }}>今月</Box>{periodLabel(current, startDay)}
+              </Typography>
+            )}
+            <Box sx={{ width: 44, flexShrink: 0 }} />
+          </Box>
           <Box sx={{ mt: 0.5 }}><Bubble>{setup ? 'まずは準備から始めよう！' : cycle.message}</Bubble></Box>
           <Box component="img" src={setup ? KITSUNE.counting : cycle.fox} alt=""
             // 絵によって縦横比が違うので、高さをそろえて帯の高さが変わらないようにする

@@ -116,7 +116,7 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
                 <MenuItem value="none">ずらさない</MenuItem>
               </TextField>
               <Typography variant="caption" color="text.secondary">
-                確定日になるとホームに「請求額を入力」が出ます。月ごとにずれる場合は、その月の請求を開いて日付を変えられます。
+                確定日になるとホームの「お知らせ」に請求額の入力が出ます。月ごとにずれる場合は、その月の請求を開いて日付を変えられます。
               </Typography>
               <TextField id="acc-withdraw-account" select label="引落口座" value={withdrawAccountId} onChange={(e) => setWithdrawAccountId(e.target.value)} fullWidth>
                 <MenuItem value="">（未設定）</MenuItem>

@@ -25,8 +25,11 @@ const STEPS: Step[] = [
   },
 ];
 
-/** はじめて開いたとき（データが空のとき）のウォークスルー。横にスワイプしてページを送る */
-export function Walkthrough({ settings }: { settings: Settings }) {
+/**
+ * はじめて開いたとき（データが空のとき）のウォークスルー。横にスワイプしてページを送る。
+ * onStart があれば（メニューから見直しているとき）、「始める」でそれを呼ぶ
+ */
+export function Walkthrough({ settings, onStart }: { settings: Settings; onStart?: () => void }) {
   const track = useRef<HTMLDivElement>(null);
   const last = STEPS.length - 1;
   const [index, setIndex] = useState(0);
@@ -94,7 +97,7 @@ export function Walkthrough({ settings }: { settings: Settings }) {
         <Button variant="contained" size="large" fullWidth onClick={() => goTo(index + 1)}>次へ</Button>
       ) : (
         <Button variant="contained" size="large" fullWidth
-          onClick={() => db.settings.put({ ...DEFAULT_SETTINGS, ...settings, startedAt: new Date().toISOString(), tourPending: true })}>始める</Button>
+          onClick={() => (onStart ? onStart() : db.settings.put({ ...DEFAULT_SETTINGS, ...settings, startedAt: new Date().toISOString(), tourPending: true }))}>始める</Button>
       )}
     </Box>
   );
