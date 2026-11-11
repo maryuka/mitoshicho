@@ -60,7 +60,11 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
               {periodLabel(period, startDay)}の計画。先月のずれをふまえて、ざっくり決めよう。
             </Typography>
           </Stack>
-          <Stack direction="row" spacing={2} sx={{ mt: 1.5, pt: 1.5, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
+          {/* 上は「予算」（カードは使う月で数える）、下は「口座のお金」（カードは引き落とされる月で数える）。見出しをそろえて違いを分かるようにする */}
+          <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
+            <SectionLabel title="予算" note="カードは使う月で数える" />
+          </Box>
+          <Stack direction="row" spacing={2} sx={{ mt: 0.75 }}>
             <Figure label="収入" value={income} />
             <Figure label="使う予定" value={spend} />
             <Figure label="積み立て" value={saving} />
@@ -124,11 +128,12 @@ function CashFlowLine({ s }: { s: PeriodSummary }) {
   return (
     <Box sx={{ mt: 1.5, p: 1.25, borderRadius: '8px', bgcolor: 'soft' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
-        <Typography variant="body2" fontWeight={700}>口座から出るお金で見ると</Typography>
+        <Typography variant="body2" fontWeight={900}>口座のお金</Typography>
         <Typography fontWeight={900} color={short ? 'error.main' : 'text.primary'} sx={{ flexShrink: 0 }}>
           {short ? `${yen(-s.buffer)} 足りない` : `${yen(s.buffer)} 残る`}
         </Typography>
       </Stack>
+      <Typography variant="caption" color="text.secondary" component="p" sx={{ fontSize: 11 }}>カードは引き落とされる月で数える</Typography>
       <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.5, lineHeight: 1.7 }}>
         収入 {yen(s.incomeTotal)} − 口座から出るお金 {yen(s.directOutTotal)} − カードの引落 {yen(s.cardBillTotal)}
         {s.receivableTotal > 0 ? ` + 立替の回収 ${yen(s.receivableTotal)}` : ''}
@@ -139,6 +144,15 @@ function CashFlowLine({ s }: { s: PeriodSummary }) {
         </Typography>
       )}
     </Box>
+  );
+}
+
+function SectionLabel({ title, note }: { title: string; note: string }) {
+  return (
+    <Typography variant="body2" component="p" sx={{ minWidth: 0 }}>
+      <Box component="span" fontWeight={900}>{title}</Box>
+      <Box component="span" sx={{ color: 'text.secondary', fontSize: 11, ml: 0.75 }}>{note}</Box>
+    </Typography>
   );
 }
 
