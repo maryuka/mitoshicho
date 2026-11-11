@@ -6,7 +6,7 @@ import {
   DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useMemo, useState, type ReactNode } from 'react';
-import { bigExpenses, summarize, type BigExpense, type CategoryRow } from '../../domain/cashflow';
+import { bigExpenses, summarize, type BigExpense, type CategoryRow, type PeriodSummary } from '../../domain/cashflow';
 import { addPeriods, periodLabel, periodRule, periodStart } from '../../domain/period';
 import { DRIFT_LABEL, driftHints, monthDrifts, type Drift, type DriftHint } from '../../domain/review';
 import type { AppData, CategoryKind } from '../../domain/types';
@@ -65,11 +65,13 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
             <Figure label="使う予定" value={spend} />
             <Figure label="積み立て" value={saving} />
           </Stack>
-          {over > 0 && (
+          {/* 口座のお金が足りなくなる月は、下の行でまとめて伝える（同じ助言を2回出さない） */}
+          {over > 0 && s.buffer >= 0 && (
             <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1, lineHeight: 1.7 }}>
               計画が収入を {yen(over)} こえているよ。積み立てを減らすか、貯金から出すか決めておこう。
             </Typography>
           )}
+          <CashFlowLine s={s} />
         </CardContent>
       </Card>
 
@@ -110,6 +112,33 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
       {adding && <AddBigExpenseDialog data={data} period={period} onClose={() => setAdding(false)} />}
       {editing && <OnceItemDialog value={editing.item} planned={editing.amount} data={data} onClose={() => setEditing(null)} />}
     </Stack>
+  );
+}
+
+/**
+ * お金の流れで見た、この月の残るお金（給料日のチェックと同じ計算）。
+ * 上の数字は「使う月」で数えた予算なので、カードの引落でこの月の口座のお金が足りるかは、ここで先に見えるようにする
+ */
+function CashFlowLine({ s }: { s: PeriodSummary }) {
+  const short = s.buffer < 0;
+  return (
+    <Box sx={{ mt: 1.5, p: 1.25, borderRadius: '8px', bgcolor: 'soft' }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+        <Typography variant="body2" fontWeight={700}>口座から出るお金で見ると</Typography>
+        <Typography fontWeight={900} color={short ? 'error.main' : 'text.primary'} sx={{ flexShrink: 0 }}>
+          {short ? `${yen(-s.buffer)} 足りない` : `${yen(s.buffer)} 残る`}
+        </Typography>
+      </Stack>
+      <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.5, lineHeight: 1.7 }}>
+        収入 {yen(s.incomeTotal)} − 口座から出るお金 {yen(s.directOutTotal)} − カードの引落 {yen(s.cardBillTotal)}
+        {s.receivableTotal > 0 ? ` + 立替の回収 ${yen(s.receivableTotal)}` : ''}
+      </Typography>
+      {short && (
+        <Typography variant="caption" component="p" sx={{ mt: 0.5, lineHeight: 1.7 }}>
+          この月は出ていくお金が多めで、口座のお金が足りなくなりそう。積み立てを少し減らすか、貯金から出すか決めておこう。
+        </Typography>
+      )}
+    </Box>
   );
 }
 
