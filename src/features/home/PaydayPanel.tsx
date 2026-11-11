@@ -73,7 +73,7 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
       </Step>
 
       <Step no={3} title="振り分け（各口座へ送金）">
-        {s.allocation.length === 0 && <Empty>口座払いの項目がありません</Empty>}
+        {s.allocation.length === 0 && s.unassigned.amount === 0 && <Empty>口座払いの項目がありません</Empty>}
         {s.unconfirmedCardBills > 0 && (
           <Typography variant="caption" color="text.secondary">
             未入力のカード請求（{s.unconfirmedCardBills}件）は予測額で計算しています。確定したら<Link href="#budget" underline="hover">ふりかえり</Link>で入力してください
@@ -102,6 +102,32 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
             </Box>
           );
         })}
+        {s.unassigned.amount > 0 && (
+          // 送金はしないので、チェックは付けない。手元の生活費として残しておく分
+          <Box sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+              <Typography fontWeight={700}>支払い元を決めていない分</Typography>
+              <Typography fontWeight={700} sx={{ flexShrink: 0 }}>{yen(s.unassigned.amount)}</Typography>
+            </Stack>
+            <Typography variant="caption" color="text.secondary" component="p">
+              手元の生活費として残しておく分。決まった口座から出るものは、定期項目で支払い元を選ぶとここから外れるよ
+            </Typography>
+            <Accordion disableGutters elevation={0} sx={{ bgcolor: 'transparent', '&::before': { display: 'none' } }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon fontSize="small" />} sx={{ minHeight: 0, px: 0, '& .MuiAccordionSummary-content': { my: 0 } }}>
+                <Typography variant="caption" color="text.secondary">内訳</Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                <List dense disablePadding>
+                  {s.unassigned.breakdown.map((x, i) => (
+                    <ListItem key={i} disableGutters sx={{ pl: 2 }} secondaryAction={<Typography variant="body2" color="text.secondary">{yen(x.amount)}</Typography>}>
+                      <ListItemText secondary={x.label} />
+                    </ListItem>
+                  ))}
+                </List>
+              </AccordionDetails>
+            </Accordion>
+          </Box>
+        )}
       </Step>
 
       <Step no={4} title="チェックリスト">

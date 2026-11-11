@@ -124,6 +124,11 @@ export interface PeriodSummary {
   cashOutTotal: number;
   buffer: number;
   allocation: AllocationRow[];
+  /**
+   * 振り分け先の口座が決まっていない出金（支払い元が未設定の項目・予算より多く使った分・引落口座のないカード）。
+   * 手元の生活費としてまとめて持っておく分。cashOutTotal = 振り分けの合計 + これ
+   */
+  unassigned: { amount: number; breakdown: { label: string; amount: number }[] };
   timeline: TimelineEvent[];
   unconfirmedCardBills: number;
 }
@@ -273,6 +278,14 @@ export function summarize(data: AppData, pid: string, current = pid): PeriodSumm
   for (const b of cardBills) addAlloc(b.card.withdrawAccountId, `${b.card.name} 引落`, b.effective);
   const allocation = [...alloc.values()].sort((a, b) => a.account.sortOrder - b.account.sortOrder);
 
+  // 振り分け先が決まっていない分
+  const isBank = (id?: string) => !!id && idx.accounts.get(id)?.kind === 'bank';
+  const loose: { label: string; amount: number }[] = [];
+  for (const r of outRows) if (!r.viaCard && !isBank(r.item.sourceAccountId) && r.effective !== 0) loose.push({ label: r.item.name, amount: r.effective });
+  for (const c of outCats) if (c.effective > c.planned) loose.push({ label: `${c.category.name}（予算より多く使った分）`, amount: c.effective - c.planned });
+  for (const b of cardBills) if (!isBank(b.card.withdrawAccountId) && b.effective !== 0) loose.push({ label: `${b.card.name} 引落`, amount: b.effective });
+  const unassigned = { amount: sum(loose.map((x) => x.amount)), breakdown: loose };
+
   // タイムライン
   const timeline: TimelineEvent[] = [];
   for (const r of rows) {
@@ -313,6 +326,7 @@ export function summarize(data: AppData, pid: string, current = pid): PeriodSumm
     cashOutTotal,
     buffer,
     allocation,
+    unassigned,
     timeline,
     unconfirmedCardBills: cardBills.filter((b) => b.actual === undefined && b.forecast > 0).length,
   };
