@@ -18,7 +18,7 @@ import { ReviewPage } from './features/review/ReviewPage';
 import { ReceivablesPage } from './features/receivables/ReceivablesPage';
 import { SettingsPage, type SettingsPageId } from './features/settings/SettingsPage';
 import { ConfirmHost } from './components/ConfirmDialog';
-import { MENU_LABEL, MenuButton, MenuDrawer } from './components/MenuDrawer';
+import { MENU_LABEL, MenuButton, MenuDrawer, TOUR_ROUTE } from './components/MenuDrawer';
 import { KitsuneLoading, KitsuneSays } from './components/Kitsune';
 import { TOUR_STEPS, Tour } from './features/welcome/Tour';
 import { Walkthrough } from './features/welcome/Walkthrough';
@@ -143,7 +143,17 @@ export function App() {
       </Paper>}
 
       {tour && <Tour index={tourIndex} onNext={nextTour} onFinish={finishTour} />}
-      <MenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} onSelect={(r) => { setMenuOpen(false); go(r); }} />
+      <MenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} onSelect={(r) => {
+        setMenuOpen(false);
+        if (r === TOUR_ROUTE) {
+          // 画面の案内を最初から。案内のあいだはサンプルデータを見せるだけで、今のデータはそのまま
+          setTourIndex(0);
+          void db.settings.put({ ...data.settings, tourPending: true });
+          go('home');
+          return;
+        }
+        go(r);
+      }} />
       <ConfirmHost />
     </Box>
   );
