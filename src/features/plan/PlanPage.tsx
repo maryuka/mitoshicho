@@ -1,5 +1,6 @@
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import {
   Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CardContent, CardHeader, Chip, Dialog, DialogActions,
   DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography,
@@ -7,7 +8,7 @@ import {
 import { useMemo, useState, type ReactNode } from 'react';
 import { bigExpenses, summarize, type BigExpense, type CategoryRow } from '../../domain/cashflow';
 import { addPeriods, periodLabel, periodRule, periodStart } from '../../domain/period';
-import { DRIFT_LABEL, monthDrifts, type Drift } from '../../domain/review';
+import { DRIFT_LABEL, driftHints, monthDrifts, type Drift, type DriftHint } from '../../domain/review';
 import type { AppData, CategoryKind } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { yen } from '../../lib/money';
@@ -30,6 +31,12 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
   const big = useMemo(() => bigExpenses(data, period), [data, period]);
   const prev = addPeriods(period, -1);
   const drifts = useMemo(() => new Map(monthDrifts(data, prev).map((d) => [d.category.id, d])), [data, prev]);
+  // この月の前の3か月で続いているずれ（ふりかえりの「改善のヒント」と同じもの）。カテゴリごとに1つ
+  const hints = useMemo(() => {
+    const m = new Map<string, DriftHint>();
+    for (const h of driftHints(data, period)) if (!m.has(h.category.id)) m.set(h.category.id, h);
+    return m;
+  }, [data, period]);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<BigExpense | null>(null);
 
@@ -88,7 +95,7 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
         <CardHeader title="カテゴリごとの予算" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }}
           subheader="開くと、項目ごとにこの月だけの金額に変えられるよ" subheaderTypographyProps={{ variant: 'caption' }} sx={{ pb: 0 }} />
         <CardContent sx={{ pt: 1, pb: '8px !important' }}>
-          {expense.map((c) => <CategoryRowView key={c.category.id} row={c} drift={drifts.get(c.category.id)} period={period} data={data} />)}
+          {expense.map((c) => <CategoryRowView key={c.category.id} row={c} drift={drifts.get(c.category.id)} hint={hints.get(c.category.id)} period={period} data={data} />)}
           {others.length > 0 && (
             <>
               <Typography variant="caption" color="text.secondary" fontWeight={700} component="p" sx={{ mt: 2, mb: 0.5 }}>収入・返済・積み立て</Typography>
@@ -116,13 +123,19 @@ function Figure({ label, value }: { label: string; value: number }) {
 }
 
 /** カテゴリ1行。先月のずれがあれば小さく添える。開くと項目ごとの金額 */
-function CategoryRowView({ row, drift, period, data }: { row: CategoryRow; drift?: Drift; period: string; data: AppData }) {
+function CategoryRowView({ row, drift, hint, period, data }: {
+  row: CategoryRow; drift?: Drift; hint?: DriftHint; period: string; data: AppData;
+}) {
   return (
     <Accordion disableGutters elevation={0} sx={{ bgcolor: 'transparent', '&::before': { display: 'none' }, borderBottom: 1, borderColor: 'divider' }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0, '& .MuiAccordionSummary-content': { my: 1.25, minWidth: 0 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
-            <Typography noWrap sx={{ minWidth: 0 }}>{row.category.name}</Typography>
+            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
+              <Typography noWrap sx={{ minWidth: 0 }}>{row.category.name}</Typography>
+              {/* 改善のヒントがあるカテゴリ。開くとヒントの文が出る */}
+              {hint && <LightbulbOutlinedIcon color="primary" sx={{ fontSize: 18, flexShrink: 0 }} titleAccess="改善のヒントあり" />}
+            </Stack>
             <Typography fontWeight={700} sx={{ flexShrink: 0, mr: 1 }}>{yen(row.planned)}</Typography>
           </Stack>
           {drift && (
@@ -132,6 +145,12 @@ function CategoryRowView({ row, drift, period, data }: { row: CategoryRow; drift
         </Box>
       </AccordionSummary>
       <AccordionDetails sx={{ px: 0, pt: 0 }}>
+        {hint && (
+          <Stack direction="row" spacing={1} sx={{ mb: 1.5, p: 1.25, borderRadius: '8px', bgcolor: 'soft' }}>
+            <LightbulbOutlinedIcon color="primary" sx={{ fontSize: 18, mt: 0.25, flexShrink: 0 }} />
+            <Typography variant="body2" sx={{ lineHeight: 1.7 }}>{hint.text}</Typography>
+          </Stack>
+        )}
         <CategoryItems row={row} period={period} data={data} />
       </AccordionDetails>
     </Accordion>
