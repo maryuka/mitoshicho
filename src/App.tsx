@@ -64,6 +64,8 @@ export function App() {
   const [period, setPeriod] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [tourIndex, setTourIndex] = useState(0);
+  // メニューから、はじめのウォークスルーをもう一度見ているあいだ（データはそのまま）
+  const [replaying, setReplaying] = useState(false);
   const nextTour = useCallback(() => setTourIndex((i) => Math.min(i + 1, TOUR_STEPS.length - 1)), []);
   // 画面の案内のあいだは、保存せずに組み立てたサンプルデータを見せる
   const touring = !!data?.settings.tourPending && !!data.settings.startedAt;
@@ -87,7 +89,7 @@ export function App() {
 
   const current = periodOf(new Date(), periodRule(data.settings));
   const isEmpty = !data.settings.startedAt && data.items.length === 0 && data.accounts.length === 0;
-  const tour = sample && !isEmpty ? TOUR_STEPS[tourIndex] : null;
+  const tour = sample && !isEmpty && !replaying ? TOUR_STEPS[tourIndex] : null;
   const view = tour && sample ? sample : data;
   const route = tour ? tour.route : hashRoute;
   const p = tour ? addPeriods(current, tour.offset ?? 0) : period ?? current;
@@ -98,7 +100,7 @@ export function App() {
   };
   const isSub = SUB_ROUTES.includes(route);
   // 下のメニューを出さないのは、データが空のあいだ（ウォークスルーなど）と、左のメニューから開いたページ（「‹ 戻る」で戻る）
-  const noNav = isEmpty || isSub;
+  const noNav = isEmpty || replaying || isSub;
   const openBudget = (pid: string) => { setPeriod(pid); go('budget'); };
   const openPlan = (pid: string) => { setPeriod(pid); go('plan'); };
   const menu = <MenuButton onClick={() => setMenuOpen(true)} />;
@@ -109,7 +111,14 @@ export function App() {
         pt: 'calc(12px + env(safe-area-inset-top, 0px))', pb: noNav ? 'calc(12px + env(safe-area-inset-bottom, 0px))' : 'calc(84px + env(safe-area-inset-bottom, 0px))',
         pl: 'max(16px, env(safe-area-inset-left, 0px))', pr: 'max(16px, env(safe-area-inset-right, 0px))',
       }}>
-        {isSub ? (
+        {replaying ? (
+          <Walkthrough settings={data.settings} onStart={() => {
+            setReplaying(false);
+            setTourIndex(0);
+            void db.settings.put({ ...data.settings, tourPending: true });
+            go('home');
+          }} />
+        ) : isSub ? (
           <Stack spacing={2}>
             <SubHeader title={MENU_LABEL[route]} onBack={() => go(lastMain)} />
             {TIPS[route] && <KitsuneSays>{TIPS[route]}</KitsuneSays>}
@@ -146,10 +155,9 @@ export function App() {
       <MenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} onSelect={(r) => {
         setMenuOpen(false);
         if (r === TOUR_ROUTE) {
-          // 画面の案内を最初から。案内のあいだはサンプルデータを見せるだけで、今のデータはそのまま
-          setTourIndex(0);
-          void db.settings.put({ ...data.settings, tourPending: true });
-          go('home');
+          // ウォークスルーから見直す。「始める」で画面の案内に進む。どちらも今のデータはそのまま
+          setReplaying(true);
+          window.scrollTo(0, 0);
           return;
         }
         go(r);

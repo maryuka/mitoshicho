@@ -14,6 +14,7 @@ import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import TableViewIcon from '@mui/icons-material/TableView';
 import TourOutlinedIcon from '@mui/icons-material/TourOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
@@ -38,7 +39,9 @@ export const TOUR_ROUTE = 'tour';
  * いちばん上の tiles は、ふだん開くページを大きなタイルで（見出しなし）。
  * その下は設定で、どの画面に関わるかで分ける。見出しにはその画面のアイコン（タブと同じもの）を付ける
  */
-export const MENU: { title?: string; icon?: ReactElement; tiles?: boolean; entries: MenuEntry[] }[] = [
+interface MenuGroup { title?: string; icon?: ReactElement; tiles?: boolean; entries: MenuEntry[] }
+
+export const MENU: MenuGroup[] = [
   {
     tiles: true,
     entries: [
@@ -83,7 +86,7 @@ export const MENU: { title?: string; icon?: ReactElement; tiles?: boolean; entri
       { route: 'prefs-appearance', label: '見た目の設定', icon: <PaletteOutlinedIcon />, tone: 'info' },
       { route: 'prefs-import', label: 'スプレッドシートから取り込む', icon: <TableViewIcon />, tone: 'info' },
       { route: 'prefs-backup', label: 'バックアップと復元', icon: <SaveAltIcon />, tone: 'grey' },
-      { route: TOUR_ROUTE, label: '画面の案内をもう一度見る', icon: <TourOutlinedIcon />, tone: 'primary', action: true },
+      { route: TOUR_ROUTE, label: 'はじめの案内をもう一度見る', icon: <TourOutlinedIcon />, tone: 'primary', action: true },
     ],
   },
 ];
@@ -125,6 +128,44 @@ function ToneIcon({ entry: e, size }: { entry: MenuEntry; size: number }) {
 export function MenuDrawer({ open, onClose, onSelect }: {
   open: boolean; onClose: () => void; onSelect: (route: string) => void;
 }) {
+  const renderGroup = (g: MenuGroup) => (
+    <Box key={g.title ?? 'top'}>
+      {g.title && (
+        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1, color: 'text.secondary', '& svg': { fontSize: 20 } }}>
+          {g.icon}
+          <Typography variant="subtitle2" fontWeight={700}>{g.title}</Typography>
+        </Stack>
+      )}
+      {g.tiles ? (
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1.5 }}>
+          {g.entries.map((e) => (
+            <ButtonBase key={e.route} onClick={() => onSelect(e.route)} focusRipple
+              sx={(t) => ({
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1.5, p: 2, minHeight: 112,
+                bgcolor: 'background.paper', borderRadius: '12px', border: 1, borderColor: 'divider', textAlign: 'left',
+                '&:hover': { borderColor: alpha(toneColor(t, e.tone), 0.5) },
+              })}>
+              <ToneIcon entry={e} size={44} />
+              <Typography variant="body2" fontWeight={700}>{e.label}</Typography>
+            </ButtonBase>
+          ))}
+        </Box>
+      ) : (
+        <Box sx={{ bgcolor: 'background.paper', borderRadius: '12px', border: 1, borderColor: 'divider', overflow: 'hidden' }}>
+          {g.entries.map((e, i) => (
+            <ButtonBase key={e.route} onClick={() => onSelect(e.route)} focusRipple
+              sx={{ display: 'flex', width: '100%', justifyContent: 'flex-start', gap: 1.5, px: 2, py: 1.25, textAlign: 'left',
+                borderTop: i > 0 ? 1 : 0, borderColor: 'divider' }}>
+              <ToneIcon entry={e} size={34} />
+              <Typography variant="body2" fontWeight={700} sx={{ flex: 1, minWidth: 0 }}>{e.label}</Typography>
+              <ChevronRightIcon color="action" fontSize="small" />
+            </ButtonBase>
+          ))}
+        </Box>
+      )}
+    </Box>
+  );
+
   return (
     <Drawer anchor="left" open={open} onClose={onClose}
       slotProps={{ paper: { sx: { width: 'min(86vw, 380px)', bgcolor: 'background.default' } } }}>
@@ -138,43 +179,15 @@ export function MenuDrawer({ open, onClose, onSelect }: {
           <IconButton aria-label="メニューを閉じる" onClick={onClose}><CloseIcon /></IconButton>
         </Stack>
         <Stack spacing={2.5}>
-          {MENU.map((g) => (
-            <Box key={g.title ?? 'top'}>
-              {g.title && (
-                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1, color: 'text.secondary', '& svg': { fontSize: 20 } }}>
-                  {g.icon}
-                  <Typography variant="subtitle2" fontWeight={700}>{g.title}</Typography>
-                </Stack>
-              )}
-              {g.tiles ? (
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1.5 }}>
-                  {g.entries.map((e) => (
-                    <ButtonBase key={e.route} onClick={() => onSelect(e.route)} focusRipple
-                      sx={(t) => ({
-                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1.5, p: 2, minHeight: 112,
-                        bgcolor: 'background.paper', borderRadius: '12px', border: 1, borderColor: 'divider', textAlign: 'left',
-                        '&:hover': { borderColor: alpha(toneColor(t, e.tone), 0.5) },
-                      })}>
-                      <ToneIcon entry={e} size={44} />
-                      <Typography variant="body2" fontWeight={700}>{e.label}</Typography>
-                    </ButtonBase>
-                  ))}
-                </Box>
-              ) : (
-                <Box sx={{ bgcolor: 'background.paper', borderRadius: '12px', border: 1, borderColor: 'divider', overflow: 'hidden' }}>
-                  {g.entries.map((e, i) => (
-                    <ButtonBase key={e.route} onClick={() => onSelect(e.route)} focusRipple
-                      sx={{ display: 'flex', width: '100%', justifyContent: 'flex-start', gap: 1.5, px: 2, py: 1.25, textAlign: 'left',
-                        borderTop: i > 0 ? 1 : 0, borderColor: 'divider' }}>
-                      <ToneIcon entry={e} size={34} />
-                      <Typography variant="body2" fontWeight={700} sx={{ flex: 1, minWidth: 0 }}>{e.label}</Typography>
-                      <ChevronRightIcon color="action" fontSize="small" />
-                    </ButtonBase>
-                  ))}
-                </Box>
-              )}
-            </Box>
-          ))}
+          {MENU.filter((g) => g.tiles).map(renderGroup)}
+          {/* タイル以外はすべて設定。見出しで分かるようにする */}
+          <Box>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5, pb: 1, borderBottom: 1, borderColor: 'divider' }}>
+              <SettingsOutlinedIcon color="action" />
+              <Typography variant="subtitle1" fontWeight={900}>設定</Typography>
+            </Stack>
+            <Stack spacing={2}>{MENU.filter((g) => !g.tiles).map(renderGroup)}</Stack>
+          </Box>
         </Stack>
       </Box>
     </Drawer>
