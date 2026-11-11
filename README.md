@@ -6,6 +6,7 @@
 
 コンセプト: [docs/concept.md](docs/concept.md)
 設計: [docs/design.md](docs/design.md)
+ペルソナ: [docs/personas.md](docs/personas.md)
 
 ## 開発
 
