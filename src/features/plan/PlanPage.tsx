@@ -37,9 +37,7 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
   const income = total(['income']);
   const spend = total(['expense', 'debt']);
   const saving = total(['saving']);
-  // 立替・経費精算の回収は、収入のカテゴリには混ぜないが、その月に使えるお金として数える
-  const back = s.receivableTotal;
-  const over = spend + saving - income - back;
+  const over = spend + saving - income;
   const expense = s.categories.filter((c) => c.kind === 'expense');
   const others = s.categories.filter((c) => c.kind !== 'expense');
 
@@ -55,15 +53,14 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
               {periodLabel(period, startDay)}の計画。先月のずれをふまえて、ざっくり決めよう。
             </Typography>
           </Stack>
-          <Stack direction="row" useFlexGap flexWrap="wrap" columnGap={2} rowGap={1} sx={{ mt: 1.5, pt: 1.5, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
+          <Stack direction="row" spacing={2} sx={{ mt: 1.5, pt: 1.5, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
             <Figure label="収入" value={income} />
-            {back > 0 && <Figure label="立替の回収" value={back} />}
             <Figure label="使う予定" value={spend} />
             <Figure label="積み立て" value={saving} />
           </Stack>
           {over > 0 && (
             <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1, lineHeight: 1.7 }}>
-              計画が{back > 0 ? '収入と立替の回収' : '収入'}を {yen(over)} こえているよ。積み立てを減らすか、貯金から出すか決めておこう。
+              計画が収入を {yen(over)} こえているよ。積み立てを減らすか、貯金から出すか決めておこう。
             </Typography>
           )}
         </CardContent>
