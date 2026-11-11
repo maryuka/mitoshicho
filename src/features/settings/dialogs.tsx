@@ -438,14 +438,15 @@ function AmountChanges({ changes, onChange, months, label }: {
   );
 }
 
-/** 給料日のチェックリストの項目（繰り返すもの）。「今月だけ」は給料日の画面から足す */
+/** 給料日のチェックリストの項目。繰り返すものと、月を選んで1回だけのもの（今月だけのものは給料日の画面からも足せる） */
 export function ChecklistDialog({ value, data, current, onClose }: {
   value?: ChecklistTemplate; data: AppData; current: string; onClose: () => void;
 }) {
   const startDay = periodRule(data.settings);
   const r = value?.recurrence ?? { type: 'monthly' as const };
   const [label, setLabel] = useState(value?.label ?? '');
-  const [recType, setRecType] = useState<'monthly' | 'interval' | 'yearly'>(r.type === 'once' ? 'monthly' : r.type);
+  const [recType, setRecType] = useState<Recurrence['type']>(r.type);
+  const [oncePeriod, setOncePeriod] = useState(r.type === 'once' ? r.periodId : addPeriods(current, 1));
   const [months, setMonths] = useState(r.type === 'interval' ? r.months : 2);
   const [month, setMonth] = useState(r.type === 'yearly' ? r.month : 1);
   const [startPeriod, setStartPeriod] = useState(value?.startPeriod ?? current);
@@ -456,11 +457,16 @@ export function ChecklistDialog({ value, data, current, onClose }: {
 
   const save = async () => {
     if (!valid) return;
+    const base = { id: value?.id ?? newId(), label: label.trim(), sortOrder: value?.sortOrder ?? nextOrder(data.checklistTemplates) };
+    if (recType === 'once') {
+      await db.checklistTemplates.put({ ...base, recurrence: { type: 'once', periodId: oncePeriod }, startPeriod: oncePeriod, endPeriod: oncePeriod });
+      onClose();
+      return;
+    }
     const recurrence: Recurrence = recType === 'monthly' ? { type: 'monthly' }
       : recType === 'interval' ? { type: 'interval', months } : { type: 'yearly', month };
     await db.checklistTemplates.put({
-      id: value?.id ?? newId(), label: label.trim(), sortOrder: value?.sortOrder ?? nextOrder(data.checklistTemplates),
-      recurrence, startPeriod, endPeriod: endPeriod && comparePeriods(endPeriod, startPeriod) >= 0 ? endPeriod : undefined,
+      ...base, recurrence, startPeriod, endPeriod: endPeriod && comparePeriods(endPeriod, startPeriod) >= 0 ? endPeriod : undefined,
     });
     onClose();
   };
@@ -483,7 +489,14 @@ export function ChecklistDialog({ value, data, current, onClose }: {
             <MenuItem value="monthly">毎月</MenuItem>
             <MenuItem value="interval">数か月に1回</MenuItem>
             <MenuItem value="yearly">毎年</MenuItem>
+            <MenuItem value="once">1回だけ（月を選ぶ）</MenuItem>
           </TextField>
+          {recType === 'once' && (
+            <TextField id="check-once" select label="どの月の給料日か" value={oncePeriod} onChange={(e) => setOncePeriod(e.target.value)} fullWidth>
+              {(options.includes(oncePeriod) ? options : [oncePeriod, ...options]).filter((p) => comparePeriods(p, current) >= 0 || p === oncePeriod)
+                .map((p) => <MenuItem key={p} value={p}>{periodYearLabel(p, startDay)}</MenuItem>)}
+            </TextField>
+          )}
           {recType === 'interval' && (
             <TextField id="check-interval" select label="何か月に1回か" value={months} onChange={(e) => setMonths(Number(e.target.value))} fullWidth
               helperText="開始月から数えます">
@@ -495,6 +508,7 @@ export function ChecklistDialog({ value, data, current, onClose }: {
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <MenuItem key={m} value={m}>{m}月</MenuItem>)}
             </TextField>
           )}
+          {recType !== 'once' && <>
           <TextField id="check-start" select label="開始月" value={startPeriod} fullWidth
             onChange={(e) => { setStartPeriod(e.target.value); if (endPeriod && comparePeriods(endPeriod, e.target.value) < 0) setEndPeriod(''); }}>
             {withValue(startPeriod).map((p) => <MenuItem key={p} value={p}>{periodYearLabel(p, startDay)}</MenuItem>)}
@@ -505,6 +519,7 @@ export function ChecklistDialog({ value, data, current, onClose }: {
             {withValue(endPeriod).filter((p) => comparePeriods(p, startPeriod) >= 0)
               .map((p) => <MenuItem key={p} value={p}>{periodYearLabel(p, startDay)}</MenuItem>)}
           </TextField>
+          </>}
         </Stack>
       </DialogContent>
       <Actions valid={valid} onSave={save} onClose={onClose} />
