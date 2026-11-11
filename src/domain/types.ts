@@ -15,6 +15,8 @@ export interface Settings {
   tourPending?: boolean;
   /** ふりかえりで出すずれの大きさ。この金額以上ずれたものだけ出す（なければ 5,000円） */
   driftMinYen?: number;
+  /** 計画の上で大きく出す数字。budget: 予算（カードは使う月）／cash: 口座のお金（カードは引き落とされる月）。なければ budget */
+  planFocus?: 'budget' | 'cash';
   /** ホームに出すもの */
   home?: HomeSettings;
 }

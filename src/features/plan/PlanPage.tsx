@@ -27,6 +27,7 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
   data: AppData; period: string; setPeriod: (p: string) => void; current: string; menu?: ReactNode;
 }) {
   const startDay = periodRule(data.settings);
+  const focus = data.settings.planFocus ?? 'budget';
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
   const big = useMemo(() => bigExpenses(data, period), [data, period]);
   const prev = addPeriods(period, -1);
@@ -60,22 +61,27 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
               {periodLabel(period, startDay)}の計画。先月のずれをふまえて、ざっくり決めよう。
             </Typography>
           </Stack>
-          {/* 上は「予算」（カードは使う月で数える）、下は「口座のお金」（カードは引き落とされる月で数える）。見出しをそろえて違いを分かるようにする */}
+          {/* 「予算」（カードは使う月で数える）と「口座のお金」（カードは引き落とされる月で数える）。設定で選んだほうを大きく、もう一方は1行で */}
           <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1.5, borderColor: 'divider', borderTopStyle: 'solid' }}>
-            <SectionLabel title="予算" note="カードは使う月で数える" />
+            {focus === 'cash' ? <>
+              <CashMain s={s} />
+              <BudgetLine income={income} spend={spend} saving={saving} />
+            </> : <>
+              <SectionLabel title="予算" note="カードは使う月で数える" />
+              <Stack direction="row" spacing={2} sx={{ mt: 0.75 }}>
+                <Figure label="収入" value={income} />
+                <Figure label="使う予定" value={spend} />
+                <Figure label="積み立て" value={saving} />
+              </Stack>
+            </>}
+            {/* 口座のお金が足りなくなる月は、そちらでまとめて伝える（同じ助言を2回出さない） */}
+            {over > 0 && s.buffer >= 0 && (
+              <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1, lineHeight: 1.7 }}>
+                計画が収入を {yen(over)} こえているよ。積み立てを減らすか、貯金から出すか決めておこう。
+              </Typography>
+            )}
+            {focus === 'cash' ? (s.buffer < 0 && <ShortNote s={s} />) : <CashLine s={s} />}
           </Box>
-          <Stack direction="row" spacing={2} sx={{ mt: 0.75 }}>
-            <Figure label="収入" value={income} />
-            <Figure label="使う予定" value={spend} />
-            <Figure label="積み立て" value={saving} />
-          </Stack>
-          {/* 口座のお金が足りなくなる月は、下の行でまとめて伝える（同じ助言を2回出さない） */}
-          {over > 0 && s.buffer >= 0 && (
-            <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1, lineHeight: 1.7 }}>
-              計画が収入を {yen(over)} こえているよ。積み立てを減らすか、貯金から出すか決めておこう。
-            </Typography>
-          )}
-          <CashFlowLine s={s} />
         </CardContent>
       </Card>
 
@@ -119,30 +125,63 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
   );
 }
 
-/**
- * お金の流れで見た、この月の残るお金（給料日のチェックと同じ計算）。
- * 上の数字は「使う月」で数えた予算なので、カードの引落でこの月の口座のお金が足りるかは、ここで先に見えるようにする
- */
-function CashFlowLine({ s }: { s: PeriodSummary }) {
-  const short = s.buffer < 0;
+const cashResult = (s: PeriodSummary) => (s.buffer < 0 ? `${yen(-s.buffer)} 足りない` : `${yen(s.buffer)} 残る`);
+const cashFormula = (s: PeriodSummary) =>
+  `収入 ${yen(s.incomeTotal)} − 口座から出るお金 ${yen(s.directOutTotal)} − カードの引落 ${yen(s.cardBillTotal)}`
+  + (s.receivableTotal > 0 ? ` + 立替の回収 ${yen(s.receivableTotal)}` : '');
+
+/** 口座のお金を大きく（設定で「口座のお金」を選んだとき）。給料日のチェックの「残るお金」と同じ計算 */
+function CashMain({ s }: { s: PeriodSummary }) {
   return (
-    <Box sx={{ mt: 1.5, p: 1.25, borderRadius: '8px', bgcolor: 'soft' }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
-        <Typography variant="body2" fontWeight={900}>口座のお金</Typography>
-        <Typography fontWeight={900} color={short ? 'error.main' : 'text.primary'} sx={{ flexShrink: 0 }}>
-          {short ? `${yen(-s.buffer)} 足りない` : `${yen(s.buffer)} 残る`}
-        </Typography>
-      </Stack>
-      <Typography variant="caption" color="text.secondary" component="p" sx={{ fontSize: 11 }}>カードは引き落とされる月で数える</Typography>
-      <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.5, lineHeight: 1.7 }}>
-        収入 {yen(s.incomeTotal)} − 口座から出るお金 {yen(s.directOutTotal)} − カードの引落 {yen(s.cardBillTotal)}
-        {s.receivableTotal > 0 ? ` + 立替の回収 ${yen(s.receivableTotal)}` : ''}
+    <Box>
+      <SectionLabel title="口座のお金" note="カードは引き落とされる月で数える" />
+      <Typography variant="h5" component="p" fontWeight={900} color={s.buffer < 0 ? 'error.main' : 'text.primary'} sx={{ mt: 0.5 }}>
+        {cashResult(s)}
       </Typography>
-      {short && (
-        <Typography variant="caption" component="p" sx={{ mt: 0.5, lineHeight: 1.7 }}>
-          この月は出ていくお金が多めで、口座のお金が足りなくなりそう。積み立てを少し減らすか、貯金から出すか決めておこう。
-        </Typography>
-      )}
+      <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.25, lineHeight: 1.7 }}>{cashFormula(s)}</Typography>
+    </Box>
+  );
+}
+
+/** 予算を1行で（設定で「口座のお金」を選んだとき） */
+function BudgetLine({ income, spend, saving }: { income: number; spend: number; saving: number }) {
+  return (
+    <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1.25, pt: 1, borderTop: 1, borderColor: 'divider', lineHeight: 1.7 }}>
+      <Box component="span" fontWeight={900} color="text.primary" sx={{ mr: 0.75 }}>予算</Box>
+      収入 {yen(income)}・使う予定 {yen(spend)}・積み立て {yen(saving)}（カードは使う月で数える）
+    </Typography>
+  );
+}
+
+/**
+ * 口座のお金を1行で（設定で「予算」を選んだとき）。
+ * 足りなくなる月だけは、見のがさないように目立たせて、ひとこと添える
+ */
+function CashLine({ s }: { s: PeriodSummary }) {
+  if (s.buffer < 0) return <ShortNote s={s} withResult />;
+  return (
+    <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1.25, pt: 1, borderTop: 1, borderColor: 'divider', lineHeight: 1.7 }}>
+      <Box component="span" fontWeight={900} color="text.primary" sx={{ mr: 0.75 }}>口座のお金</Box>
+      {cashResult(s)}（カードは引き落とされる月で数える）
+    </Typography>
+  );
+}
+
+/** 口座のお金が足りなくなる月のひとこと */
+function ShortNote({ s, withResult }: { s: PeriodSummary; withResult?: boolean }) {
+  return (
+    <Box sx={{ mt: 1.25, p: 1.25, borderRadius: '8px', bgcolor: 'soft' }}>
+      {withResult && <>
+        <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+          <Typography variant="body2" fontWeight={900}>口座のお金</Typography>
+          <Typography fontWeight={900} color="error.main" sx={{ flexShrink: 0 }}>{cashResult(s)}</Typography>
+        </Stack>
+        <Typography variant="caption" color="text.secondary" component="p" sx={{ fontSize: 11 }}>カードは引き落とされる月で数える</Typography>
+        <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.5, lineHeight: 1.7 }}>{cashFormula(s)}</Typography>
+      </>}
+      <Typography variant="caption" component="p" sx={{ mt: withResult ? 0.5 : 0, lineHeight: 1.7 }}>
+        この月は出ていくお金が多めで、口座のお金が足りなくなりそう。積み立てを少し減らすか、貯金から出すか決めておこう。
+      </Typography>
     </Box>
   );
 }

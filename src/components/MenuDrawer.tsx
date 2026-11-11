@@ -15,6 +15,7 @@ import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import SwapVertIcon from '@mui/icons-material/SwapVert';
 import TableViewIcon from '@mui/icons-material/TableView';
 import TourOutlinedIcon from '@mui/icons-material/TourOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
@@ -70,6 +71,7 @@ export const MENU: MenuGroup[] = [
       { route: 'prefs-items', label: '定期項目', icon: <EventRepeatIcon />, tone: 'primary' },
       { route: 'prefs-categories', label: 'カテゴリ', icon: <CategoryIcon />, tone: 'success' },
       { route: 'prefs-accounts', label: '口座・カード', icon: <AccountBalanceIcon />, tone: 'grey' },
+      { route: 'prefs-plan', label: '計画で大きく出す数字', icon: <SwapVertIcon />, tone: 'warning' },
     ],
   },
   {
