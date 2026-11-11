@@ -20,7 +20,7 @@ export const TOUR_STEPS: TourStep[] = [
     text: 'サンプルデータで、ホームを見てみよう。計画する → 使う → ふりかえる のサイクルで、今どこにいて何をするかがここに出るよ。' },
   { route: 'home', target: 'notices', optional: true,
     text: 'カードの請求額が確定したときなどは、お知らせに出るよ。' },
-  { route: 'home', target: 'big',
+  { route: 'home', target: 'big', optional: true,
     text: '旅行・帰省・年払いなどの大きい出費は、先の予定として見えるよ。先が見えるから、今を気持ちよく使えるね。' },
   { route: 'payday', target: 'payday',
     text: '給料日には、入金の確認・立替の回収・口座への振り分けを順にチェックしていくよ。メニューからも開けるよ。' },

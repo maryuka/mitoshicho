@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bigExpenses, cardBillRows, cardTodos, outlook, summarize, itemOccurs } from './cashflow';
+import { bigExpenses, cardBillRows, cardTodos, homeBigExpenses, outflows, outlook, summarize, itemOccurs } from './cashflow';
 import { addPeriods, dateInPeriod, lastDayBefore, periodLabel, periodOf, periodStart, periodYearLabel } from './period';
 import { DEFAULT_SETTINGS, type AppData, type Item } from './types';
 
@@ -166,6 +166,13 @@ describe('summarize', () => {
     const s = summarize(baseData(), '2026-03');
     expect(s.timeline.map((e) => e.label)).toEqual(['salary', 'カード 引落', 'rent']);
   });
+
+  it('出金予定は、口座から出ていくものだけを日付順に、口座の名前つきで', () => {
+    const s = summarize(baseData(), '2026-03');
+    expect(outflows(s).map((e) => [e.label, e.date.getDate(), -e.amount, e.account, !!e.card])).toEqual([
+      ['カード 引落', 26, 5000, 'サブ', true], ['rent', 27, 100000, '銀行', false],
+    ]);
+  });
 });
 
 describe('カードの確定日', () => {
@@ -274,5 +281,14 @@ describe('bigExpenses / outlook', () => {
     const o = outlook(d, '2026-02', 3);
     expect(o.map((m) => m.periodId)).toEqual(['2026-02', '2026-03', '2026-04']);
     expect(o[1].big.map((b) => b.item.id)).toEqual(['fee']);
+  });
+
+  it('ホームには設定の金額以上だけを出す（既定 10,000円）。入出金日があれば日付も', () => {
+    const d = baseData();
+    d.entries.push({ id: '2026-04:rent', periodId: '2026-04', itemId: 'rent', planned: 150000 });
+    const o = outlook(d, '2026-02', 3);
+    expect(homeBigExpenses(o, d.settings).map((b) => b.item.id)).toEqual(['rent']);
+    expect(homeBigExpenses(o, d.settings)[0].date).toEqual(dateInPeriod('2026-04', 15, 27));
+    expect(homeBigExpenses(o, { ...d.settings, home: { bigMinYen: 5000 } }).map((b) => b.item.id)).toEqual(['fee', 'rent']);
   });
 });

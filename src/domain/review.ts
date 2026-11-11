@@ -16,21 +16,28 @@ export interface Drift {
   memo?: string;
 }
 
-/** 細かいずれは出さない。計画の1割か 1,000円の、大きい方をこえたものだけ */
-export function isNotable(planned: number, diff: number): boolean {
-  return Math.abs(diff) >= Math.max(1000, Math.round(planned * 0.1));
+export const DEFAULT_DRIFT_MIN_YEN = 5000;
+
+export function driftMinYen(data: AppData): number {
+  return data.settings.driftMinYen ?? DEFAULT_DRIFT_MIN_YEN;
+}
+
+/** 細かいずれは出さない。minYen 円以上ずれたものだけ（既定 5,000円） */
+export function isNotable(diff: number, minYen = DEFAULT_DRIFT_MIN_YEN): boolean {
+  return diff !== 0 && Math.abs(diff) >= minYen;
 }
 
 /** その月の、支出カテゴリの目立つずれ（大きい順）。実績が入っていないカテゴリは出さない */
 export function monthDrifts(data: AppData, pid: string): Drift[] {
   const idx = buildIndex(data);
+  const minYen = driftMinYen(data);
   return categoryRows(data, pid, itemRows(data, pid, idx), idx)
     .filter((c) => c.kind === 'expense' && c.actual !== undefined)
     .map((c) => {
       const rec = idx.actuals.get(`${pid}:${c.category.id}`);
       return { periodId: pid, category: c.category, planned: c.planned, actual: c.actual!, diff: c.actual! - c.planned, kind: rec?.driftKind, memo: rec?.memo };
     })
-    .filter((d) => isNotable(d.planned, d.diff))
+    .filter((d) => isNotable(d.diff, minYen))
     .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
 }
 
