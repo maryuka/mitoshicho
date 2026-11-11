@@ -28,16 +28,22 @@ export interface MenuEntry {
   tone: 'primary' | 'success' | 'warning' | 'info' | 'grey';
 }
 
-/** メニューは、アプリのどのページに関わるかで分ける。見出しには下のタブと同じアイコンを付ける */
+/** メニューは、どの画面に関わるかで分ける。見出しにはその画面のアイコン（タブと同じもの）を付ける */
 export const MENU: { title: string; icon?: ReactElement; entries: MenuEntry[] }[] = [
   {
-    title: 'ホーム',
-    icon: <HomeIcon />,
+    title: '給料日',
+    icon: <PaymentsOutlinedIcon />,
     entries: [
       { route: 'payday', label: '給料日のチェック', icon: <PaymentsOutlinedIcon />, tone: 'primary' },
       { route: 'receivables', label: '立替・経費精算', icon: <ReceiptLongIcon />, tone: 'warning' },
       { route: 'prefs-checklist', label: '給料日のチェックリスト', icon: <ChecklistIcon />, tone: 'success' },
-      { route: 'prefs-home', label: 'ホームの設定', icon: <DashboardCustomizeOutlinedIcon />, tone: 'info' },
+    ],
+  },
+  {
+    title: 'ホーム',
+    icon: <HomeIcon />,
+    entries: [
+      { route: 'prefs-home', label: 'ホームに出すもの', icon: <DashboardCustomizeOutlinedIcon />, tone: 'info' },
     ],
   },
   {
@@ -53,7 +59,7 @@ export const MENU: { title: string; icon?: ReactElement; entries: MenuEntry[] }[
     title: 'ふりかえり',
     icon: <FactCheckIcon />,
     entries: [
-      { route: 'prefs-review', label: 'ふりかえりの設定', icon: <FactCheckOutlinedIcon />, tone: 'warning' },
+      { route: 'prefs-review', label: 'ずれを出す金額', icon: <FactCheckOutlinedIcon />, tone: 'warning' },
     ],
   },
   {
