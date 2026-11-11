@@ -15,6 +15,17 @@ export interface Settings {
   tourPending?: boolean;
   /** ふりかえりで出すずれの大きさ。この金額以上ずれたものだけ出す（なければ 5,000円） */
   driftMinYen?: number;
+  /** ホームに出すもの */
+  home?: HomeSettings;
+}
+
+export interface HomeSettings {
+  /** この先の大きい出費を出す（なければ出す） */
+  big?: boolean;
+  /** 大きい出費として出す金額（なければ 10,000円） */
+  bigMinYen?: number;
+  /** 今月の出金予定を出す（なければ出さない） */
+  outflows?: boolean;
 }
 
 export type AccountKind = 'bank' | 'card';

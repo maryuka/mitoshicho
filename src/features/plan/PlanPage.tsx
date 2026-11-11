@@ -16,6 +16,7 @@ import { PeriodNav } from '../../components/PeriodNav';
 import { KITSUNE } from '../../components/Kitsune';
 import { CategoryItems } from '../budget/parts';
 import { OnceItemDialog } from '../settings/dialogs';
+import { OutflowsCard } from '../home/Outlook';
 
 const REASON: Record<BigExpense['reason'], string> = { yearly: '年払い', interval: '数か月ごと', once: '1回だけ', override: 'いつもより多め' };
 
@@ -99,6 +100,8 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
           )}
         </CardContent>
       </Card>
+
+      <OutflowsCard summary={s} title="出金予定" />
 
       {adding && <AddBigExpenseDialog data={data} period={period} onClose={() => setAdding(false)} />}
       {editing && <OnceItemDialog value={editing.item} planned={editing.amount} data={data} onClose={() => setEditing(null)} />}

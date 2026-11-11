@@ -2,9 +2,10 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
-import { Box, Card, CardHeader, List, ListItemButton, ListItemIcon, ListItemText, Stack } from '@mui/material';
+import TuneIcon from '@mui/icons-material/Tune';
+import { Box, Button, Card, CardHeader, List, ListItemButton, ListItemIcon, ListItemText, Stack } from '@mui/material';
 import { useMemo, useState, type ReactNode } from 'react';
-import { cardTodos, outlook, type CardTodo } from '../../domain/cashflow';
+import { cardTodos, DEFAULT_BIG_MIN_YEN, homeBigExpenses, outlook, summarize, type CardTodo } from '../../domain/cashflow';
 import { paydayProgress } from '../../domain/payday';
 import { monthDrifts, reviewStatus } from '../../domain/review';
 import { addPeriods, periodEnd, periodLabel, periodStart, periodRule } from '../../domain/period';
@@ -13,7 +14,7 @@ import { billDatesText } from '../../lib/cardBill';
 import { yen } from '../../lib/money';
 import { CardBillDialog } from '../../components/CardBillDialog';
 import { Bubble, KITSUNE } from '../../components/Kitsune';
-import { BigExpensesCard } from './Outlook';
+import { BigExpensesCard, OutflowsCard } from './Outlook';
 import { CycleCard, type CycleStage } from './Cycle';
 import { SetupGuide } from './SetupGuide';
 
@@ -32,7 +33,12 @@ export function HomePage({ data, current, onOpenBudget, onOpenPlan, onOpenPayday
   const review = useMemo(() => reviewStatus(data, prev), [data, prev]);
   const payday = useMemo(() => paydayProgress(data, current), [data, current]);
   const casualOver = useMemo(() => monthDrifts(data, prev).find((d) => d.diff > 0 && d.kind === 'casual'), [data, prev]);
-  const months = useMemo(() => (setup ? [] : outlook(data, current)), [setup, data, current]);
+  const home = data.settings.home ?? {};
+  const showBig = home.big ?? true;
+  const showOutflows = home.outflows ?? false;
+  const bigMinYen = home.bigMinYen ?? DEFAULT_BIG_MIN_YEN;
+  const big = useMemo(() => (setup || !showBig ? [] : homeBigExpenses(outlook(data, current), data.settings)), [setup, showBig, data, current]);
+  const summary = useMemo(() => (setup || !showOutflows ? undefined : summarize(data, current, current)), [setup, showOutflows, data, current]);
   const daysIn = Math.floor((Date.now() - periodStart(current, startDay).getTime()) / 86400000);
   const daysLeft = Math.max(0, Math.ceil((periodEnd(current, startDay).getTime() - Date.now()) / 86400000));
   const prevLabel = periodLabel(prev, startDay);
@@ -90,7 +96,13 @@ export function HomePage({ data, current, onOpenBudget, onOpenPlan, onOpenPayday
       </Box>
 
       {!setup && <Notices data={data} current={current} onCardTodo={setEditing} />}
-      {!setup && <BigExpensesCard months={months} startDay={startDay} onOpen={onOpenPlan} limit={3} />}
+      {!setup && showBig && <BigExpensesCard list={big} minYen={bigMinYen} startDay={startDay} onOpen={onOpenPlan} limit={3} />}
+      {summary && <OutflowsCard summary={summary} title="今月の出金予定" />}
+      {!setup && (
+        <Button href="#prefs-home" startIcon={<TuneIcon />} color="inherit" size="small" sx={{ alignSelf: 'center', color: 'text.secondary' }}>
+          ホームをカスタマイズ
+        </Button>
+      )}
 
       {editing && (
         <CardBillDialog periodId={editing.periodId} bill={editing.bill} startDay={startDay} onClose={() => setEditing(null)} />
