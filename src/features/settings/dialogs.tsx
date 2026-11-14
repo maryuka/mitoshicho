@@ -111,34 +111,23 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
           </TextField>
           {kind === 'card' && (
             <>
-              <Stack direction="row" spacing={1}>
-                <TextField id="acc-closing-day" select label="締め日（毎月）" value={closingDay ?? ''} fullWidth
-                  onChange={(e) => setClosingDay(e.target.value === '' ? undefined : Number(e.target.value))}>
-                  <MenuItem value="">（未設定）</MenuItem>
-                  {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => <MenuItem key={d} value={d}>{d}日</MenuItem>)}
-                  <MenuItem value={31}>末日</MenuItem>
-                </TextField>
-                <DayField id="acc-withdraw-day" label="引落日（翌月）" value={withdrawDay} onChange={setWithdrawDay} />
-              </Stack>
-              <Typography variant="caption" color="text.secondary">
-                {closingDay !== undefined && withdrawDay !== undefined
-                  ? `明細の「${closingDay === 31 ? '末日' : `${closingDay}日`}締め・翌月${withdrawDay}日払い」のとおり。${periodLabel(current, startDay)}に使った分は、${periodLabel(billIn, startDay)}の月に引き落とされる計算になります。`
-                  : '締め日を入れると、使った月のいつ引き落とされるかを自動で決めます。'}
-              </Typography>
-              <DayField id="acc-confirm-day" label="請求確定日（毎月）" value={confirmDay} onChange={setConfirmDay} />
-              <TextField id="acc-withdraw-shift" select label="引落日が土日・祝日のとき" value={withdrawShift}
-                onChange={(e) => setWithdrawShift(e.target.value as HolidayShift)} fullWidth>
-                <MenuItem value="after">後の平日にずらす</MenuItem>
-                <MenuItem value="before">前の平日にずらす</MenuItem>
-                <MenuItem value="none">ずらさない</MenuItem>
-              </TextField>
-              <Typography variant="caption" color="text.secondary">
-                確定日になるとホームの「お知らせ」に請求額の入力が出ます。月ごとにずれる場合は、その月の請求を開いて日付を変えられます。
-              </Typography>
-              <TextField id="acc-withdraw-account" select label="引落口座" value={withdrawAccountId} onChange={(e) => setWithdrawAccountId(e.target.value)} fullWidth>
-                <MenuItem value="">（未設定）</MenuItem>
-                {banks.map((b) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
-              </TextField>
+              {/* 明細のことばの順（◯日締め・翌月◯日払い・どの口座から）に並べる。説明は計算の結果だけを短く */}
+              <Box>
+                <Stack direction="row" spacing={1}>
+                  <TextField id="acc-closing-day" select label="締め日" value={closingDay ?? ''} fullWidth
+                    onChange={(e) => setClosingDay(e.target.value === '' ? undefined : Number(e.target.value))}>
+                    <MenuItem value="">（未設定）</MenuItem>
+                    {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => <MenuItem key={d} value={d}>{d}日</MenuItem>)}
+                    <MenuItem value={31}>末日</MenuItem>
+                  </TextField>
+                  <DayField id="acc-withdraw-day" label="引落日（翌月）" value={withdrawDay} onChange={setWithdrawDay} />
+                </Stack>
+                {closingDay !== undefined && withdrawDay !== undefined && (
+                  <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.75, ml: 1.5 }}>
+                    {periodLabel(current, startDay)}に使った分 → {periodLabel(billIn, startDay)}の月に引落
+                  </Typography>
+                )}
+              </Box>
               {closingDay === undefined && (
                 <TextField id="acc-lag" select label="請求のタイミング" value={lag} onChange={(e) => setLag(Number(e.target.value))} fullWidth>
                   <MenuItem value={0}>使った月と同じ月に引落</MenuItem>
@@ -146,6 +135,18 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
                   <MenuItem value={2}>使った月の2か月後に引落</MenuItem>
                 </TextField>
               )}
+              <TextField id="acc-withdraw-shift" select label="引落日が土日・祝日のとき" value={withdrawShift}
+                onChange={(e) => setWithdrawShift(e.target.value as HolidayShift)} fullWidth>
+                <MenuItem value="after">後の平日にずらす</MenuItem>
+                <MenuItem value="before">前の平日にずらす</MenuItem>
+                <MenuItem value="none">ずらさない</MenuItem>
+              </TextField>
+              <TextField id="acc-withdraw-account" select label="引落口座" value={withdrawAccountId} onChange={(e) => setWithdrawAccountId(e.target.value)} fullWidth>
+                <MenuItem value="">（未設定）</MenuItem>
+                {banks.map((b) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
+              </TextField>
+              <DayField id="acc-confirm-day" label="請求額の確定日（なくてもOK）" value={confirmDay} onChange={setConfirmDay}
+                helperText="この日になると、ホームのお知らせで請求額の入力をうながします" />
             </>
           )}
         </Stack>
@@ -155,9 +156,12 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
   );
 }
 
-function DayField({ id, label, value, onChange }: { id: string; label: string; value?: number; onChange: (v?: number) => void }) {
+function DayField({ id, label, value, onChange, helperText }: {
+  id: string; label: string; value?: number; onChange: (v?: number) => void; helperText?: string;
+}) {
   return (
-    <TextField id={id} select label={label} value={value ?? ''} onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))} fullWidth>
+    <TextField id={id} select label={label} value={value ?? ''} onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))} fullWidth
+      helperText={helperText}>
       <MenuItem value="">（未設定）</MenuItem>
       {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <MenuItem key={d} value={d}>{d}日</MenuItem>)}
     </TextField>
