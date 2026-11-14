@@ -15,12 +15,13 @@ import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import SwapVertIcon from '@mui/icons-material/SwapVert';
 import TableViewIcon from '@mui/icons-material/TableView';
 import TourOutlinedIcon from '@mui/icons-material/TourOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
 import { Box, ButtonBase, Drawer, IconButton, Stack, Typography } from '@mui/material';
 import { alpha, type Theme } from '@mui/material/styles';
-import type { ReactElement } from 'react';
+import type { ReactElement, UIEvent } from 'react';
 
 export interface MenuEntry {
   route: string;
@@ -70,6 +71,7 @@ export const MENU: MenuGroup[] = [
       { route: 'prefs-items', label: '定期項目', icon: <EventRepeatIcon />, tone: 'primary' },
       { route: 'prefs-categories', label: 'カテゴリ', icon: <CategoryIcon />, tone: 'success' },
       { route: 'prefs-accounts', label: '口座・カード', icon: <AccountBalanceIcon />, tone: 'grey' },
+      { route: 'prefs-plan', label: '計画で大きく出す数字', icon: <SwapVertIcon />, tone: 'warning' },
     ],
   },
   {
@@ -110,6 +112,9 @@ export function MenuButton({ onClick }: { onClick: () => void }) {
     </IconButton>
   );
 }
+
+/** メニューをどこまでスクロールしていたか（閉じても覚えておく） */
+let menuScroll = 0;
 
 /** タイルや行の左の、色付きの丸いアイコン */
 function ToneIcon({ entry: e, size }: { entry: MenuEntry; size: number }) {
@@ -168,7 +173,11 @@ export function MenuDrawer({ open, onClose, onSelect }: {
 
   return (
     <Drawer anchor="left" open={open} onClose={onClose}
-      slotProps={{ paper: { sx: { width: 'min(86vw, 380px)', bgcolor: 'background.default' } } }}>
+      slotProps={{
+        paper: { sx: { width: 'min(86vw, 380px)', bgcolor: 'background.default' }, onScroll: (e: UIEvent<HTMLDivElement>) => { menuScroll = e.currentTarget.scrollTop; } },
+        // 開き直したときは、前に見ていた位置から（設定のページから戻ったとき、下のほうの項目を探し直さなくていいように）
+        transition: { onEntering: (node: HTMLElement) => { node.scrollTop = menuScroll; } },
+      }}>
       <Box sx={{ pt: 'calc(16px + env(safe-area-inset-top, 0px))', pb: 'calc(24px + env(safe-area-inset-bottom, 0px))',
         pl: 'max(16px, env(safe-area-inset-left, 0px))', pr: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>

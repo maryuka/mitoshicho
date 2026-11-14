@@ -17,6 +17,7 @@ import { DataSection } from './DataSection';
 import { PaydayFields } from './PaydayFields';
 import { DriftFields } from '../review/Drift';
 import { HomeFields } from './HomeFields';
+import { PlanFocusFields } from './PlanFocusFields';
 import { AddFab } from '../../components/AddFab';
 import { PageNote } from '../../components/PageNote';
 import { useThemePref } from '../../theme';
@@ -39,7 +40,7 @@ function nextChange(i: Item, current: string) {
   return i.amountChanges?.find((c) => comparePeriods(c.from, current) > 0);
 }
 
-export type SettingsPageId = 'basic' | 'appearance' | 'accounts' | 'categories' | 'items' | 'checklist' | 'review' | 'home' | 'import' | 'backup';
+export type SettingsPageId = 'basic' | 'appearance' | 'accounts' | 'categories' | 'items' | 'checklist' | 'review' | 'home' | 'plan' | 'import' | 'backup';
 
 /** メニューから開く設定の各ページ。1ページに1つの項目だけを出す */
 export function SettingsPage({ page, data, current }: { page: SettingsPageId; data: AppData; current: string }) {
@@ -65,6 +66,10 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
     <Stack spacing={2}>
       {page === 'basic' && <Section>
         <CardContent><PaydayFields settings={s} /></CardContent>
+      </Section>}
+
+      {page === 'plan' && <Section note="選ばなかったほうも、下に1行で出ます。口座のお金が足りなくなる月は、どちらを選んでもお知らせします。">
+        <CardContent><PlanFocusFields settings={s} /></CardContent>
       </Section>}
 
       {page === 'home' && <Section>
@@ -216,11 +221,14 @@ function Empty({ children }: { children: ReactNode }) {
 function ChecklistSection({ data, current }: { data: AppData; current: string }) {
   const [editing, setEditing] = useState<ChecklistTemplate | 'new' | null>(null);
   const startDay = periodRule(data.settings);
-  // 「今月だけ」の項目は給料日の画面で足して消すので、ここには繰り返すものだけを出す
-  const items = data.checklistTemplates.filter((t) => t.recurrence?.type !== 'once').sort((a, b) => a.sortOrder - b.sortOrder);
+  // 繰り返すものと、今月以降の「1回だけ」のもの（過ぎた月の1回だけのものは出さない）。1回だけのものは月の順に後ろへ
+  const onceOf = (t: ChecklistTemplate) => (t.recurrence?.type === 'once' ? t.recurrence.periodId : undefined);
+  const items = data.checklistTemplates
+    .filter((t) => { const p = onceOf(t); return !p || comparePeriods(p, current) >= 0; })
+    .sort((a, b) => (onceOf(a) ?? '').localeCompare(onceOf(b) ?? '') || a.sortOrder - b.sortOrder);
   return (
     <Section onAdd={() => setEditing('new')}
-      note="口座ごとの送金チェックは自動で出ます。それ以外のやることを登録します。今月だけのやることは、「給料日のチェック」から足せます。">
+      note="口座ごとの送金チェックは自動で出ます。それ以外のやることを登録します。1回だけのやることは、頻度で月を選んで足せます（今月の分は「給料日のチェック」からも足せます）。">
       <List dense>
         {items.length === 0 && <Empty>やることを登録してください</Empty>}
         {items.map((t) => (
@@ -238,6 +246,6 @@ function ChecklistSection({ data, current }: { data: AppData; current: string })
 
 function checklistText(t: ChecklistTemplate, startDay: StartDay) {
   const parts = [recurrenceText(t.recurrence ?? { type: 'monthly' }, startDay)];
-  if (t.endPeriod) parts.push(`${periodYearLabel(t.endPeriod, startDay)} まで`);
+  if (t.endPeriod && t.recurrence?.type !== 'once') parts.push(`${periodYearLabel(t.endPeriod, startDay)} まで`);
   return parts.join('・');
 }

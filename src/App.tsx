@@ -6,7 +6,7 @@ import {
   BottomNavigation, BottomNavigationAction, Box, Container,
   IconButton, Paper, Stack, Typography,
 } from '@mui/material';
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useAppData } from './db/useAppData';
 import { addPeriods, periodOf, periodRule } from './domain/period';
 import { buildSampleData } from './db/sample';
@@ -43,6 +43,7 @@ const TIPS: Record<string, string> = {
   'prefs-accounts': '請求確定日を入れておくと、確定したときにホームの「お知らせ」で知らせるよ！',
   'prefs-categories': 'カテゴリはいつも使う家計簿アプリと同じ名前にしておくと、実績を入れやすいよ！',
   'prefs-items': '毎月・毎年決まって出入りするお金を入れておこう！',
+  'prefs-plan': 'カードの引落で口座のお金が足りるかが気になるなら、「口座のお金」を選ぼう！',
   'prefs-home': 'ホームに出すものを選べるよ。よく見るものだけにしておこう！',
   'prefs-review': '小さなずれまで気になるなら金額を下げて、大きいものだけ見たいなら上げよう！',
   'prefs-appearance': '画面の明るさを選べるよ。夜はダークが目にやさしいよ！',
@@ -63,6 +64,8 @@ export function App() {
   const [lastMain, setLastMain] = useState<MainRoute>(isMain(hashRoute) ? hashRoute : 'home');
   const [period, setPeriod] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // メニューから開いたページの route。そこから戻ったときに、メニューを開き直す
+  const fromMenu = useRef<string | null>(null);
   const [tourIndex, setTourIndex] = useState(0);
   // メニューから、はじめのウォークスルーをもう一度見ているあいだ（データはそのまま）
   const [replaying, setReplaying] = useState(false);
@@ -77,7 +80,14 @@ export function App() {
   );
 
   useEffect(() => {
-    const onHash = () => { setRoute(routeFromHash()); window.scrollTo(0, 0); };
+    const onHash = () => {
+      const next = routeFromHash();
+      // メニューから開いたページから戻ったら（戻るボタンでも、ブラウザの戻るでも）、メニューを開いた状態に戻す
+      if (fromMenu.current && isMain(next)) setMenuOpen(true);
+      fromMenu.current = fromMenu.current && next === fromMenu.current ? fromMenu.current : null;
+      setRoute(next);
+      window.scrollTo(0, 0);
+    };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
@@ -160,6 +170,7 @@ export function App() {
           window.scrollTo(0, 0);
           return;
         }
+        fromMenu.current = r;
         go(r);
       }} />
       <ConfirmHost />
