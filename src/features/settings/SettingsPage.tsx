@@ -104,7 +104,7 @@ export function SettingsPage({ page, data, current }: { page: SettingsPageId; da
                 <ListItemIcon sx={{ minWidth: 36 }}>{a.kind === 'card' ? <CreditCardIcon fontSize="small" /> : <AccountBalanceIcon fontSize="small" />}</ListItemIcon>
                 <ListItemText primary={a.name}
                   secondary={a.kind === 'card'
-                    ? `${a.confirmDay ? `${a.confirmDay}日確定・` : ''}${a.withdrawDay ?? '?'}日引落 → ${accName(a.withdrawAccountId)}`
+                    ? `${a.closingDay ? `${a.closingDay === 31 ? '末日' : `${a.closingDay}日`}締め・` : ''}${a.withdrawDay ?? '?'}日引落 → ${accName(a.withdrawAccountId)}`
                     : '銀行口座'} />
                 {a.archived && <ArchivedChip />}
               </ListItemButton>

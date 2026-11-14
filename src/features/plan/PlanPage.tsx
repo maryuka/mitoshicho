@@ -8,8 +8,8 @@ import {
 import { useMemo, useState, type ReactNode } from 'react';
 import { bigExpenses, summarize, type BigExpense, type CategoryRow, type PeriodSummary } from '../../domain/cashflow';
 import { addPeriods, periodLabel, periodRule, periodStart } from '../../domain/period';
-import { DRIFT_LABEL, driftHints, monthDrifts, type Drift, type DriftHint } from '../../domain/review';
-import type { AppData, CategoryKind } from '../../domain/types';
+import { DRIFT_LABEL, driftHints, type DriftHint } from '../../domain/review';
+import type { AppData, CategoryActual, CategoryKind } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { yen } from '../../lib/money';
 import { MoneyField } from '../../components/MoneyField';
@@ -31,7 +31,8 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
   const big = useMemo(() => bigExpenses(data, period), [data, period]);
   const prev = addPeriods(period, -1);
-  const drifts = useMemo(() => new Map(monthDrifts(data, prev).map((d) => [d.category.id, d])), [data, prev]);
+  // 先月の実績（ふりかえりで入れた合計と、付けた理由・メモ）。カテゴリごと
+  const lastMonth = useMemo(() => new Map(data.categoryActuals.filter((a) => a.periodId === prev).map((a) => [a.categoryId, a])), [data, prev]);
   // この月の前の3か月で続いているずれ（ふりかえりの「改善のヒント」と同じもの）。カテゴリごとに1つ
   const hints = useMemo(() => {
     const m = new Map<string, DriftHint>();
@@ -107,7 +108,7 @@ export function PlanPage({ data, period, setPeriod, current, menu }: {
         <CardHeader title="カテゴリごとの予算" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }}
           subheader="開くと、項目ごとにこの月だけの金額に変えられるよ" subheaderTypographyProps={{ variant: 'caption' }} sx={{ pb: 0 }} />
         <CardContent sx={{ pt: 1, pb: '8px !important' }}>
-          {expense.map((c) => <CategoryRowView key={c.category.id} row={c} drift={drifts.get(c.category.id)} hint={hints.get(c.category.id)} period={period} data={data} />)}
+          {expense.map((c) => <CategoryRowView key={c.category.id} row={c} last={lastMonth.get(c.category.id)} hint={hints.get(c.category.id)} period={period} data={data} />)}
           {others.length > 0 && (
             <>
               <Typography variant="caption" color="text.secondary" fontWeight={700} component="p" sx={{ mt: 2, mb: 0.5 }}>収入・返済・積み立て</Typography>
@@ -204,9 +205,9 @@ function Figure({ label, value }: { label: string; value: number }) {
   );
 }
 
-/** カテゴリ1行。先月のずれがあれば小さく添える。開くと項目ごとの金額 */
-function CategoryRowView({ row, drift, hint, period, data }: {
-  row: CategoryRow; drift?: Drift; hint?: DriftHint; period: string; data: AppData;
+/** カテゴリ1行。先月の実績（使った金額と、付けた理由・メモ）があれば小さく添える。開くと項目ごとの金額 */
+function CategoryRowView({ row, last, hint, period, data }: {
+  row: CategoryRow; last?: CategoryActual; hint?: DriftHint; period: string; data: AppData;
 }) {
   return (
     <Accordion disableGutters elevation={0} sx={{ bgcolor: 'transparent', '&::before': { display: 'none' }, borderBottom: 1, borderColor: 'divider' }}>
@@ -220,9 +221,9 @@ function CategoryRowView({ row, drift, hint, period, data }: {
             </Stack>
             <Typography fontWeight={700} sx={{ flexShrink: 0, mr: 1 }}>{yen(row.planned)}</Typography>
           </Stack>
-          {drift && (
+          {last && (
             <Chip size="small" variant="outlined" sx={{ mt: 0.5, height: 22, fontSize: 11, maxWidth: '100%' }}
-              label={`先月 ${drift.diff > 0 ? '+' : '-'}${yen(Math.abs(drift.diff))}${drift.kind ? `・${DRIFT_LABEL[drift.kind]}` : ''}${drift.memo ? `「${drift.memo}」` : ''}`} />
+              label={`先月 ${yen(last.amount)}${last.driftKind ? `・${DRIFT_LABEL[last.driftKind]}` : ''}${last.memo ? `「${last.memo}」` : ''}`} />
           )}
         </Box>
       </AccordionSummary>
