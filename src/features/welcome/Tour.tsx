@@ -23,7 +23,7 @@ export const TOUR_STEPS: TourStep[] = [
   { route: 'home', target: 'big', optional: true,
     text: '旅行・帰省・年払いなどの大きい出費は、先の予定として見えるよ。先が見えるから、今を気持ちよく使えるね。' },
   { route: 'payday', target: 'payday',
-    text: '給料日には、入金の確認・立替の回収・口座への振り分けを順にチェックしていくよ。メニューからも開けるよ。' },
+    text: '給料日には、入金の確認・口座への振り分け・やることを順にチェックしていくよ。メニューからも開けるよ。' },
   { route: 'plan', offset: 1, target: 'plan-big',
     text: '「計画」では、その月の大きい出費とカテゴリごとの予算をざっくり決めるよ。旅行の月は、ここに先に入れておこう。' },
   { route: 'budget', offset: -1, target: 'review-steps',

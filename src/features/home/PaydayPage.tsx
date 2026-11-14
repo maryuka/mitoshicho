@@ -8,7 +8,7 @@ import { PaydayPanel } from './PaydayPanel';
 
 const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
 
-/** 給料日のチェック: 入金・立替の回収・口座への振り分け・チェックリスト */
+/** 給料日のチェック: 入金・口座への振り分け・チェックリスト */
 export function PaydayPage({ data, current }: { data: AppData; current: string }) {
   const s = useMemo(() => summarize(data, current, current), [data, current]);
   const startDay = periodRule(data.settings);
