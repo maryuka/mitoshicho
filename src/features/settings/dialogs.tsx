@@ -11,7 +11,8 @@ import {
 } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { countBetween, endAfterCount, itemArchivePatch, itemSchedule, type ScheduleRow } from '../../domain/items';
-import { addPeriods, comparePeriods, periodFromLabel, periodYearLabel, periodRule, type StartDay } from '../../domain/period';
+import { addPeriods, comparePeriods, dayOf, periodFromLabel, periodLabel, periodOf, periodYearLabel, periodRule, type StartDay } from '../../domain/period';
+import { cardBillLag } from '../../domain/cashflow';
 import type { Account, AmountChange, AppData, Category, CategoryKind, ChecklistTemplate, HolidayShift, Item, Recurrence } from '../../domain/types';
 import { db, newId } from '../../db/db';
 import { patchEntry } from '../../db/ops';
@@ -81,13 +82,18 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
   const [withdrawShift, setWithdrawShift] = useState<HolidayShift>(value ? value.withdrawShift ?? 'none' : 'after');
   const [withdrawAccountId, setWithdrawAccountId] = useState(value?.withdrawAccountId ?? '');
   const [lag, setLag] = useState(value?.billLagPeriods ?? 1);
+  // 新しいカードは末日締めにしておく。以前のカード（締め日なし）は、締め日を選ぶまで「請求のタイミング」で数える
+  const [closingDay, setClosingDay] = useState<number | undefined>(value ? value.closingDay : 31);
+  const startDay = periodRule(data.settings);
+  const current = periodOf(new Date(), startDay);
+  const billIn = addPeriods(current, cardBillLag({ closingDay, withdrawDay, billLagPeriods: lag }, dayOf(startDay)));
   const banks = data.accounts.filter((a) => a.kind === 'bank' && a.id !== value?.id);
   const valid = name.trim() !== '';
 
   const save = async () => {
     const base = { id: value?.id ?? newId(), name: name.trim(), kind, sortOrder: value?.sortOrder ?? nextOrder(data.accounts), archived: value?.archived ?? false };
     await db.accounts.put(kind === 'card'
-      ? { ...base, withdrawDay, withdrawShift, confirmDay, withdrawAccountId: withdrawAccountId || undefined, billLagPeriods: lag }
+      ? { ...base, withdrawDay, withdrawShift, confirmDay, closingDay, withdrawAccountId: withdrawAccountId || undefined, billLagPeriods: lag }
       : base);
     onClose();
   };
@@ -106,9 +112,20 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
           {kind === 'card' && (
             <>
               <Stack direction="row" spacing={1}>
-                <DayField id="acc-withdraw-day" label="引落日（毎月）" value={withdrawDay} onChange={setWithdrawDay} />
-                <DayField id="acc-confirm-day" label="請求確定日（毎月）" value={confirmDay} onChange={setConfirmDay} />
+                <TextField id="acc-closing-day" select label="締め日（毎月）" value={closingDay ?? ''} fullWidth
+                  onChange={(e) => setClosingDay(e.target.value === '' ? undefined : Number(e.target.value))}>
+                  <MenuItem value="">（未設定）</MenuItem>
+                  {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => <MenuItem key={d} value={d}>{d}日</MenuItem>)}
+                  <MenuItem value={31}>末日</MenuItem>
+                </TextField>
+                <DayField id="acc-withdraw-day" label="引落日（翌月）" value={withdrawDay} onChange={setWithdrawDay} />
               </Stack>
+              <Typography variant="caption" color="text.secondary">
+                {closingDay !== undefined && withdrawDay !== undefined
+                  ? `明細の「${closingDay === 31 ? '末日' : `${closingDay}日`}締め・翌月${withdrawDay}日払い」のとおり。${periodLabel(current, startDay)}に使った分は、${periodLabel(billIn, startDay)}の月に引き落とされる計算になります。`
+                  : '締め日を入れると、使った月のいつ引き落とされるかを自動で決めます。'}
+              </Typography>
+              <DayField id="acc-confirm-day" label="請求確定日（毎月）" value={confirmDay} onChange={setConfirmDay} />
               <TextField id="acc-withdraw-shift" select label="引落日が土日・祝日のとき" value={withdrawShift}
                 onChange={(e) => setWithdrawShift(e.target.value as HolidayShift)} fullWidth>
                 <MenuItem value="after">後の平日にずらす</MenuItem>
@@ -122,11 +139,13 @@ export function AccountDialog({ value, data, onClose }: { value?: Account; data:
                 <MenuItem value="">（未設定）</MenuItem>
                 {banks.map((b) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
               </TextField>
-              <TextField id="acc-lag" select label="請求のタイミング" value={lag} onChange={(e) => setLag(Number(e.target.value))} fullWidth>
-                <MenuItem value={0}>使った月と同じ月に引落</MenuItem>
-                <MenuItem value={1}>使った月の翌月に引落</MenuItem>
-                <MenuItem value={2}>使った月の2か月後に引落</MenuItem>
-              </TextField>
+              {closingDay === undefined && (
+                <TextField id="acc-lag" select label="請求のタイミング" value={lag} onChange={(e) => setLag(Number(e.target.value))} fullWidth>
+                  <MenuItem value={0}>使った月と同じ月に引落</MenuItem>
+                  <MenuItem value={1}>使った月の翌月に引落</MenuItem>
+                  <MenuItem value={2}>使った月の2か月後に引落</MenuItem>
+                </TextField>
+              )}
             </>
           )}
         </Stack>

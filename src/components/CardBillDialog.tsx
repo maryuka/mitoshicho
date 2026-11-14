@@ -4,8 +4,8 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useState } from 'react';
-import type { CardBillRow } from '../domain/cashflow';
-import { periodLabel, toISODate, type StartDay } from '../domain/period';
+import { cardBillLag, type CardBillRow } from '../domain/cashflow';
+import { dayOf, periodLabel, toISODate, type StartDay } from '../domain/period';
 import { saveCardBill } from '../db/ops';
 import { signedYen, yen } from '../lib/money';
 import { MoneyField } from './MoneyField';
@@ -55,7 +55,7 @@ export function CardBillDialog({ periodId, bill, startDay, onClose }: {
           {bill.forecastBreakdown.length > 0 && (
             <Accordion disableGutters variant="outlined">
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="body2">予測の内訳（先月のカード払い）</Typography>
+                <Typography variant="body2">予測の内訳（{['この月', '先月', '先々月'][cardBillLag(bill.card, dayOf(startDay))] ?? '前'}のカード払い）</Typography>
               </AccordionSummary>
               <AccordionDetails sx={{ pt: 0 }}>
                 <List dense disablePadding>

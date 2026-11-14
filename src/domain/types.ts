@@ -44,7 +44,9 @@ export interface Account {
   confirmDay?: number;
   /** card: 引落口座 */
   withdrawAccountId?: string;
-  /** card: 使った期の何期あとに請求されるか（既定 1） */
+  /** card: 締め日（毎月）。31 は末日。引落日とあわせて、使った月の何か月あとに引き落とされるかを決める */
+  closingDay?: number;
+  /** card: 使った期の何期あとに請求されるか（既定 1）。締め日がないとき（以前のデータ）だけ使う */
   billLagPeriods?: number;
   sortOrder: number;
   archived: boolean;

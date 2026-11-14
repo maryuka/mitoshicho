@@ -1,6 +1,6 @@
 // 期ごとの集計。スプシの SUM 手書きをすべてここで置き換える（純粋関数）。
 import { shiftBusinessDay } from './holidays';
-import { addPeriods, comparePeriods, dateInPeriod, lastDayBefore, parseISODate, parsePeriod, periodRule } from './period';
+import { addPeriods, comparePeriods, dateInPeriod, dayOf, lastDayBefore, parseISODate, parsePeriod, periodRule } from './period';
 import type { Account, AppData, Category, CategoryActual, CategoryKind, ChecklistTemplate, Entry, Item, Settings } from './types';
 
 /** その月のいつもの金額（途中からの金額の変更を反映。月ごとの上書きは含まない） */
@@ -205,6 +205,25 @@ export function categoryActualId(pid: string, categoryId: string): string {
   return `${pid}:${categoryId}`;
 }
 
+/**
+ * カードで使ったお金が、使った月（給料日からの1か月）の何か月あとに引き落とされるか。
+ * 締め日と引落日があれば、1か月のまん中の日を含む締めの、翌月の引落日で決める（「◯日締め・翌月◯日払い」）。
+ * 月の長さで結果がぶれないよう、決まった月（4月始まり）で数える。締め日がなければ、以前の「請求のタイミング」を使う
+ */
+export function cardBillLag(card: Pick<Account, 'closingDay' | 'withdrawDay' | 'billLagPeriods'>, periodStartDay: number): number {
+  const { closingDay, withdrawDay } = card;
+  if (closingDay === undefined || withdrawDay === undefined) return card.billLagPeriods ?? 1;
+  const dim = (y: number, m: number) => new Date(y, m + 1, 0).getDate(); // m は 0 始まり
+  const at = (y: number, m: number, d: number) => { const first = new Date(y, m, 1); return new Date(first.getFullYear(), first.getMonth(), Math.min(d, dim(first.getFullYear(), first.getMonth()))); };
+  const center = new Date(2001, 3, periodStartDay + 15);
+  let close = at(center.getFullYear(), center.getMonth(), closingDay);
+  if (center > close) close = at(close.getFullYear(), close.getMonth() + 1, closingDay);
+  const withdraw = at(close.getFullYear(), close.getMonth() + 1, withdrawDay);
+  // 引落日が入る月（給料日からの1か月）の、始まりの月
+  const startMonth = withdraw.getFullYear() * 12 + withdraw.getMonth() - (withdraw.getDate() >= periodStartDay ? 0 : 1);
+  return Math.max(0, startMonth - (2001 * 12 + 3));
+}
+
 export function cardBillRows(data: AppData, pid: string, idx = buildIndex(data)): CardBillRow[] {
   const cards = data.accounts.filter((a) => a.kind === 'card').sort(byOrder);
   const prevRows = new Map<number, ItemRow[]>();
@@ -214,7 +233,7 @@ export function cardBillRows(data: AppData, pid: string, idx = buildIndex(data))
   };
   const result: CardBillRow[] = [];
   for (const card of cards) {
-    const lag = card.billLagPeriods ?? 1;
+    const lag = cardBillLag(card, dayOf(periodRule(data.settings)));
     const charged = rowsFor(lag).filter((r) => r.viaCard && r.source?.id === card.id && r.effective !== 0);
     const forecast = charged.reduce((s, r) => s + r.effective, 0);
     const bill = data.cardBills.find((b) => b.periodId === pid && b.cardId === card.id);

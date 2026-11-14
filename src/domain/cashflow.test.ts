@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bigExpenses, cardBillRows, cardTodos, homeBigExpenses, outflows, outlook, summarize, itemOccurs } from './cashflow';
+import { bigExpenses, cardBillLag, cardBillRows, cardTodos, homeBigExpenses, outflows, outlook, summarize, itemOccurs } from './cashflow';
 import { addPeriods, dateInPeriod, lastDayBefore, periodLabel, periodOf, periodStart, periodYearLabel } from './period';
 import { DEFAULT_SETTINGS, type AppData, type Item } from './types';
 
@@ -302,5 +302,24 @@ describe('bigExpenses / outlook', () => {
     expect(homeBigExpenses(o, d.settings).map((b) => b.item.id)).toEqual(['rent']);
     expect(homeBigExpenses(o, d.settings)[0].date).toEqual(dateInPeriod('2026-04', 15, 27));
     expect(homeBigExpenses(o, { ...d.settings, home: { bigMinYen: 5000 } }).map((b) => b.item.id)).toEqual(['fee', 'rent']);
+  });
+});
+
+describe('締め日から、使った月の何か月あとに引き落とされるか', () => {
+  it('給料日15日・末日締め・翌月26日払いなら翌月', () => {
+    expect(cardBillLag({ closingDay: 31, withdrawDay: 26 }, 15)).toBe(1);
+  });
+  it('給料日15日・15日締め・翌月10日払いも翌月（12/10 は 11/15 からの1か月に入る）', () => {
+    expect(cardBillLag({ closingDay: 15, withdrawDay: 10 }, 15)).toBe(1);
+  });
+  it('給料日25日・末日締め・翌月27日払いなら2か月あと', () => {
+    expect(cardBillLag({ closingDay: 31, withdrawDay: 27 }, 25)).toBe(2);
+  });
+  it('暦月（1日始まり）・15日締め・翌月10日払いなら2か月あと', () => {
+    expect(cardBillLag({ closingDay: 15, withdrawDay: 10 }, 1)).toBe(2);
+  });
+  it('締め日がなければ、以前の「請求のタイミング」を使う', () => {
+    expect(cardBillLag({ withdrawDay: 26, billLagPeriods: 2 }, 15)).toBe(2);
+    expect(cardBillLag({ withdrawDay: 26 }, 15)).toBe(1);
   });
 });
