@@ -19,7 +19,6 @@ import { KITSUNE } from '../../components/Kitsune';
 export function PaydayPanel({ data, period, current }: { data: AppData; period: string; current: string }) {
   const s = useMemo(() => summarize(data, period, current), [data, period, current]);
   const incomes = s.categories.filter((c) => c.kind === 'income');
-  const receivables = data.receivables.filter((r) => r.expectedPeriod === period);
   const done = new Set(data.checklistDone.filter((c) => c.periodId === period).map((c) => c.key));
   const templates = data.checklistTemplates.filter((t) => checklistOccurs(t, period)).sort((a, b) => a.sortOrder - b.sortOrder);
 
@@ -63,16 +62,7 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
         </Stack>
       </Step>
 
-      <Step no={2} title="立替・経費精算の回収">
-        {receivables.length === 0 && <Empty>この月に回収予定のものはありません</Empty>}
-        {receivables.map((r) => (
-          <CheckRow key={r.id} checked={!!r.receivedAt} label={r.title} amount={r.amount}
-            onChange={(c) => db.receivables.update(r.id, { receivedAt: c ? new Date().toISOString() : undefined })} />
-        ))}
-        <Link href="#receivables" variant="body2" underline="hover">立替を追加・一覧</Link>
-      </Step>
-
-      <Step no={3} title="振り分け（各口座へ送金）">
+      <Step no={2} title="振り分け（各口座へ送金）">
         {s.allocation.length === 0 && s.unassigned.amount === 0 && <Empty>口座払いの項目がありません</Empty>}
         {s.unconfirmedCardBills > 0 && (
           <Typography variant="caption" color="text.secondary">
@@ -130,7 +120,7 @@ export function PaydayPanel({ data, period, current }: { data: AppData; period: 
         )}
       </Step>
 
-      <Step no={4} title="チェックリスト">
+      <Step no={3} title="チェックリスト">
         {templates.length === 0 && <Empty>やることはありません。毎月のものはメニューの「給料日のチェックリスト」で登録できます</Empty>}
         {templates.map((t) => (
           <Stack key={t.id} direction="row" alignItems="center">
