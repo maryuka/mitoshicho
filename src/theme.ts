@@ -1,10 +1,11 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 import { useEffect, useMemo, useState } from 'react';
 
-// ライトは狐に合わせたオレンジと黄色。ダークは黒に近い無彩色を背景にし、オレンジと黄色はアクセントだけに使う
+// ライトは狐に合わせたオレンジと黄色。ダークは黒に近い無彩色を背景にし、オレンジと黄色はアクセントに使う。
+// ホーム上部の帯（hero）だけは、ダークでもオレンジにして狐が明るい色に乗るようにする
 const palette = {
   light: { primary: '#ea7d12', bg: '#fffaf0', paper: '#ffffff', text: '#3b2a17', muted: '#8c7558', divider: '#f1e4cc', error: '#d9480f', success: '#3f9a4a', warning: '#c77700', hero: '#f7a531', heroText: '#ffffff', soft: '#fff3c4', bubble: '#ffffff', scrim: 'rgba(59, 42, 23, 0.6)' },
-  dark: { primary: '#ffad4d', bg: '#0b0b0c', paper: '#161618', text: '#ededef', muted: '#a1a1aa', divider: '#2a2a2e', error: '#ff8a5b', success: '#6bcf77', warning: '#ffd23f', hero: '#161617', heroText: '#ededef', soft: '#232325', bubble: '#232325', scrim: 'rgba(0, 0, 0, 0.72)' },
+  dark: { primary: '#ffad4d', bg: '#0b0b0c', paper: '#161618', text: '#ededef', muted: '#a1a1aa', divider: '#2a2a2e', error: '#ff8a5b', success: '#6bcf77', warning: '#ffd23f', hero: '#e98b1d', heroText: '#ffffff', soft: '#232325', bubble: '#232325', scrim: 'rgba(0, 0, 0, 0.72)' },
 };
 
 /** 丸ゴシック。index.html で Google Fonts から読み込む（読めないときは端末の丸ゴシック・ゴシック） */
